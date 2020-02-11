@@ -1,0 +1,9 @@
+[submodule "loader"]
+	path = external/OpenCL-ICD-Loader
+	url = https://github.com/KhronosGroup/OpenCL-ICD-Loader.git
+[submodule "headers"]
+	path = external/OpenCL-Headers
+	url = https://github.com/KhronosGroup/OpenCL-Headers.git
+[submodule "headers-cpp"]
+	path = external/OpenCL-CLHPP
+	url = https://github.com/KhronosGroup/OpenCL-CLHPP.git
