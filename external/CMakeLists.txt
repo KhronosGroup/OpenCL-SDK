@@ -1,0 +1,22 @@
+if(SDK_EXTERNAL_UPDATE) # Tedious inversion of logic
+  set(DISCONNECT OFF)
+else()
+set(DISCONNECT ON)
+endif()
+
+include(ExternalProject)
+
+ExternalProject_Add(OpenCL-Headers
+  PREFIX ${PROJECT_BINARY_DIR}
+  GIT_REPOSITORY https://github.com/MathiasMagnus/OpenCL-Headers.git
+  UPDATE_DISCONNECTED ${DISCONNECT}
+  UPDATE_COMMAND ""
+  LIST_SEPARATOR |
+  CMAKE_ARGS
+    "-Wno-dev"
+    "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
+    "-DCMAKE_PREFIX_PATH=${PROJECT_BINARY_DIR}|${CMAKE_PREFIX_PATH_ALT_SEP}"
+    "-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>"
+    "-DBUILD_TEST=OFF"
+  TEST_EXCLUDE_FROM_MAIN ON
+)
