@@ -1,0 +1,12 @@
+file(
+  READ
+    ${INPUT_FILE}
+  INPUT_STRING
+)
+set(${VAR_NAME}
+  ${INPUT_STRING}
+)
+configure_file(
+  ${CONFIG_FILE}
+  ${OUTPUT_FILE}
+)
