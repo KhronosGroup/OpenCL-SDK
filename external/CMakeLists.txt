@@ -1,7 +1,7 @@
 if(SDK_EXTERNAL_UPDATE) # Tedious inversion of logic
   set(DISCONNECT OFF)
 else()
-set(DISCONNECT ON)
+  set(DISCONNECT ON)
 endif()
 
 include(ExternalProject)
@@ -9,14 +9,31 @@ include(ExternalProject)
 ExternalProject_Add(OpenCL-Headers
   PREFIX ${PROJECT_BINARY_DIR}
   GIT_REPOSITORY https://github.com/MathiasMagnus/OpenCL-Headers.git
+  GIT_TAG origin/pkgconfig
   UPDATE_DISCONNECTED ${DISCONNECT}
-  UPDATE_COMMAND ""
+  #UPDATE_COMMAND ""
+  LIST_SEPARATOR |
+  CMAKE_ARGS
+    "-Wno-dev"
+    "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
+    "-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>"
+  TEST_EXCLUDE_FROM_MAIN ON
+)
+
+ExternalProject_Add(OpenCL-Headers-Cpp
+  PREFIX ${PROJECT_BINARY_DIR}
+  GIT_REPOSITORY https://github.com/MathiasMagnus/OpenCL-CLHPP.git
+  GIT_TAG externalize
+  UPDATE_DISCONNECTED ${DISCONNECT}
+  #UPDATE_COMMAND ""
   LIST_SEPARATOR |
   CMAKE_ARGS
     "-Wno-dev"
     "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
     "-DCMAKE_PREFIX_PATH=${PROJECT_BINARY_DIR}|${CMAKE_PREFIX_PATH_ALT_SEP}"
     "-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>"
-    "-DBUILD_TEST=OFF"
+    "-DBUILD_DOCS=OFF"
+    "-DBUILD_EXAMPLES=OFF"
+    "-DBUILD_TESTS=OFF"
   TEST_EXCLUDE_FROM_MAIN ON
 )
