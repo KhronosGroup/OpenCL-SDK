@@ -1,6 +1,4 @@
 build/
-external/*
-!external/CMakeLists.txt
 
 .vscode
 *.code-workspace
