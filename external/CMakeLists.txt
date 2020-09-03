@@ -11,7 +11,7 @@ include(ExternalProject)
 
 ExternalProject_Add(OpenCL-Headers
   GIT_REPOSITORY https://github.com/MathiasMagnus/OpenCL-Headers.git
-  GIT_TAG origin/pkgconfig
+  GIT_TAG pkgconfig
   GIT_SUBMODULES ""
   PREFIX ${PROJECT_BINARY_DIR}
   SOURCE_DIR ${PROJECT_SOURCE_DIR}/external/OpenCL-Headers
@@ -45,7 +45,7 @@ file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/include)
 
 ExternalProject_Add(OpenCL-CLHPP
   GIT_REPOSITORY https://github.com/MathiasMagnus/OpenCL-CLHPP.git
-  GIT_TAG origin/pkgconfig
+  GIT_TAG pkgconfig
   GIT_SUBMODULES ""
   PREFIX ${PROJECT_BINARY_DIR}
   SOURCE_DIR ${PROJECT_SOURCE_DIR}/external/OpenCL-CLHPP
@@ -80,7 +80,7 @@ add_dependencies(OpenCL::HeadersCpp
 
 ExternalProject_Add(OpenCL-ICD-Loader
   GIT_REPOSITORY https://github.com/MathiasMagnus/OpenCL-ICD-Loader.git
-  GIT_TAG origin/pkgconfig
+  GIT_TAG pkgconfig
   GIT_SUBMODULES ""
   PREFIX ${PROJECT_BINARY_DIR}
   SOURCE_DIR ${PROJECT_SOURCE_DIR}/external/OpenCL-ICD-Loader
