@@ -2,6 +2,9 @@ if(SDK_EXTERNAL_UPDATE) # Tedious inversion of logic
   set(DISCONNECT OFF)
 else()
   set(DISCONNECT ON)
+  if(${CMAKE_VERSION} VERSION_LESS "3.8.0") # Bug: https://gitlab.kitware.com/cmake/cmake/issues/16428
+    set(UPDATE_COMMAND_ARG [[UPDATE_COMMAND ""]])
+  endif()
 endif()
 
 include(ExternalProject)
@@ -13,7 +16,7 @@ ExternalProject_Add(OpenCL-Headers
   PREFIX ${PROJECT_BINARY_DIR}
   SOURCE_DIR ${PROJECT_SOURCE_DIR}/external/OpenCL-Headers
   UPDATE_DISCONNECTED ${DISCONNECT}
-  #UPDATE_COMMAND ""
+  ${UPDATE_COMMAND_ARG}
   LIST_SEPARATOR |
   CMAKE_ARGS
     "-Wno-dev"
@@ -47,7 +50,7 @@ ExternalProject_Add(OpenCL-CLHPP
   PREFIX ${PROJECT_BINARY_DIR}
   SOURCE_DIR ${PROJECT_SOURCE_DIR}/external/OpenCL-CLHPP
   UPDATE_DISCONNECTED ${DISCONNECT}
-  #UPDATE_COMMAND ""
+  ${UPDATE_COMMAND_ARG}
   LIST_SEPARATOR |
   CMAKE_ARGS
     "-Wno-dev"
@@ -82,7 +85,7 @@ ExternalProject_Add(OpenCL-ICD-Loader
   PREFIX ${PROJECT_BINARY_DIR}
   SOURCE_DIR ${PROJECT_SOURCE_DIR}/external/OpenCL-ICD-Loader
   UPDATE_DISCONNECTED ${DISCONNECT}
-  #UPDATE_COMMAND ""
+  ${UPDATE_COMMAND_ARG}
   LIST_SEPARATOR |
   CMAKE_ARGS
     "-Wno-dev"
