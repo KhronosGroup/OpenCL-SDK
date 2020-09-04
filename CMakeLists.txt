@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.0)
-cmake_policy(VERSION 3.0...3.18)
+cmake_minimum_required(VERSION 3.11) # specify include directories for imported target
+cmake_policy(VERSION 3.11...3.18)
 
 project(OpenCL-SDK)
 

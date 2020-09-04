@@ -110,11 +110,18 @@ target_link_libraries(OpenCL::ICD
     OpenCL
 )
 
-target_link_directories(OpenCL::ICD
-  INTERFACE
-    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/lib>
-    $<INSTALL_INTERFACE:lib>
-)
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.13")
+  target_link_directories(OpenCL::ICD
+    INTERFACE
+      $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/lib>
+      $<INSTALL_INTERFACE:lib>
+  )
+else()
+  set_target_properties(OpenCL::ICD
+    PROPERTIES
+      INTERFACE_LINK_DIRECTORIES ${PROJECT_BINARY_DIR}/lib
+  )
+endif()
 
 add_dependencies(OpenCL::ICD
   OpenCL-ICD-Loader
