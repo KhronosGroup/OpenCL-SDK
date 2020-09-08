@@ -43,41 +43,6 @@ add_dependencies(OpenCL::Headers
 
 file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/include)
 
-ExternalProject_Add(OpenCL-CLHPP
-  GIT_REPOSITORY https://github.com/MathiasMagnus/OpenCL-CLHPP.git
-  GIT_TAG pkgconfig
-  GIT_SUBMODULES ""
-  PREFIX ${PROJECT_BINARY_DIR}
-  SOURCE_DIR ${PROJECT_SOURCE_DIR}/external/OpenCL-CLHPP
-  UPDATE_DISCONNECTED ${DISCONNECT}
-  ${UPDATE_COMMAND_ARG}
-  LIST_SEPARATOR |
-  CMAKE_ARGS
-    "-Wno-dev"
-    "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
-    "-DCMAKE_PREFIX_PATH=${PROJECT_BINARY_DIR}|${CMAKE_PREFIX_PATH_ALT_SEP}"
-    "-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>"
-    "-DBUILD_DOCS=OFF"
-    "-DBUILD_EXAMPLES=OFF"
-    "-DBUILD_TESTS=OFF"
-  TEST_EXCLUDE_FROM_MAIN ON
-)
-
-add_library(OpenCL::HeadersCpp
-  INTERFACE
-  IMPORTED
-  GLOBAL
-)
-
-target_link_libraries(OpenCL::HeadersCpp
-  INTERFACE
-    OpenCL::Headers
-)
-
-add_dependencies(OpenCL::HeadersCpp
-  OpenCL-CLHPP
-)
-
 ExternalProject_Add(OpenCL-ICD-Loader
   GIT_REPOSITORY https://github.com/MathiasMagnus/OpenCL-ICD-Loader.git
   GIT_TAG pkgconfig
@@ -98,31 +63,69 @@ ExternalProject_Add(OpenCL-ICD-Loader
   DEPENDS OpenCL-Headers
 )
 
-add_library(OpenCL::ICDLoader
+add_library(OpenCL::ICD
   INTERFACE
   IMPORTED
   GLOBAL
 )
 
-target_link_libraries(OpenCL::ICDLoader
+target_link_libraries(OpenCL::ICD
   INTERFACE
     OpenCL::Headers
     OpenCL
 )
 
 if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.13")
-  target_link_directories(OpenCL::ICDLoader
+  target_link_directories(OpenCL::ICD
     INTERFACE
       $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/lib>
       $<INSTALL_INTERFACE:lib>
   )
 else()
-  set_target_properties(OpenCL::ICDLoader
+  set_target_properties(OpenCL::ICD
     PROPERTIES
       INTERFACE_LINK_DIRECTORIES ${PROJECT_BINARY_DIR}/lib
   )
 endif()
 
-add_dependencies(OpenCL::ICDLoader
+add_dependencies(OpenCL::ICD
   OpenCL-ICD-Loader
+)
+
+ExternalProject_Add(OpenCL-CLHPP
+  GIT_REPOSITORY https://github.com/MathiasMagnus/OpenCL-CLHPP.git
+  GIT_TAG pkgconfig
+  GIT_SUBMODULES ""
+  PREFIX ${PROJECT_BINARY_DIR}
+  SOURCE_DIR ${PROJECT_SOURCE_DIR}/external/OpenCL-CLHPP
+  UPDATE_DISCONNECTED ${DISCONNECT}
+  ${UPDATE_COMMAND_ARG}
+  LIST_SEPARATOR |
+  CMAKE_ARGS
+    "-Wno-dev"
+    "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
+    "-DCMAKE_PREFIX_PATH=${PROJECT_BINARY_DIR}|${CMAKE_PREFIX_PATH_ALT_SEP}"
+    "-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>"
+    "-DBUILD_DOCS=OFF"
+    "-DBUILD_EXAMPLES=OFF"
+    "-DBUILD_TESTS=OFF"
+  TEST_EXCLUDE_FROM_MAIN ON
+  DEPENDS
+    OpenCL-Headers
+    OpenCL-ICD-Loader
+)
+
+add_library(OpenCL::HeadersCpp
+  INTERFACE
+  IMPORTED
+  GLOBAL
+)
+
+target_link_libraries(OpenCL::HeadersCpp
+  INTERFACE
+    OpenCL::Headers
+)
+
+add_dependencies(OpenCL::HeadersCpp
+  OpenCL-CLHPP
 )
