@@ -98,31 +98,31 @@ ExternalProject_Add(OpenCL-ICD-Loader
   DEPENDS OpenCL-Headers
 )
 
-add_library(OpenCL::ICD
+add_library(OpenCL::ICDLoader
   INTERFACE
   IMPORTED
   GLOBAL
 )
 
-target_link_libraries(OpenCL::ICD
+target_link_libraries(OpenCL::ICDLoader
   INTERFACE
     OpenCL::Headers
     OpenCL
 )
 
 if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.13")
-  target_link_directories(OpenCL::ICD
+  target_link_directories(OpenCL::ICDLoader
     INTERFACE
       $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/lib>
       $<INSTALL_INTERFACE:lib>
   )
 else()
-  set_target_properties(OpenCL::ICD
+  set_target_properties(OpenCL::ICDLoader
     PROPERTIES
       INTERFACE_LINK_DIRECTORIES ${PROJECT_BINARY_DIR}/lib
   )
 endif()
 
-add_dependencies(OpenCL::ICD
+add_dependencies(OpenCL::ICDLoader
   OpenCL-ICD-Loader
 )
