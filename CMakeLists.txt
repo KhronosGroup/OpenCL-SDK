@@ -9,3 +9,16 @@ option(SDK_EXTERNAL_UPDATE "Update step for external dependencies" ON)
 add_subdirectory(external)
 
 add_subdirectory(samples)
+
+include(GNUInstallDirs)
+
+foreach(CONFIGSCRIPT IN ITEMS
+  ${PROJECT_SOURCE_DIR}/cmake/OpenCLConfig.cmake
+  ${PROJECT_SOURCE_DIR}/cmake/OpenCLConfigVersion.cmake
+)
+  file(
+    COPY ${CONFIGSCRIPT}
+    DESTINATION ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_DATADIR}/cmake/OpenCL
+    PATTERN "cmake"
+  )
+endforeach()
