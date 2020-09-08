@@ -1,1 +1,1 @@
-add_subdirectory(1.2/enumopencl)
+add_subdirectory(enumopencl)
