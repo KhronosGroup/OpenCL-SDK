@@ -15,3 +15,6 @@
 # OpenCL is a trademark of Apple Inc. used under license by Khronos.
 
 add_subdirectory(enumopencl)
+add_subdirectory(copybuffer)
+add_subdirectory(copybufferkernel)
+

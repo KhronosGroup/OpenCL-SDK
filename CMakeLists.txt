@@ -33,6 +33,10 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}/install" CACHE PATH "Install Path" FORCE)
 endif()
 
+set(OPENCL_SDK_INCLUDE_DIRS
+    "${PROJECT_SOURCE_DIR}/external/OpenCL-Headers"
+    "${PROJECT_SOURCE_DIR}/external/OpenCL-CLHPP/include")
+
 add_subdirectory(${PROJECT_SOURCE_DIR}/external/OpenCL-ICD-Loader)
 add_subdirectory(${PROJECT_SOURCE_DIR}/samples/core)
 

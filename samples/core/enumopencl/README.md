@@ -9,6 +9,8 @@ Most of other samples use the OpenCL C++ API bindings, since they make it a lot 
 
 This is a good first sample to run to verify that OpenCL is correctly installed on your machine, and that your build environment is correctly setup.
 
+This sample was taken with permission from [SimpleOpenCLSamples](https://github.com/bashbaug/SimpleOpenCLSamples).
+
 ## Key APIs and Concepts
 
 The most important concepts to understand from this sample are OpenCL platforms and OpenCL devices:

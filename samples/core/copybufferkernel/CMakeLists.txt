@@ -14,7 +14,7 @@
 #
 # OpenCL is a trademark of Apple Inc. used under license by Khronos.
 
-set(SAMPLE_NAME enumopencl)
+set(SAMPLE_NAME copybufferkernel)
 
 project(${SAMPLE_NAME})
 add_executable(${SAMPLE_NAME} main.cpp)
@@ -23,6 +23,8 @@ target_include_directories(${SAMPLE_NAME} PRIVATE ${OPENCL_SDK_INCLUDE_DIRS})
 target_link_libraries(${SAMPLE_NAME} OpenCL)
 
 target_compile_definitions(${SAMPLE_NAME} PRIVATE CL_TARGET_OPENCL_VERSION=120)
+target_compile_definitions(${SAMPLE_NAME} PRIVATE CL_HPP_TARGET_OPENCL_VERSION=120)
+target_compile_definitions(${SAMPLE_NAME} PRIVATE CL_HPP_MINIMUM_OPENCL_VERSION=120)
 
 set_target_properties(${SAMPLE_NAME} PROPERTIES FOLDER "Samples/core/${SAMPLE_NAME}")
 
