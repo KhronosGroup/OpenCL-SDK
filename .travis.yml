@@ -9,8 +9,16 @@ os:
   - linux
   - osx
 
+jobs:
+  include:
+  - if: branch = master
+    os: linux
+    dist: bionic
+    env: JOB_CHECK_FORMAT=1
+    addons:
+        apt:
+          packages:
+            - clang-format-9
+
 script:
-  - mkdir -p build
-  - cd build
-  - cmake ..
-  - make
+  - ./scripts/travis.sh
