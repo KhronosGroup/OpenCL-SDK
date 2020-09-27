@@ -2,14 +2,11 @@
 
 ## Sample Purpose
 
-This is first example that uses OpenCL APIs to do work.
 In this very simple sample, OpenCL APIs are used to copy the contents of one buffer to another buffer on the OpenCL device.
 To do this, OpenCL APIs are used to create both buffers, to create the OpenCL command queue, and to initialize the source buffer and verify the contents of the destination buffer on the host.
 
 By default, this sample will run in the first enumerated OpenCL device on the first enumerated OpenCL platform.
 To run on a different OpenCL device or platform, please use the provided command line options.
-
-This sample was taken with permission from [SimpleOpenCLSamples](https://github.com/bashbaug/SimpleOpenCLSamples).
 
 ## Key APIs and Concepts
 

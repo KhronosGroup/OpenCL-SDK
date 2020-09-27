@@ -12,8 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * OpenCL is a trademark of Apple Inc. used under license by Khronos.
  */
 
 #include <stdio.h>
@@ -165,6 +163,7 @@ static cl_int PrintDeviceInfoSummary(cl_device_id* devices, size_t numDevices)
     char* deviceName = NULL;
     char* deviceVendor = NULL;
     char* deviceVersion = NULL;
+    char* deviceProfile = NULL;
     char* driverVersion = NULL;
 
     size_t i = 0;
@@ -179,6 +178,8 @@ static cl_int PrintDeviceInfoSummary(cl_device_id* devices, size_t numDevices)
         errorCode |= AllocateAndGetDeviceInfoString(
             devices[i], CL_DEVICE_VERSION, deviceVersion);
         errorCode |= AllocateAndGetDeviceInfoString(
+            devices[i], CL_DEVICE_PROFILE, deviceProfile);
+        errorCode |= AllocateAndGetDeviceInfoString(
             devices[i], CL_DRIVER_VERSION, driverVersion);
 
         if (errorCode == CL_SUCCESS)
@@ -190,6 +191,7 @@ static cl_int PrintDeviceInfoSummary(cl_device_id* devices, size_t numDevices)
             printf("\tName:           %s\n", deviceName);
             printf("\tVendor:         %s\n", deviceVendor);
             printf("\tDevice Version: %s\n", deviceVersion);
+            printf("\tDevice Profile: %s\n", deviceProfile);
             printf("\tDriver Version: %s\n", driverVersion);
         }
         else
@@ -201,6 +203,7 @@ static cl_int PrintDeviceInfoSummary(cl_device_id* devices, size_t numDevices)
         delete[] deviceName;
         delete[] deviceVendor;
         delete[] deviceVersion;
+        delete[] deviceProfile;
         delete[] driverVersion;
 
         deviceName = NULL;

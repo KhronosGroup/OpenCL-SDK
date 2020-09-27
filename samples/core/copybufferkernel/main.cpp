@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 The Khronos Group Inc.
+ * Copyright (sample) 2020 The Khronos Group Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,18 +12,19 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * OpenCL is a trademark of Apple Inc. used under license by Khronos.
  */
 
-#include <CL/cl2.hpp>
+#include <CL/opencl.hpp>
 
-cl::CommandQueue commandQueue;
-cl::Kernel kernel;
-cl::Buffer deviceMemSrc;
-cl::Buffer deviceMemDst;
+struct Sample
+{
+    cl::CommandQueue commandQueue;
+    cl::Kernel kernel;
+    cl::Buffer deviceMemSrc;
+    cl::Buffer deviceMemDst;
+};
 
-size_t gwx = 1024 * 1024;
+constexpr size_t bufferSize = 1024 * 1024;
 
 static const char kernelString[] = R"CLC(
 kernel void CopyBuffer( global uint* dst, global uint* src )
@@ -33,37 +34,38 @@ kernel void CopyBuffer( global uint* dst, global uint* src )
 }
 )CLC";
 
-static void init(void)
+static void init(Sample& sample)
 {
-    cl_uint* pSrc = (cl_uint*)commandQueue.enqueueMapBuffer(
-        deviceMemSrc, CL_TRUE, CL_MAP_WRITE_INVALIDATE_REGION, 0,
-        gwx * sizeof(cl_uint));
+    cl_uint* pSrc = (cl_uint*)sample.commandQueue.enqueueMapBuffer(
+        sample.deviceMemSrc, CL_TRUE, CL_MAP_WRITE_INVALIDATE_REGION, 0,
+        bufferSize * sizeof(cl_uint));
 
-    for (size_t i = 0; i < gwx; i++)
+    for (size_t i = 0; i < bufferSize; i++)
     {
         pSrc[i] = (cl_uint)(i);
     }
 
-    commandQueue.enqueueUnmapMemObject(deviceMemSrc, pSrc);
+    sample.commandQueue.enqueueUnmapMemObject(sample.deviceMemSrc, pSrc);
 }
 
-static void go()
+static void go(Sample& sample)
 {
-    kernel.setArg(0, deviceMemDst);
-    kernel.setArg(1, deviceMemSrc);
+    sample.kernel.setArg(0, sample.deviceMemDst);
+    sample.kernel.setArg(1, sample.deviceMemSrc);
 
-    commandQueue.enqueueNDRangeKernel(kernel, cl::NullRange,
-                                      cl::NDRange{ gwx });
+    sample.commandQueue.enqueueNDRangeKernel(sample.kernel, cl::NullRange,
+                                             cl::NDRange{ bufferSize });
 }
 
-static void checkResults()
+static void checkResults(Sample& sample)
 {
-    const cl_uint* pDst = (const cl_uint*)commandQueue.enqueueMapBuffer(
-        deviceMemDst, CL_TRUE, CL_MAP_READ, 0, gwx * sizeof(cl_uint));
+    const cl_uint* pDst = (const cl_uint*)sample.commandQueue.enqueueMapBuffer(
+        sample.deviceMemDst, CL_TRUE, CL_MAP_READ, 0,
+        bufferSize * sizeof(cl_uint));
 
     unsigned int mismatches = 0;
 
-    for (size_t i = 0; i < gwx; i++)
+    for (size_t i = 0; i < bufferSize; i++)
     {
         if (pDst[i] != i)
         {
@@ -79,16 +81,16 @@ static void checkResults()
     if (mismatches)
     {
         fprintf(stderr, "Error: Found %d mismatches / %d values!!!\n",
-                mismatches, (unsigned int)gwx);
+                mismatches, (unsigned int)bufferSize);
     }
     else
     {
         printf("Success.\n");
     }
 
-    commandQueue.enqueueUnmapMemObject(
-        deviceMemDst,
-        (void*)pDst); // TODO: Why isn't this a const void* in the API?
+    sample.commandQueue.enqueueUnmapMemObject(
+        sample.deviceMemDst,
+        (void*)pDst);
 }
 
 int main(int argc, char** argv)
@@ -138,43 +140,51 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    std::vector<cl::Platform> platforms;
-    cl::Platform::get(&platforms);
-
-    printf("Running on platform: %s\n",
-           platforms[platformIndex].getInfo<CL_PLATFORM_NAME>().c_str());
-
-    std::vector<cl::Device> devices;
-    platforms[platformIndex].getDevices(CL_DEVICE_TYPE_ALL, &devices);
-
-    printf("Running on device: %s\n",
-           devices[deviceIndex].getInfo<CL_DEVICE_NAME>().c_str());
-
-    cl::Context context{ devices[deviceIndex] };
-    commandQueue = cl::CommandQueue{ context, devices[deviceIndex] };
-
-    cl::Program program{ context, kernelString };
-    program.build();
-#if 0
-    for( auto& device : program.getInfo<CL_PROGRAM_DEVICES>() )
+    try
     {
-        printf("Program build log for device %s:\n",
-            device.getInfo<CL_DEVICE_NAME>().c_str() );
-        printf("%s\n",
-            program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device).c_str() );
+        Sample sample;
+
+        std::vector<cl::Platform> platforms;
+        cl::Platform::get(&platforms);
+
+        printf("Running on platform: %s\n",
+               platforms[platformIndex].getInfo<CL_PLATFORM_NAME>().c_str());
+
+        std::vector<cl::Device> devices;
+        platforms[platformIndex].getDevices(CL_DEVICE_TYPE_ALL, &devices);
+
+        printf("Running on device: %s\n",
+               devices[deviceIndex].getInfo<CL_DEVICE_NAME>().c_str());
+
+        cl::Context context{ devices[deviceIndex] };
+        sample.commandQueue = cl::CommandQueue{ context, devices[deviceIndex] };
+
+        cl::Program program{ context, kernelString };
+        program.build();
+
+        sample.kernel = cl::Kernel{ program, "CopyBuffer" };
+
+        sample.deviceMemSrc = cl::Buffer{ context, CL_MEM_ALLOC_HOST_PTR,
+                                          bufferSize * sizeof(cl_uint) };
+
+        sample.deviceMemDst = cl::Buffer{ context, CL_MEM_ALLOC_HOST_PTR,
+                                          bufferSize * sizeof(cl_uint) };
+
+        init(sample);
+        go(sample);
+        checkResults(sample);
+    } catch (cl::BuildError& e)
+    {
+        for (const auto& log : e.getBuildLog())
+        {
+            printf("Build log for device %s:\n",
+                   log.first.getInfo<CL_DEVICE_NAME>().c_str());
+            printf("%s\n", log.second.c_str());
+        }
+    } catch (cl::Error& e)
+    {
+        printf("OpenCL Error: %s returned %d\n", e.what(), e.err());
     }
-#endif
-    kernel = cl::Kernel{ program, "CopyBuffer" };
-
-    deviceMemSrc =
-        cl::Buffer{ context, CL_MEM_ALLOC_HOST_PTR, gwx * sizeof(cl_uint) };
-
-    deviceMemDst =
-        cl::Buffer{ context, CL_MEM_ALLOC_HOST_PTR, gwx * sizeof(cl_uint) };
-
-    init();
-    go();
-    checkResults();
 
     return 0;
 }

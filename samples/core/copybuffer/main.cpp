@@ -12,46 +12,49 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * OpenCL is a trademark of Apple Inc. used under license by Khronos.
  */
 
-#include <CL/cl2.hpp>
+#include <CL/opencl.hpp>
 
-cl::CommandQueue commandQueue;
-cl::Buffer deviceMemSrc;
-cl::Buffer deviceMemDst;
-
-size_t gwx = 1024 * 1024;
-
-static void init(void)
+struct Sample
 {
-    cl_uint* pSrc = (cl_uint*)commandQueue.enqueueMapBuffer(
-        deviceMemSrc, CL_TRUE, CL_MAP_WRITE_INVALIDATE_REGION, 0,
-        gwx * sizeof(cl_uint));
+    cl::CommandQueue commandQueue;
+    cl::Buffer deviceMemSrc;
+    cl::Buffer deviceMemDst;
+};
 
-    for (size_t i = 0; i < gwx; i++)
+constexpr size_t bufferSize = 1024 * 1024;
+
+static void init(Sample& sample)
+{
+    cl_uint* pSrc = (cl_uint*)sample.commandQueue.enqueueMapBuffer(
+        sample.deviceMemSrc, CL_TRUE, CL_MAP_WRITE_INVALIDATE_REGION, 0,
+        bufferSize * sizeof(cl_uint));
+
+    for (size_t i = 0; i < bufferSize; i++)
     {
         pSrc[i] = (cl_uint)(i);
     }
 
-    commandQueue.enqueueUnmapMemObject(deviceMemSrc, pSrc);
+    sample.commandQueue.enqueueUnmapMemObject(sample.deviceMemSrc, pSrc);
 }
 
-static void go()
+static void go(Sample& sample)
 {
-    commandQueue.enqueueCopyBuffer(deviceMemSrc, deviceMemDst, 0, 0,
-                                   gwx * sizeof(cl_uint));
+    sample.commandQueue.enqueueCopyBuffer(sample.deviceMemSrc,
+                                          sample.deviceMemDst, 0, 0,
+                                          bufferSize * sizeof(cl_uint));
 }
 
-static void checkResults()
+static void checkResults(Sample& sample)
 {
-    const cl_uint* pDst = (const cl_uint*)commandQueue.enqueueMapBuffer(
-        deviceMemDst, CL_TRUE, CL_MAP_READ, 0, gwx * sizeof(cl_uint));
+    const cl_uint* pDst = (const cl_uint*)sample.commandQueue.enqueueMapBuffer(
+        sample.deviceMemDst, CL_TRUE, CL_MAP_READ, 0,
+        bufferSize * sizeof(cl_uint));
 
     unsigned int mismatches = 0;
 
-    for (size_t i = 0; i < gwx; i++)
+    for (size_t i = 0; i < bufferSize; i++)
     {
         if (pDst[i] != i)
         {
@@ -67,16 +70,16 @@ static void checkResults()
     if (mismatches)
     {
         fprintf(stderr, "Error: Found %d mismatches / %d values!!!\n",
-                mismatches, (unsigned int)gwx);
+                mismatches, (unsigned int)bufferSize);
     }
     else
     {
         printf("Success.\n");
     }
 
-    commandQueue.enqueueUnmapMemObject(
-        deviceMemDst,
-        (void*)pDst); // TODO: Why isn't this a const void* in the API?
+    sample.commandQueue.enqueueUnmapMemObject(
+        sample.deviceMemDst,
+        (void*)pDst);
 }
 
 int main(int argc, char** argv)
@@ -126,30 +129,38 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    std::vector<cl::Platform> platforms;
-    cl::Platform::get(&platforms);
+    try
+    {
+        Sample sample;
 
-    printf("Running on platform: %s\n",
-           platforms[platformIndex].getInfo<CL_PLATFORM_NAME>().c_str());
+        std::vector<cl::Platform> platforms;
+        cl::Platform::get(&platforms);
 
-    std::vector<cl::Device> devices;
-    platforms[platformIndex].getDevices(CL_DEVICE_TYPE_ALL, &devices);
+        printf("Running on platform: %s\n",
+               platforms[platformIndex].getInfo<CL_PLATFORM_NAME>().c_str());
 
-    printf("Running on device: %s\n",
-           devices[deviceIndex].getInfo<CL_DEVICE_NAME>().c_str());
+        std::vector<cl::Device> devices;
+        platforms[platformIndex].getDevices(CL_DEVICE_TYPE_ALL, &devices);
 
-    cl::Context context{ devices[deviceIndex] };
-    commandQueue = cl::CommandQueue{ context, devices[deviceIndex] };
+        printf("Running on device: %s\n",
+               devices[deviceIndex].getInfo<CL_DEVICE_NAME>().c_str());
 
-    deviceMemSrc =
-        cl::Buffer{ context, CL_MEM_ALLOC_HOST_PTR, gwx * sizeof(cl_uint) };
+        cl::Context context{ devices[deviceIndex] };
+        sample.commandQueue = cl::CommandQueue{ context, devices[deviceIndex] };
 
-    deviceMemDst =
-        cl::Buffer{ context, CL_MEM_ALLOC_HOST_PTR, gwx * sizeof(cl_uint) };
+        sample.deviceMemSrc = cl::Buffer{ context, CL_MEM_ALLOC_HOST_PTR,
+                                          bufferSize * sizeof(cl_uint) };
 
-    init();
-    go();
-    checkResults();
+        sample.deviceMemDst = cl::Buffer{ context, CL_MEM_ALLOC_HOST_PTR,
+                                          bufferSize * sizeof(cl_uint) };
+
+        init(sample);
+        go(sample);
+        checkResults(sample);
+    } catch (cl::Error& e)
+    {
+        printf("OpenCL Error: %s returned %d\n", e.what(), e.err());
+    }
 
     return 0;
 }

@@ -22,6 +22,7 @@ add_executable(${SAMPLE_NAME} main.cpp)
 target_include_directories(${SAMPLE_NAME} PRIVATE ${OPENCL_SDK_INCLUDE_DIRS})
 target_link_libraries(${SAMPLE_NAME} OpenCL)
 
+target_compile_definitions(${SAMPLE_NAME} PRIVATE CL_HPP_ENABLE_EXCEPTIONS)
 target_compile_definitions(${SAMPLE_NAME} PRIVATE CL_TARGET_OPENCL_VERSION=120)
 target_compile_definitions(${SAMPLE_NAME} PRIVATE CL_HPP_TARGET_OPENCL_VERSION=120)
 target_compile_definitions(${SAMPLE_NAME} PRIVATE CL_HPP_MINIMUM_OPENCL_VERSION=120)

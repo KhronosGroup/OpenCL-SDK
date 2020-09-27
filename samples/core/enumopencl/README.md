@@ -5,11 +5,9 @@
 This is a very simple sample that demonstrates how to enumerate the OpenCL platforms that are installed on a machine, and the OpenCL devices that these platforms expose.
 
 This is one of the few samples that uses the OpenCL C APIs, as described in the OpenCL specification.
-Most of other samples use the OpenCL C++ API bindings, since they make it a lot easier to write and understand OpenCL code!
+Most of the other samples use the OpenCL C++ API bindings, since they make it a lot easier to write and understand OpenCL code!
 
 This is a good first sample to run to verify that OpenCL is correctly installed on your machine, and that your build environment is correctly setup.
-
-This sample was taken with permission from [SimpleOpenCLSamples](https://github.com/bashbaug/SimpleOpenCLSamples).
 
 ## Key APIs and Concepts
 
