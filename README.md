@@ -15,15 +15,22 @@ It also contains resources useful to OpenCL developers:
 
 ## Setting Up the SDK
 
-This repository uses sub-modules for the OpenCL Headers, OpenCL C++ bindings, and OpenCL Loader.
+This repository uses sub-modules for the OpenCL Headers, OpenCL C++ bindings, and OpenCL ICD Loader.
 
-To clone a new repository with sub-modules included, use the `--recursive` option:
+To clone a new repository with all sub-modules included, use the `--recursive` option.
+Note that this option clones all sub-modules and their dependencies, which are not required for the OpenCL SDK:
 
 ```sh
 $ git clone --recursive https://github.com/KhronosGroup/OpenCL-SDK.git
 ```
 
-To setup sub-modules from an existing repository, use:
+Alternatively, to clone only the sub-modules for the OpenCL SDK, first clone this repository without sub-modules included:
+
+```sh
+$ git clone https://github.com/KhronosGroup/OpenCL-SDK.git
+```
+
+Then setup sub-modules:
 
 ```sh
 $ git submodule init
