@@ -80,6 +80,9 @@ static void checkResults(Sample& sample)
     sample.commandQueue.enqueueUnmapMemObject(
         sample.deviceMemDst,
         (void*)pDst);
+
+    // Ensure that the unmap operation is complete.
+    sample.commandQueue.finish();
 }
 
 int main(int argc, char** argv)
