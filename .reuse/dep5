@@ -1,0 +1,7 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: OpenCL SDK
+Source: https://github.com/KhronosGroup/OpenCL-SDK
+
+Files: *
+Copyright: 2020 The Khronos Group, Inc
+License: Apache-2.0
