@@ -1,4 +1,4 @@
-# OpenCL-SDK
+# OpenCL-SDK (in development)
 
 This is the Khronos OpenCL SDK. It brings together all the components needed to
 develop OpenCL applications:

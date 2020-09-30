@@ -36,7 +36,7 @@ set(OPENCL_SDK_INCLUDE_DIRS
     "${PROJECT_SOURCE_DIR}/external/OpenCL-CLHPP/include")
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/external/OpenCL-ICD-Loader)
-add_subdirectory(${PROJECT_SOURCE_DIR}/samples/core)
+add_subdirectory(${PROJECT_SOURCE_DIR}/samples)
 
 set_target_properties(OpenCL PROPERTIES LIBRARY_OUTPUT_DIRECTORY
     ${CMAKE_CURRENT_BINARY_DIR})
