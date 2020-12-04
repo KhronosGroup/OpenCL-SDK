@@ -209,6 +209,7 @@ static cl_int PrintDeviceInfoSummary(cl_device_id* devices, size_t numDevices)
         deviceName = NULL;
         deviceVendor = NULL;
         deviceVersion = NULL;
+        deviceProfile = NULL;
         driverVersion = NULL;
     }
 
