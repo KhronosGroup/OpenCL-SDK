@@ -14,21 +14,7 @@
 
 set(SAMPLE_NAME enumopencl)
 
-project(${SAMPLE_NAME})
-add_executable(${SAMPLE_NAME} main.cpp)
-
-target_include_directories(${SAMPLE_NAME} PRIVATE ${OPENCL_SDK_INCLUDE_DIRS})
-target_link_libraries(${SAMPLE_NAME} OpenCL)
+add_sample(${SAMPLE_NAME} main.cpp)
 
 target_compile_definitions(${SAMPLE_NAME} PRIVATE CL_TARGET_OPENCL_VERSION=120)
 
-set_target_properties(${SAMPLE_NAME} PROPERTIES FOLDER "Samples/core/${SAMPLE_NAME}")
-
-if(CMAKE_CONFIGURATION_TYPES)
-    set(SAMPLE_CONFIGS ${CMAKE_CONFIGURATION_TYPES})
-else()
-    set(SAMPLE_CONFIGS ${CMAKE_BUILD_TYPE})
-endif()
-foreach(CONFIG ${SAMPLE_CONFIGS})
-    install(TARGETS ${SAMPLE_NAME} CONFIGURATIONS ${CONFIG} DESTINATION ${CONFIG})
-endforeach()
