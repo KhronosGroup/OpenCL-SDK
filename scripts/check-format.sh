@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# Arg used to specify non-'origin/master' comparison branch
-ORIGIN_BRANCH=${1:-"origin/master"}
+# Arg used to specify non-'origin/main' comparison branch
+ORIGIN_BRANCH=${1:-"origin/main"}
 
 # Run git-clang-format to check for violations
 if [ "$TRAVIS" == "true" ]; then
