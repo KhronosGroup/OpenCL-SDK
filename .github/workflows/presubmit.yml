@@ -1,0 +1,56 @@
+name: Presubmit
+on: [push, pull_request]
+
+jobs:
+  format:
+    name: Code formatting
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Install clang-format
+        run: sudo apt-get install clang-format clang-format-9
+      - name: Check format
+        run: ./scripts/check-format.sh
+  build:
+    needs: format
+    name: Build ${{ matrix.os }} ${{ matrix.compiler }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, macos-latest]
+        compiler: [gcc, clang]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: recursive
+      - name: Build
+        run: |
+            mkdir build
+            cd build
+            if [[ "${{ matrix.compiler }}" == "gcc" ]]; then
+              CC=gcc
+              CXX=g++
+            elif [[ "${{ matrix.compiler }}" == "clang" ]]; then
+              CC=clang
+              CXX=clang++
+            fi
+            cmake -DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX ../
+            make -j2 VERBOSE=1
+  buildwin:
+    needs: format
+    name: Build Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: recursive
+      - name: Build
+        run: |
+          mkdir build
+          cd build
+          cmake ../
+          cmake --build .
