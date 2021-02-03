@@ -1,4 +1,4 @@
-# Copyright (c) 2020 The Khronos Group Inc.
+# Copyright (c) 2021 The Khronos Group Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,12 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(SAMPLE_NAME copybufferkernel)
-
-add_sample(${SAMPLE_NAME} main.cpp)
-
-target_compile_definitions(${SAMPLE_NAME} PRIVATE CL_HPP_ENABLE_EXCEPTIONS)
-target_compile_definitions(${SAMPLE_NAME} PRIVATE CL_TARGET_OPENCL_VERSION=120)
-target_compile_definitions(${SAMPLE_NAME} PRIVATE CL_HPP_TARGET_OPENCL_VERSION=120)
-target_compile_definitions(${SAMPLE_NAME} PRIVATE CL_HPP_MINIMUM_OPENCL_VERSION=120)
-
+add_sample(
+    TEST
+    TARGET copybufferkernel
+    VERSION 120
+    SOURCES main.cpp)
