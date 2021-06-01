@@ -56,22 +56,17 @@ jobs:
           cmake --build .
 
   python:
-    name: Exercise Python examples
+    name: Exercise Python examples on ${{matrix.os}}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
       - name: Environment setup
         run: |
-          if [ "$(uname)" = "Darwin" ]; then
-            PLATFORM=MacOSX
-          else
-            PLATFORM=Linux
-          fi
-
           MINIFORGE_INSTALL_DIR=.miniforge3
-          MINIFORGE_INSTALL_SH=Miniforge3-$PLATFORM-x86_64.sh
+          MINIFORGE_INSTALL_SH="Miniforge3-$(uname)-$(uname -m).sh"
           curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/$MINIFORGE_INSTALL_SH"
 
           bash "$MINIFORGE_INSTALL_SH" -b -p "$MINIFORGE_INSTALL_DIR"
@@ -82,13 +77,13 @@ jobs:
       - name: Linter
         run: |
 
-          source ".miniforg3/bin/activate" testing
+          source ".miniforge3/bin/activate" testing
           flake8 
 
       - name: Run examples
         run: |
 
-          source ".miniforg3/bin/activate" testing
+          source ".miniforge3/bin/activate" testing
           for i in python/*.py; do
             echo "-----------------------------------------------------------------------"
             echo "RUNNING $i"
