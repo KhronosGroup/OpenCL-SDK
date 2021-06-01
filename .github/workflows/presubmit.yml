@@ -70,9 +70,9 @@ jobs:
           curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/$MINIFORGE_INSTALL_SH"
 
           bash "$MINIFORGE_INSTALL_SH" -b -p "$MINIFORGE_INSTALL_DIR"
-          PATH="$MINIFORGE_INSTALL_DIR/bin/:$PATH" with_echo conda update conda --yes --quiet
-          PATH="$MINIFORGE_INSTALL_DIR/bin/:$PATH" with_echo conda update --all --yes --quiet
-          PATH="$MINIFORGE_INSTALL_DIR/bin:$PATH" with_echo conda env create --file python/.test-conda-env.yml --name testing --quiet
+          PATH="$MINIFORGE_INSTALL_DIR/bin/:$PATH" conda update conda --yes --quiet
+          PATH="$MINIFORGE_INSTALL_DIR/bin/:$PATH" conda update --all --yes --quiet
+          PATH="$MINIFORGE_INSTALL_DIR/bin:$PATH" conda env create --file python/.test-conda-env.yml --name testing --quiet
 
       - name: Linter
         run: |
