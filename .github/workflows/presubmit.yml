@@ -78,7 +78,7 @@ jobs:
         run: |
 
           source ".miniforge3/bin/activate" testing
-          flake8 
+          (cd python && flake8)
 
       - name: Run examples
         run: |
