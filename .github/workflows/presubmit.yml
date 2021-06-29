@@ -54,3 +54,39 @@ jobs:
           cd build
           cmake ../
           cmake --build .
+
+  python:
+    name: Exercise Python examples on ${{matrix.os}}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Environment setup
+        run: |
+          MINIFORGE_INSTALL_DIR=.miniforge3
+          MINIFORGE_INSTALL_SH="Miniforge3-$(uname)-$(uname -m).sh"
+          curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/$MINIFORGE_INSTALL_SH"
+
+          bash "$MINIFORGE_INSTALL_SH" -b -p "$MINIFORGE_INSTALL_DIR"
+          PATH="$MINIFORGE_INSTALL_DIR/bin/:$PATH" conda update conda --yes --quiet
+          PATH="$MINIFORGE_INSTALL_DIR/bin/:$PATH" conda update --all --yes --quiet
+          PATH="$MINIFORGE_INSTALL_DIR/bin:$PATH" conda env create --file python/.test-conda-env.yml --name testing --quiet
+
+      - name: Linter
+        run: |
+
+          source ".miniforge3/bin/activate" testing
+          (cd python && flake8)
+
+      - name: Run examples
+        run: |
+
+          source ".miniforge3/bin/activate" testing
+          for i in python/*.py; do
+            echo "-----------------------------------------------------------------------"
+            echo "RUNNING $i"
+            echo "-----------------------------------------------------------------------"
+            time python $i
+          done

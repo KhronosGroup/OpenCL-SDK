@@ -1,0 +1,13 @@
+name: test-conda-env
+channels:
+- conda-forge
+- nodefaults
+
+dependencies:
+- python=3
+- flake8
+- numpy
+- pocl
+- mako
+- pyopencl
+- pip
