@@ -90,3 +90,28 @@ jobs:
             echo "-----------------------------------------------------------------------"
             time python $i
           done
+
+  checkruby:
+    name: Check Ruby Samples ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: recursive
+      - name: Install Ruby and POCL
+        run: sudo apt install pocl-opencl-icd
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+      - name: Install OpenCL Ruby Bindings and RuboCop
+        run: gem install --user-install opencl_ruby_ffi rubocop
+      - name: Check Ruby Syntax
+        run: |
+          export PATH=`ruby -r rubygems -e 'puts Gem.user_dir'`/bin:$PATH
+          rubocop
+        working-directory: ruby
+      - name: Run Ruby Samples
+        run: rake test
+        working-directory: ruby
