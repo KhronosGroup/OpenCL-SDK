@@ -46,7 +46,7 @@ function(add_sample)
     add_executable(${OPENCL_SAMPLE_TARGET} ${OPENCL_SAMPLE_SOURCES})
 
     target_include_directories(${OPENCL_SAMPLE_TARGET} PRIVATE ${OPENCL_SDK_INCLUDE_DIRS} ${OPENCL_SAMPLE_INCLUDES})
-    target_link_libraries(${OPENCL_SAMPLE_TARGET} OpenCL ${OPENCL_SAMPLE_LIBS})
+    target_link_libraries(${OPENCL_SAMPLE_TARGET} PRIVATE OpenCL::Headers OpenCL::HeadersCpp OpenCL::OpenCL ${OPENCL_SAMPLE_LIBS})
 
     target_compile_definitions(${OPENCL_SAMPLE_TARGET} PRIVATE CL_HPP_ENABLE_EXCEPTIONS)
     target_compile_definitions(${OPENCL_SAMPLE_TARGET} PRIVATE CL_TARGET_OPENCL_VERSION=${OPENCL_SAMPLE_VERSION})
