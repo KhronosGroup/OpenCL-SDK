@@ -43,14 +43,14 @@ cl::Context cl::sdk::get_context(int plat_id, int dev_id, cl_device_type type, c
 
     if (plat_err == CL_SUCCESS)
     {
-        if (plat_id > 0 && plat_id < platforms.size())
+        if (plat_id >= 0 && plat_id < platforms.size())
         {
             cl::vector<cl::Device> devices;
             cl_int dev_err = platforms[plat_id].getDevices(type, &devices);
 
             if (dev_err == CL_SUCCESS)
             {
-                if (dev_id > 0 && dev_id < devices.size())
+                if (dev_id >= 0 && dev_id < devices.size())
                 {
                     return cl::Context(devices[dev_id]);
                 }
