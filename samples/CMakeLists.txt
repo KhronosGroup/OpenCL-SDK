@@ -18,6 +18,10 @@ else()
     set(OPENCL_SAMPLE_CONFIGS ${CMAKE_BUILD_TYPE})
 endif()
 
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/Modules)
+find_package(TCLAP REQUIRED)
+set(OPENCL_SAMPLE_INCLUDES ${TCLAP_INCLUDE_DIR})
+
 # Usage:
 # add_sample(
 #     TEST              # optional, adds a ctest for the sample
@@ -29,7 +33,7 @@ endif()
 #     INCLUDES <dir0> <dir1> ...  # optional, specifies additional include directories for the sample
 #     LIBS <lib0> <lib1> ...      # optional, specifies additional libraries for the sample
 # )
-function(add_sample)
+macro(add_sample)
     set(options TEST)
     set(one_value_args TARGET VERSION CATEGORY)
     set(multi_value_args SOURCES KERNELS INCLUDES LIBS)
@@ -46,12 +50,15 @@ function(add_sample)
     add_executable(${OPENCL_SAMPLE_TARGET} ${OPENCL_SAMPLE_SOURCES})
 
     target_include_directories(${OPENCL_SAMPLE_TARGET} PRIVATE ${OPENCL_SDK_INCLUDE_DIRS} ${OPENCL_SAMPLE_INCLUDES})
-    target_link_libraries(${OPENCL_SAMPLE_TARGET} PRIVATE OpenCL::Headers OpenCL::HeadersCpp OpenCL::OpenCL ${OPENCL_SAMPLE_LIBS})
+    target_link_libraries(${OPENCL_SAMPLE_TARGET} PRIVATE OpenCL::Headers OpenCL::HeadersCpp OpenCL::OpenCL OpenCL::SDKUtilsCpp ${OPENCL_SAMPLE_LIBS})
 
-    target_compile_definitions(${OPENCL_SAMPLE_TARGET} PRIVATE CL_HPP_ENABLE_EXCEPTIONS)
-    target_compile_definitions(${OPENCL_SAMPLE_TARGET} PRIVATE CL_TARGET_OPENCL_VERSION=${OPENCL_SAMPLE_VERSION})
-    target_compile_definitions(${OPENCL_SAMPLE_TARGET} PRIVATE CL_HPP_TARGET_OPENCL_VERSION=${OPENCL_SAMPLE_VERSION})
-    target_compile_definitions(${OPENCL_SAMPLE_TARGET} PRIVATE CL_HPP_MINIMUM_OPENCL_VERSION=${OPENCL_SAMPLE_VERSION})
+    target_compile_definitions(${OPENCL_SAMPLE_TARGET}
+      PRIVATE
+        CL_HPP_ENABLE_EXCEPTIONS
+        CL_TARGET_OPENCL_VERSION=${OPENCL_SAMPLE_VERSION}
+        CL_HPP_TARGET_OPENCL_VERSION=${OPENCL_SAMPLE_VERSION}
+        CL_HPP_MINIMUM_OPENCL_VERSION=${OPENCL_SAMPLE_VERSION}
+    )
     if (WIN32)
         target_compile_definitions(${OPENCL_SAMPLE_TARGET} PRIVATE _CRT_SECURE_NO_WARNINGS)
     endif()
@@ -65,7 +72,7 @@ function(add_sample)
     if(OPENCL_SAMPLE_TEST)
         add_test(NAME ${OPENCL_SAMPLE_TARGET} COMMAND ${OPENCL_SAMPLE_TARGET})
     endif()
-endfunction()
+endmacro()
 
 
 add_subdirectory(core)
