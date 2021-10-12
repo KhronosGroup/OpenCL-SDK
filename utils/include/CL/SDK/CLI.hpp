@@ -12,11 +12,25 @@ namespace sdk
     Option parse(int argc, char* argv[]);
 
     template <typename... Options>
-    std::tuple<Options...> parse_cli(int argc, char* argv[])
+    std::tuple<Options...> parse_cli(int argc, char* argv[], std::string banner = "")
     {
-        return std::make_tuple(
+        TCLAP::CmdLine cli(banner);
+
+        auto parsers = std::make_tuple(
             parse<Options>(argc, argv)...
         );
+
+        detail::for_each_elem_in_tuple(parsers, [&](auto&& parser)
+        {
+            detail::for_each_elem_in_tuple(parsers, [&](auto&& args)
+            {
+                cli.add(arg);
+            });
+        });
+
+        cli.parse(argc, argv);
+
+        return detail::transform_each(parsers, comprehend<);
     }
 }
 }
