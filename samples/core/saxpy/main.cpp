@@ -29,15 +29,20 @@
 // TCLAP includes
 #include <tclap/CmdLine.h>
 
+// Sample-specific option
 struct SaxpyOptions { size_t length; };
 
-template <>
-SaxpyOptions cl::sdk::parse<SaxpyOptions>(int argc, char* argv[])
-{
-    TCLAP::CmdLine cli("");
-    TCLAP::ValueArg<size_t> length_arg("l", "length", "Length of input", false, 1'048'576, "positive integral", cli );
-    cli.parse(argc, argv);
-    return SaxpyOptions{ length_arg.getValue() };
+// Add option to CLI parsing SDK utility
+template <> auto cl::sdk::parse<SaxpyOptions>(){
+    return std::make_tuple(
+        std::make_shared<TCLAP::ValueArg<size_t>>("l", "length", "Length of input", false, 1'048'576, "positive integral")
+    );
+}
+template <> auto cl::sdk::comprehend<SaxpyOptions>(
+    std::shared_ptr<TCLAP::ValueArg<size_t>> length_arg){
+    return SaxpyOptions{
+        length_arg->getValue()
+    };
 }
 
 int main(int argc, char* argv[])
@@ -49,17 +54,9 @@ int main(int argc, char* argv[])
                         cl::sdk::options::Diagnostic,
                         cl::sdk::options::SingleDevice,
                         SaxpyOptions>(argc, argv);
-        const auto& diag_opts  = std::get<cl::sdk::options::Diagnostic>(opts);
-        const auto& dev_opts   = std::get<cl::sdk::options::SingleDevice>(opts);
-        const auto& saxpy_opts = std::get<SaxpyOptions>(opts);
-
-        // C++17 version = 6 lines vs. 7 and less ::, repetition and bloat.
-        //auto [diag_opts,
-        //      dev_opts,
-        //      saxpy_opts] = cl::sdk::parse_cli<
-        //          cl::sdk::options::Diagnostic,
-        //          cl::sdk::options::SingleDevice,
-        //          SaxpyOptions>(argc, argv);
+        const auto& diag_opts  = std::get<0>(opts);
+        const auto& dev_opts   = std::get<1>(opts);
+        const auto& saxpy_opts = std::get<2>(opts);
 
         // Create runtime objects based on user preference or default
         cl::Context context = cl::sdk::get_context(dev_opts.triplet);

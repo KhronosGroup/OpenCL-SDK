@@ -16,32 +16,37 @@ namespace detail
         return f;
     }
 
-    // Helpers for for_each_elem
+namespace impl
+{
+    // Borrowed from: https://stackoverflow.com/a/16387374/1476661
     template<typename T, typename F, int... Is>
     void
-    for_each(T&& t, F f, std::integer_sequence<int, Is...>)
+    for_each_in_tuple(T&& t, F&& f, std::integer_sequence<int, Is...>)
     {
-        auto l = { (f(std::get<Is>(t)), 0)... };
+        auto l = { (f(std::get<Is>(std::forward<T>(t))), 0)... }; (void)l;
     }
-
+}
     template<typename... Ts, typename F>
     void
     for_each_in_tuple(std::tuple<Ts...> const& t, F f)
     {
-        detail::for_each(t, f, std::make_integer_sequence<int, sizeof...(Ts)>());
+        impl::for_each_in_tuple(t, f, std::make_integer_sequence<int, sizeof...(Ts)>());
     }
 
+namespace impl
+{
+    // Borrowed from https://codereview.stackexchange.com/questions/193420/apply-a-function-to-each-element-of-a-tuple-map-a-tuple
     template <class F, typename Tuple, size_t... Is>
-    auto transform_each_impl(Tuple t, F f, std::index_sequence<Is...>) {
+    auto transform_tuple(const Tuple& t, F&& f, std::index_sequence<Is...>) {
         return std::make_tuple(
-            f(std::get<Is>(t) )...
+            f(std::get<Is>(t))...
         );
     }
-
+}
     template <class F, typename... Args>
-    auto transform_each(const std::tuple<Args...>& t, F f) {
-        return detail::transform_each_impl(
-            t, f, std::make_index_sequence<sizeof...(Args)>{});
+    auto transform_tuple(const std::tuple<Args...>& t, F&& f) {
+        return impl::transform_tuple(
+            t, std::forward<F>(f), std::make_index_sequence<sizeof...(Args)>{});
     }
 }
 }
