@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
         // Create runtime objects based on user preference or default
         cl::Context context = cl::sdk::get_context(dev_opts.triplet);
         cl::Device device = context.getInfo<CL_CONTEXT_DEVICES>().at(0);
-        cl::CommandQueue queue{ device };
+        cl::CommandQueue queue{ context, device };
         cl::Platform platform{ device.getInfo<CL_DEVICE_PLATFORM>() }; // https://github.com/KhronosGroup/OpenCL-CLHPP/issues/150
 
         if (!diag_opts.quiet) {
