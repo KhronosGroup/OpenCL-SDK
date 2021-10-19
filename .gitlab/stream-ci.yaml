@@ -1,0 +1,156 @@
+stages:
+  - build   # Test if headers build and install (CMake)
+  - test    # Test if unit tests pass (CTest)
+  - consume # Test if downstream can depend on installs (CMake)
+
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+  DEPS_DIR:      "$CI_PROJECT_DIR/dependencies"
+  BUILD_DIR:     "$CI_PROJECT_DIR/build"
+  INSTALL_DIR:   "$CI_PROJECT_DIR/install"
+  CMAKE_MINIMUM: "3.1.3"
+  CMAKE_LATEST:  "3.21.2"
+
+########################
+##                    ##
+## Setup environments ##
+##                    ##
+########################
+
+.toolchain-matrix-minimum:
+  image: streamhpc/opencl-sdk-base:ubuntu-18.04-20211006
+  parallel:
+    matrix:
+  # NOTE: Old CMake versions will likely not use cutting-edge compilers
+      - C_COMPILER: gcc-7
+        CXX_COMPILER: g++-7
+      - C_COMPILER: gcc-8
+        CXX_COMPILER: g++-8
+      - C_COMPILER: clang-8
+        CXX_COMPILER: clang++-8
+      - C_COMPILER: clang-9
+        CXX_COMPILER: clang++-9
+      - C_COMPILER: clang-10
+        CXX_COMPILER: clang++-10
+  before_script:
+    - export PATH=/opt/Kitware/CMake/$CMAKE_MINIMUM/bin:$PATH
+
+.toolchain-matrix-latest:
+  image: streamhpc/opencl-sdk-base:ubuntu-18.04-20211006
+  parallel:
+    matrix:
+  # NOTE: Cutting edge CMake versions will likely not use old compilers
+      - C_COMPILER: gcc-9
+        CXX_COMPILER: g++-9
+      - C_COMPILER: gcc-10
+        CXX_COMPILER: g++-10
+      - C_COMPILER: clang-11
+        CXX_COMPILER: clang++-11
+      - C_COMPILER: clang-12
+        CXX_COMPILER: clang++-12
+      - C_COMPILER: clang-13
+        CXX_COMPILER: clang++-13
+  before_script:
+    - export PATH=/opt/Kitware/CMake/$CMAKE_LATEST/bin:$PATH
+
+
+#################
+##             ##
+## Build stage ##
+##             ##
+#################
+
+build:cmake-minimum:
+  extends: .toolchain-matrix-minimum
+  stage: build
+  # NOTE 1: CMake creates build and install folders as needed.
+  # NOTE 2: Lack of space in -H<folder> -B<folder> is important!
+  #         https://stackoverflow.com/a/20611964/1476661
+  script:
+    # Clone, configure, build, install OpenCL-SDK
+    - cmake
+      -G Ninja
+      -D CMAKE_C_COMPILER=$C_COMPILER
+      -D CMAKE_CXX_COMPILER=$CXX_COMPILER
+      -D CMAKE_BUILD_TYPE=Release
+      -D ENABLE_OPENCL_LAYERS=ON
+      -D BUILD_DOCS=OFF
+      -D BUILD_TESTS=OFF
+      -D BUILD_TESTING=OFF
+      -D BUILD_EXAMPLES=OFF
+      -D CMAKE_INSTALL_PREFIX=$INSTALL_DIR
+      -B$BUILD_DIR
+      -H$CI_PROJECT_DIR
+    - cmake
+      --build $BUILD_DIR
+      --target install
+  artifacts:
+    paths:
+      - $BUILD_DIR
+      - $INSTALL_DIR
+    exclude:
+      - build/**/CMakeFiles/
+    expire_in: 2 weeks
+
+build:cmake-latest:
+  extends: .toolchain-matrix-latest
+  stage: build
+  script:
+    # Clone, configure, build, install OpenCL-SDK
+    - cmake
+      -G "Ninja Multi-Config"
+      -D CMAKE_C_COMPILER=$C_COMPILER
+      -D CMAKE_CXX_COMPILER=$CXX_COMPILER
+      -D ENABLE_OPENCL_LAYERS=ON
+      -D BUILD_DOCS=OFF
+      -D BUILD_TESTS=OFF
+      -D BUILD_TESTING=OFF
+      -D BUILD_EXAMPLES=OFF
+      -D CMAKE_INSTALL_PREFIX=$INSTALL_DIR
+      -B $BUILD_DIR
+      -S $CI_PROJECT_DIR
+    - cmake
+      --build $BUILD_DIR
+      --config Debug
+      --target install
+    - cmake
+      --build $BUILD_DIR
+      --config Release
+      --target install
+  artifacts:
+    paths:
+      - $BUILD_DIR
+      - $INSTALL_DIR
+      - $DEPS_DIR/OpenCL-Headers/install
+      - $DEPS_DIR/OpenCL-ICD-Loader/install
+    exclude:
+      - build/**/CMakeFiles/
+    expire_in: 2 weeks
+
+
+################
+##            ##
+## Test stage ##
+##            ##
+################
+
+test:cmake-minimum:
+  extends: .toolchain-matrix-minimum
+  stage: test
+  needs:
+    - build:cmake-minimum
+  # NOTE: CTest has to be invoked from the build folder.
+  script:
+    - cd $BUILD_DIR
+    - ctest --output-on-failure
+
+test:cmake-latest:
+  extends: .toolchain-matrix-minimum
+  stage: test
+  needs:
+    - build:cmake-latest
+  # NOTE: CTest has to be invoked from the build folder.
+  script:
+    - cd $BUILD_DIR
+    - ctest --output-on-failure -C Debug
+    - ctest --output-on-failure -C Release 
