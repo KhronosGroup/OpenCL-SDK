@@ -22,6 +22,8 @@ project(OpenCL-SDK
     C CXX
 )
 
+option(OPENCL_SAMPLE_TEST "Add samples as unit tests" ON)
+
 if (NOT CMAKE_BUILD_TYPE)
     message(STATUS "No build type selected, default to Release")
     set(CMAKE_BUILD_TYPE "Release" CACHE PATH "Build Type" FORCE)
