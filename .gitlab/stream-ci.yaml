@@ -34,6 +34,8 @@ variables:
         CXX_COMPILER: clang++-10
   before_script:
     - export PATH=/opt/Kitware/CMake/$CMAKE_MINIMUM/bin:$PATH
+    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@projects.streamhpc.com/".insteadOf "git@projects.streamhpc.com:"
+    - git submodule sync && git submodule update --init
 
 .toolchain-matrix-latest:
   image: streamhpc/opencl-sdk-base:ubuntu-18.04-20211006
@@ -52,6 +54,8 @@ variables:
         CXX_COMPILER: clang++-13
   before_script:
     - export PATH=/opt/Kitware/CMake/$CMAKE_LATEST/bin:$PATH
+    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@projects.streamhpc.com/".insteadOf "git@projects.streamhpc.com:"
+    - git submodule sync && git submodule update --init
 
 
 #################
