@@ -15,9 +15,11 @@
  */
 
 // OpenCL SDK includes
-#include <CL/SDK/Utils.hpp>
+#include <CL/Utils/Context.hpp>
+#include <CL/SDK/Context.hpp>
 #include <CL/SDK/Options.hpp>
 #include <CL/SDK/CLI.hpp>
+#include <CL/SDK/Random.hpp>
 
 // STL includes
 #include <iostream>
@@ -118,9 +120,9 @@ int main(int argc, char* argv[])
 
         return 0;
     }
-    catch(cl::sdk::Error& e)
+    catch(cl::util::Error& e)
     {
-        std::cerr << "OpenCL SDK error: " << e.what() << std::endl;
+        std::cerr << "OpenCL Utils error: " << e.what() << std::endl;
         std::exit(e.err());
     }
     catch(cl::BuildError& e)

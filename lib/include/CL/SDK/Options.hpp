@@ -14,7 +14,6 @@ namespace options
         int dev_index;
         cl_device_type dev_type;
     };
-
     struct Diagnostic
     {
         bool verbose,
@@ -26,7 +25,7 @@ namespace options
     };
     struct MultiDevice
     {
-        cl::vector<Triplet> triplet;
+        cl::vector<Triplet> triplets;
     };
 }
 }

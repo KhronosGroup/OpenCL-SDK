@@ -35,7 +35,7 @@ add_subdirectory(external/OpenCL-Headers)
 add_subdirectory(external/OpenCL-ICD-Loader)
 add_subdirectory(external/OpenCL-CLHPP)
 
-add_subdirectory(utils)
+add_subdirectory(lib)
 add_subdirectory(samples)
 
 set_target_properties(OpenCL PROPERTIES LIBRARY_OUTPUT_DIRECTORY

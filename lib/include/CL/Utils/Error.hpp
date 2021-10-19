@@ -2,11 +2,11 @@
 
 #include <CL/opencl.hpp>
 
-#define CL_SDK_INDEX_OUT_OF_RANGE -2000
+#define CL_UTIL_INDEX_OUT_OF_RANGE -2000
 
 namespace cl
 {
-namespace sdk
+namespace util
 {
 #if defined(CL_HPP_ENABLE_EXCEPTIONS)
     /*! \brief Exception class 
@@ -63,14 +63,14 @@ namespace detail
 }
 }
 
-void cl::sdk::detail::errHandler(cl_int err, cl_int* errPtr, const char* errStr)
+void cl::util::detail::errHandler(cl_int err, cl_int* errPtr, const char* errStr)
 {
     if (err != CL_SUCCESS)
     {
 #if defined(CL_HPP_ENABLE_EXCEPTIONS)
-        throw cl::sdk::Error{err, errStr};
+        throw cl::util::Error{err, errStr};
 #else
-        (void) errStr; // suppress unused variable warning
+        (void)errStr; // suppress unused variable warning
         if (errPtr != nullptr)
             *errPtr = err;
 #endif

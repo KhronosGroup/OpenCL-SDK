@@ -1,9 +1,10 @@
 #pragma once
 
-// OpenCL SDK includes
-#include <CL/SDK/Detail.hpp>
+// OpenCL SDK
 #include <CL/SDK/Options.hpp>
-#include <CL/SDK/Error.hpp>
+
+// OpenCL Utils includes
+#include <CL/Utils/Detail.hpp>
 
 // TCLAP includes
 #include <tclap/CmdLine.h>
@@ -37,15 +38,15 @@ namespace detail
             std::make_pair(Options{}, parse<Options>())...
         );
 
-        detail::for_each_in_tuple(parsers, [&](auto&& parser){
-            detail::for_each_in_tuple(parser.second, [&](auto&& arg){
+        util::detail::for_each_in_tuple(parsers, [&](auto&& parser){
+            util::detail::for_each_in_tuple(parser.second, [&](auto&& arg){
                 cli.add(arg.get());
             });
         });
 
         cli.parse(argc, argv);
 
-        return detail::transform_tuple(parsers, [](auto&& parser){
+        return util::detail::transform_tuple(parsers, [](auto&& parser){
             return detail::comprehend_helper<std::remove_reference_t<decltype(parser.first)>>(parser.second);
         });
     }

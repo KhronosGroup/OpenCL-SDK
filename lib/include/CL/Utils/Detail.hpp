@@ -1,10 +1,12 @@
 #pragma once
 
-#include <tuple>
+#include <utility>          // std::forward, std::integer_sequence
+#include <tuple>            // std::tuple, std::get
+#include <initializer_list> // std::initializer_list
 
 namespace cl
 {
-namespace sdk
+namespace util
 {
 namespace detail
 {

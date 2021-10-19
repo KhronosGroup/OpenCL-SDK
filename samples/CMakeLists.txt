@@ -49,19 +49,28 @@ macro(add_sample)
 
     add_executable(${OPENCL_SAMPLE_TARGET} ${OPENCL_SAMPLE_SOURCES})
 
-    target_include_directories(${OPENCL_SAMPLE_TARGET} PRIVATE ${OPENCL_SDK_INCLUDE_DIRS} ${OPENCL_SAMPLE_INCLUDES})
-    target_link_libraries(${OPENCL_SAMPLE_TARGET} PRIVATE OpenCL::Headers OpenCL::HeadersCpp OpenCL::OpenCL OpenCL::SDKUtilsCpp ${OPENCL_SAMPLE_LIBS})
-
+    target_include_directories(${OPENCL_SAMPLE_TARGET}
+      PRIVATE
+        ${OPENCL_SDK_INCLUDE_DIRS}
+        ${OPENCL_SAMPLE_INCLUDES}
+    )
+    target_link_libraries(${OPENCL_SAMPLE_TARGET}
+      PRIVATE
+        OpenCL::Headers
+        OpenCL::HeadersCpp
+        OpenCL::OpenCL
+        OpenCL::Utils
+        OpenCL::UtilsCpp
+        ${OPENCL_SAMPLE_LIBS}
+    )
     target_compile_definitions(${OPENCL_SAMPLE_TARGET}
       PRIVATE
         CL_HPP_ENABLE_EXCEPTIONS
         CL_TARGET_OPENCL_VERSION=${OPENCL_SAMPLE_VERSION}
         CL_HPP_TARGET_OPENCL_VERSION=${OPENCL_SAMPLE_VERSION}
         CL_HPP_MINIMUM_OPENCL_VERSION=${OPENCL_SAMPLE_VERSION}
+        $<$<PLATFORM_ID:Windows>:_CRT_SECURE_NO_WARNINGS> # TODO: remove
     )
-    if (WIN32)
-        target_compile_definitions(${OPENCL_SAMPLE_TARGET} PRIVATE _CRT_SECURE_NO_WARNINGS)
-    endif()
 
     set_target_properties(${OPENCL_SAMPLE_TARGET} PROPERTIES FOLDER "Samples/${OPENCL_SAMPLE_CATEGORY}/${OPENCL_SAMPLE_TARGET}")
 

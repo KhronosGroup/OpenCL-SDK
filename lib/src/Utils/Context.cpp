@@ -1,42 +1,6 @@
-#pragma once
+#include <CL/Utils/Context.hpp>
 
-#include <CL/SDK/Error.hpp>
-#include <CL/SDK/Options.hpp>
-
-#include <CL/opencl.hpp>
-
-#include <initializer_list>
-
-namespace cl
-{
-namespace sdk
-{
-    Context get_context(options::Triplet triplet, cl_int* error = nullptr);
-
-    Context get_context(int plat_id, int dev_id, cl_device_type type, cl_int* error = nullptr);
-
-    template <typename PRNG, typename... Containers>
-    void fill_with_random(PRNG&& prng, Containers&&... containers)
-    {
-        detail::for_each_arg([&](auto&& container)
-        {
-            std::generate_n(std::begin(container), container.size(), prng);
-        }, containers...);
-    }
-}
-}
-
-cl::Context cl::sdk::get_context(options::Triplet triplet, cl_int* error)
-{
-    return cl::sdk::get_context(
-        triplet.plat_index,
-        triplet.dev_index,
-        triplet.dev_type,
-        error
-    );
-}
-
-cl::Context cl::sdk::get_context(int plat_id, int dev_id, cl_device_type type, cl_int* error)
+cl::Context cl::util::get_context(int plat_id, int dev_id, cl_device_type type, cl_int* error)
 {
     cl::vector<cl::Platform> platforms;
     cl_int plat_err = cl::Platform::get(&platforms);
@@ -56,7 +20,7 @@ cl::Context cl::sdk::get_context(int plat_id, int dev_id, cl_device_type type, c
                 }
                 else
                     detail::errHandler(
-                        CL_SDK_INDEX_OUT_OF_RANGE,
+                        CL_UTIL_INDEX_OUT_OF_RANGE,
                         error,
                         "Invalid device index provided for cl::Context cl::sdk::get_context()"
                     );
@@ -66,7 +30,7 @@ cl::Context cl::sdk::get_context(int plat_id, int dev_id, cl_device_type type, c
         }
         else
             detail::errHandler(
-                CL_SDK_INDEX_OUT_OF_RANGE,
+                CL_UTIL_INDEX_OUT_OF_RANGE,
                 error,
                 "Invalid platform index provided for cl::Context cl::sdk::get_context()"
             );

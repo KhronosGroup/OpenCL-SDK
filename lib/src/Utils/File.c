@@ -1,8 +1,7 @@
-#pragma once
+#include <CL/Utils/File.h>
 
 #include<stdlib.h>
 #include<stdio.h>
-#include<CL/cl.h>
 
 // reads all the text file contents securely in ANSI C89
 // returns pointer to C-string with file contents
