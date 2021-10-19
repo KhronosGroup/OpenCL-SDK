@@ -97,8 +97,8 @@ int main(int argc, char* argv[])
         cl::sdk::fill_with_random(prng, arr_x, arr_y);
 
         // Initialize device-side storage
-        cl::Buffer buf_x{ queue, std::begin(arr_x), std::end(arr_x), true },
-                   buf_y{ queue, std::begin(arr_y), std::end(arr_y), false };
+        cl::Buffer buf_x{ context, std::begin(arr_x), std::end(arr_x), true },
+                   buf_y{ context, std::begin(arr_y), std::end(arr_y), false };
 
         // Execute kernel
         saxpy(cl::EnqueueArgs{ queue, cl::NDRange{ length } }, a, buf_x, buf_y);
