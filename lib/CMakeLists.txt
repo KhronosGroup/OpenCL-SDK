@@ -50,7 +50,11 @@ foreach(UTIL_LIB_NAME IN ITEMS Utils UtilsCpp)
       ${UTIL_CL_VERSION_MACRO_NAME}=300
   )
 
-  set_target_properties(${UTIL_LIB_TARGET} PROPERTIES FOLDER "Libraries/${UTIL_LIB_NAME}")
+  set_target_properties(${UTIL_LIB_TARGET}
+    PROPERTIES
+      LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
+      FOLDER "Libraries/${UTIL_LIB_NAME}"
+  )
 
   install(
     TARGETS ${UTIL_LIB_TARGET}
