@@ -4,6 +4,9 @@ stages:
   - consume # Test if downstream can depend on installs (CMake)
 
 variables:
+  # GIT_SUBMODULE_STRATEGY missing on purpose. When submodules
+  # are specified using SSH protocol, they are mapped to HTTPS
+  # in the before_script part.
   DEPS_DIR:      "$CI_PROJECT_DIR/dependencies"
   BUILD_DIR:     "$CI_PROJECT_DIR/build"
   INSTALL_DIR:   "$CI_PROJECT_DIR/install"
