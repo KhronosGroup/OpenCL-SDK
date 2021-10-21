@@ -76,8 +76,9 @@ build:cmake-minimum:
     # Download, extract TCLAP
     - wget https://github.com/mirror/tclap/archive/refs/tags/v1.2.4.tar.gz
       --directory-prefix $DEPS_DIR
-    - cmake
-      -E tar xzf $DEPS_DIR/v1.2.4.tar.gz
+    - cmake -E tar xzf $DEPS_DIR/v1.2.4.tar.gz
+    - cmake -E rename tclap-1.2.4/ $DEPS_DIR/tclap-1.2.4
+    - cmake -E remove $DEPS_DIR/v1.2.4.tar.gz
     # Clone, configure, build, install OpenCL-SDK
     - cmake
       -G Ninja
@@ -100,6 +101,7 @@ build:cmake-minimum:
     paths:
       - $BUILD_DIR
       - $INSTALL_DIR
+      - $DEPS_DIR/tclap-1.2.4
     exclude:
       - build/**/CMakeFiles/
     expire_in: 2 weeks
@@ -111,8 +113,9 @@ build:cmake-latest:
     # Download, extract TCLAP
     - wget https://github.com/mirror/tclap/archive/refs/tags/v1.2.4.tar.gz
       --directory-prefix $DEPS_DIR
-    - cmake
-      -E tar xzf $DEPS_DIR/v1.2.4.tar.gz
+    - cmake -E tar xzf $DEPS_DIR/v1.2.4.tar.gz
+    - cmake -E rename tclap-1.2.4/ $DEPS_DIR/tclap-1.2.4
+    - cmake -E remove $DEPS_DIR/v1.2.4.tar.gz
     # Clone, configure, build, install OpenCL-SDK
     - cmake
       -G "Ninja Multi-Config"
@@ -139,8 +142,7 @@ build:cmake-latest:
     paths:
       - $BUILD_DIR
       - $INSTALL_DIR
-      - $DEPS_DIR/OpenCL-Headers/install
-      - $DEPS_DIR/OpenCL-ICD-Loader/install
+      - $DEPS_DIR/tclap-1.2.4
     exclude:
       - build/**/CMakeFiles/
     expire_in: 2 weeks
