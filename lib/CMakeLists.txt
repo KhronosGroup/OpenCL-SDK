@@ -28,11 +28,6 @@ foreach(UTIL_LIB_NAME IN ITEMS Utils UtilsCpp)
     EXPORT_MACRO_NAME ${UPPER_UTIL_LIB_NAME}_EXPORT
     EXPORT_FILE_NAME OpenCL${UTIL_LIB_NAME}_Export.h
   )
-  target_sources(${UTIL_LIB_TARGET}
-    PUBLIC
-      $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/OpenCL${UTIL_LIB_NAME}_Export.h>
-      $<INSTALL_INTERFACE:OpenCL${UTIL_LIB_NAME}_Export.h>
-  )
 
   target_include_directories(${UTIL_LIB_TARGET}
     PUBLIC
