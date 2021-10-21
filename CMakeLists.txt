@@ -22,7 +22,11 @@ project(OpenCL-SDK
     C CXX
 )
 
-option(OPENCL_SAMPLE_TEST "Add samples as unit tests" ON)
+include(CMakeDependentOption)
+option(OPENCL_SDK_BUILD_SAMPLES "Build sample code" ON)
+cmake_dependent_option(OPENCL_SDK_TEST_SAMPLES "Add CTest to samples (where applicable)" ON OPENCL_SDK_BUILD_SAMPLES OFF)
+
+include(CTest)
 
 if (NOT CMAKE_BUILD_TYPE)
     message(STATUS "No build type selected, default to Release")
@@ -40,5 +44,7 @@ add_subdirectory(external/OpenCL-CLHPP)
 add_subdirectory(lib)
 add_subdirectory(samples)
 
-set_target_properties(OpenCL PROPERTIES LIBRARY_OUTPUT_DIRECTORY
-    ${CMAKE_CURRENT_BINARY_DIR})
+set_target_properties(OpenCL
+  PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
