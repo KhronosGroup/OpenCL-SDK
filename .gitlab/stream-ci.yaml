@@ -73,6 +73,11 @@ build:cmake-minimum:
   # NOTE 2: Lack of space in -H<folder> -B<folder> is important!
   #         https://stackoverflow.com/a/20611964/1476661
   script:
+    # Download, extract TCLAP
+    - wget https://github.com/mirror/tclap/archive/refs/tags/v1.2.4.tar.gz
+      --directory-prefix $DEPS_DIR
+    - cmake
+      -E tar xzf $DEPS_DIR/v1.2.4.tar.gz
     # Clone, configure, build, install OpenCL-SDK
     - cmake
       -G Ninja
@@ -85,6 +90,7 @@ build:cmake-minimum:
       -D BUILD_TESTING=OFF
       -D BUILD_EXAMPLES=OFF
       -D CMAKE_INSTALL_PREFIX=$INSTALL_DIR
+      -D TCLAP_INCLUDE_PATH=$DEPS_DIR/tclap-1.2.4/include
       -B$BUILD_DIR
       -H$CI_PROJECT_DIR
     - cmake
@@ -102,6 +108,11 @@ build:cmake-latest:
   extends: .toolchain-matrix-latest
   stage: build
   script:
+    # Download, extract TCLAP
+    - wget https://github.com/mirror/tclap/archive/refs/tags/v1.2.4.tar.gz
+      --directory-prefix $DEPS_DIR
+    - cmake
+      -E tar xzf $DEPS_DIR/v1.2.4.tar.gz
     # Clone, configure, build, install OpenCL-SDK
     - cmake
       -G "Ninja Multi-Config"
@@ -113,6 +124,7 @@ build:cmake-latest:
       -D BUILD_TESTING=OFF
       -D BUILD_EXAMPLES=OFF
       -D CMAKE_INSTALL_PREFIX=$INSTALL_DIR
+      -D TCLAP_INCLUDE_PATH=$DEPS_DIR/tclap-1.2.4/include
       -B $BUILD_DIR
       -S $CI_PROJECT_DIR
     - cmake
