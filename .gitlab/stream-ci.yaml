@@ -164,6 +164,8 @@ test:cmake-minimum:
   stage: test
   needs:
     - build:cmake-minimum
+  # Until a suitable runtime is found
+  allow_failure: true
   # NOTE: CTest has to be invoked from the build folder.
   script:
     - cd $BUILD_DIR
@@ -174,6 +176,8 @@ test:cmake-latest:
   stage: test
   needs:
     - build:cmake-latest
+  # Until a suitable runtime is found
+  allow_failure: true
   # NOTE: CTest has to be invoked from the build folder.
   script:
     - cd $BUILD_DIR
