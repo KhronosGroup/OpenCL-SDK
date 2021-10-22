@@ -6,14 +6,13 @@ foreach(UTIL_LIB_NAME IN ITEMS Utils UtilsCpp)
     set(UTIL_LIB_SOURCES src/Utils/Utils.c)
     set(UTIL_LIB_DEPS
       OpenCL::Headers
-      OpenCL::Utils
     )
     set(UTIL_CL_VERSION_MACRO_NAME CL_TARGET_OPENCL_VERSION)
   elseif(UTIL_LIB_NAME STREQUAL UtilsCpp)
     set(UTIL_LIB_SOURCES src/Utils/Utils.cpp)
     set(UTIL_LIB_DEPS
       OpenCL::HeadersCpp
-      OpenCL::UtilsCpp
+      OpenCL::Utils
     )
     set(UTIL_CL_VERSION_MACRO_NAME CL_HPP_TARGET_OPENCL_VERSION)
   else()
