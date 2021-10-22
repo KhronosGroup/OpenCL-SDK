@@ -64,11 +64,11 @@ foreach(UTIL_LIB_NAME IN ITEMS Utils UtilsCpp)
   )
   export(
     EXPORT OpenCL${UTIL_LIB_NAME}Targets
-    FILE ${PROJECT_BINARY_DIR}/OpenCL${UTIL_LIB_NAME}/OpenCL${UTIL_LIB_NAME}Targets.cmake
+    FILE ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_DATADIR}/cmake/OpenCL${UTIL_LIB_NAME}/OpenCL${UTIL_LIB_NAME}Targets.cmake
     NAMESPACE OpenCL::
   )
   file(
-    WRITE ${PROJECT_BINARY_DIR}/OpenCL${UTIL_LIB_NAME}/OpenCL${UTIL_LIB_NAME}Config.cmake
+    WRITE ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_DATADIR}/cmake/OpenCL${UTIL_LIB_NAME}/OpenCL${UTIL_LIB_NAME}Config.cmake
     "include(\"\${CMAKE_CURRENT_LIST_DIR}/OpenCL${UTIL_LIB_NAME}Targets.cmake\")"
   )
 
@@ -80,19 +80,19 @@ foreach(UTIL_LIB_NAME IN ITEMS Utils UtilsCpp)
     DESTINATION ${config_package_location}
   )
   install(
-    FILES ${CMAKE_CURRENT_BINARY_DIR}/OpenCL${UTIL_LIB_NAME}/OpenCL${UTIL_LIB_NAME}Config.cmake
+    FILES ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_DATADIR}/cmake/OpenCL${UTIL_LIB_NAME}/OpenCL${UTIL_LIB_NAME}Config.cmake
     DESTINATION ${config_package_location}
   )
 
   unset(CMAKE_SIZEOF_VOID_P)
   include(CMakePackageConfigHelpers)
   write_basic_package_version_file(
-    ${CMAKE_CURRENT_BINARY_DIR}/OpenCL${UTIL_LIB_NAME}/OpenCL${UTIL_LIB_NAME}ConfigVersion.cmake
+    ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_DATADIR}/cmake/OpenCL${UTIL_LIB_NAME}/OpenCL${UTIL_LIB_NAME}ConfigVersion.cmake
     VERSION ${PROJECT_VERSION}
     COMPATIBILITY AnyNewerVersion
   )
   install(
-    FILES ${CMAKE_CURRENT_BINARY_DIR}/OpenCL${UTIL_LIB_NAME}/OpenCL${UTIL_LIB_NAME}ConfigVersion.cmake
+    FILES ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_DATADIR}/cmake/OpenCL${UTIL_LIB_NAME}/OpenCL${UTIL_LIB_NAME}ConfigVersion.cmake
     DESTINATION ${config_package_location}
   )
 endforeach()
