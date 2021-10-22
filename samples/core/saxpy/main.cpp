@@ -27,7 +27,7 @@
 #include <random>
 #include <algorithm>
 #include <fstream>
-#include <tuple>        // std::apply
+#include <tuple>        // std::make_tuple
 
 // TCLAP includes
 #include <tclap/CmdLine.h>
@@ -41,7 +41,7 @@ template <> auto cl::sdk::parse<SaxpyOptions>(){
         std::make_shared<TCLAP::ValueArg<size_t>>("l", "length", "Length of input", false, 1'048'576, "positive integral")
     );
 }
-template <> auto cl::sdk::comprehend<SaxpyOptions>(
+template <> SaxpyOptions cl::sdk::comprehend<SaxpyOptions>(
     std::shared_ptr<TCLAP::ValueArg<size_t>> length_arg){
     return SaxpyOptions{
         length_arg->getValue()

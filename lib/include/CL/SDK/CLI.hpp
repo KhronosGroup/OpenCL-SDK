@@ -11,7 +11,7 @@
 
 // STL includes
 #include <memory>   // std::shared_ptr, std::make_shared
-#include <tuple>    // std::apply
+#include <tuple>    // std::make_tuple
 #include <vector>   // std::vector
 
 namespace cl
@@ -22,15 +22,14 @@ namespace sdk
     auto parse();
 
     template <typename Option, typename... Parsers>
-    auto comprehend(Parsers... parsers);
+    Option comprehend(Parsers... parsers);
 
 namespace detail
 {
     template <typename Option, typename... Types>
     auto comprehend_helper(std::tuple<Types...> parser)
     {
-        // TODO: backport C++17 std::apply to C++14
-        return std::apply(comprehend<Option, Types...>, parser);
+        return util::detail::apply(comprehend<Option, Types...>, parser);
     }
 }
 
@@ -69,7 +68,7 @@ auto cl::sdk::parse<cl::sdk::options::Diagnostic>()
     );
 }
 template <>
-auto cl::sdk::comprehend<cl::sdk::options::Diagnostic>(
+cl::sdk::options::Diagnostic cl::sdk::comprehend<cl::sdk::options::Diagnostic>(
     std::shared_ptr<TCLAP::SwitchArg> verbose_arg,
     std::shared_ptr<TCLAP::SwitchArg> quiet_arg)
 {
@@ -92,7 +91,7 @@ auto cl::sdk::parse<cl::sdk::options::SingleDevice>()
     );
 }
 template <>
-auto cl::sdk::comprehend<cl::sdk::options::SingleDevice>(
+cl::sdk::options::SingleDevice cl::sdk::comprehend<cl::sdk::options::SingleDevice>(
     std::shared_ptr<TCLAP::ValueArg<int>> platform_arg,
     std::shared_ptr<TCLAP::ValueArg<int>> device_arg,
     std::shared_ptr<TCLAP::ValueArg<std::string>> type_arg)
