@@ -37,7 +37,7 @@ variables:
   before_script:
     - export PATH=/opt/Kitware/CMake/$CMAKE_MINIMUM/bin:$PATH
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@projects.streamhpc.com/".insteadOf "git@projects.streamhpc.com:"
-    - git submodule sync && git submodule update --init
+    - git submodule sync && git submodule update --init --recursive
 
 .toolchain-matrix-latest:
   image: streamhpc/opencl-sdk-base:ubuntu-18.04-20211006
@@ -57,7 +57,7 @@ variables:
   before_script:
     - export PATH=/opt/Kitware/CMake/$CMAKE_LATEST/bin:$PATH
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@projects.streamhpc.com/".insteadOf "git@projects.streamhpc.com:"
-    - git submodule sync && git submodule update --init
+    - git submodule sync && git submodule update --init --recursive
 
 
 #################
