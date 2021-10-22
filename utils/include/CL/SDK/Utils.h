@@ -15,14 +15,16 @@ char * cl_utils_read_text_file(char * filename, size_t * length, cl_int * errcod
     size_t used = 0;
     size_t n;
     FILE * in;
+    cl_int err;
 
     /* Size of each input chunk to be read and allocate for. */
     #define READALL_CHUNK 2097152
 
-    /* File name can not be NULL. */
     if (errcode_ret == NULL) {
-        return NULL;
+        errcode_ret = &err;
     }
+
+    /* File name can not be NULL. */
     if (filename == NULL) {
         *errcode_ret = CL_INVALID_ARG_VALUE;
         return NULL;
