@@ -9,6 +9,11 @@
 // TCLAP includes
 #include <tclap/CmdLine.h>
 
+// STL includes
+#include <memory>   // std::shared_ptr, std::make_shared
+#include <tuple>    // std::apply
+#include <vector>   // std::vector
+
 namespace cl
 {
 namespace sdk
