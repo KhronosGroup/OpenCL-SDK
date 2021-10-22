@@ -27,6 +27,7 @@
 #include <random>
 #include <algorithm>
 #include <fstream>
+#include <tuple>        // std::apply
 
 // TCLAP includes
 #include <tclap/CmdLine.h>
