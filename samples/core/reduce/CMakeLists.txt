@@ -1,4 +1,4 @@
-# Copyright (c) 2020 The Khronos Group Inc.
+# Copyright (c) 2021 The Khronos Group Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,8 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(enumopencl)
-add_subdirectory(copybuffer)
-add_subdirectory(copybufferkernel)
-add_subdirectory(saxpy)
-add_subdirectory(reduce)
+add_sample(
+    TEST
+    TARGET reduce
+    VERSION 120
+    SOURCES main.c)
+
+add_sample(
+    TEST
+    TARGET reducecpp
+    VERSION 210
+    SOURCES main.cpp
+    INCLUDES ${TCLAP_INCLUDE_DIR})
