@@ -5,7 +5,7 @@
 [submodule "headers"]
 	path = external/OpenCL-Headers
 	url = git@projects.streamhpc.com:Khronos/OpenCL-Headers.git
-	branch = initial-ci
+	branch = develop_stream
 [submodule "headers-cpp"]
 	path = external/OpenCL-CLHPP
 	url = git@projects.streamhpc.com:Khronos/OpenCL-CLHPP.git
