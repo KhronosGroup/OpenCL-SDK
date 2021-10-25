@@ -9,4 +9,4 @@
 [submodule "headers-cpp"]
 	path = external/OpenCL-CLHPP
 	url = git@projects.streamhpc.com:Khronos/OpenCL-CLHPP.git
-	branch = initial-ci
+	branch = develop_stream
