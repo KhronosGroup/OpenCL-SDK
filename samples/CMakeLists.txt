@@ -20,10 +20,6 @@ endif()
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/Modules)
 find_package(TCLAP REQUIRED)
-set(OPENCL_SAMPLE_INCLUDES
-    ${TCLAP_INCLUDE_DIR}
-    ${PROJECT_SOURCE_DIR}/third_party/cargs)
-
 # add math library to link if needed
 # method by Michael Ambrus, https://stackoverflow.com/questions/34625627
 include(CheckLibraryExists)
@@ -74,10 +70,10 @@ macro(add_sample)
     )
     target_compile_definitions(${OPENCL_SAMPLE_TARGET}
       PRIVATE
-        CL_HPP_ENABLE_EXCEPTIONS
         CL_TARGET_OPENCL_VERSION=${OPENCL_SAMPLE_VERSION}
         CL_HPP_TARGET_OPENCL_VERSION=${OPENCL_SAMPLE_VERSION}
         CL_HPP_MINIMUM_OPENCL_VERSION=${OPENCL_SAMPLE_VERSION}
+        CL_HPP_ENABLE_EXCEPTIONS
         $<$<PLATFORM_ID:Windows>:_CRT_SECURE_NO_WARNINGS> # TODO: remove
     )
 

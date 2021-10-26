@@ -16,11 +16,12 @@ add_sample(
     TEST
     TARGET reduce
     VERSION 120
-    SOURCES main.c)
+    SOURCES main.c
+    INCLUDES ${PROJECT_SOURCE_DIR}/third_party/cargs)
 
 add_sample(
     TEST
     TARGET reducecpp
-    VERSION 210
+    VERSION 300
     SOURCES main.cpp
     INCLUDES ${TCLAP_INCLUDE_DIR})

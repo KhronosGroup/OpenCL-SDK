@@ -1,16 +1,18 @@
-float op(float lhs, float rhs);
+int op(int lhs, int rhs);
+int work_group_reduce_op(int val);
+int sub_group_reduce_op(int val);
 
-float read_local(local float* shared, size_t count, float zero, size_t i)
+int read_local(local int* shared, size_t count, int zero, size_t i)
 {
     return i < count ? shared[i] : zero;
 }
 
 kernel void reduce(
-    global float* front,
-    global float* back,
-    local float* shared,
+    global int* front,
+    global int* back,
+    local int* shared,
     unsigned int length,
-    float zero_elem
+    int zero_elem
 )
 {
     const size_t lid = get_local_id(0),
@@ -33,6 +35,38 @@ kernel void reduce(
     wait_group_events(1, &read);
     barrier(CLK_LOCAL_MEM_FENCE);
 
+#ifdef USE_SUB_GROUP_REDUCE
+    const uint sid = get_sub_group_id();
+    const uint ssi = get_sub_group_size();
+    const uint slid= get_sub_group_local_id();
+    for(int i = valid_count ; i != 0 ; i /= ssi*2)
+    {
+        int temp = zero_elem;
+        if (sid*ssi < valid_count)
+        {
+            temp = sub_group_reduce_op(
+                op(
+                    read_local(shared, i, zero_elem, sid * 2 * ssi + slid),
+                    read_local(shared, i, zero_elem, sid * 2 * ssi + slid + ssi)
+                )
+            );
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
+        if (sid*ssi < valid_count)
+            shared[sid] = temp;
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+    if (lid == 0) back[wid] = shared[0];
+#else // USE_SUB_GROUP_REDUCE
+#ifdef USE_WORK_GROUP_REDUCE
+    int temp = work_group_reduce_op(
+        op(
+            read_local(shared, valid_count, zero_elem, lid),
+            read_local(shared, valid_count, zero_elem, lid + lsi)
+        )
+    );
+    if (lid == 0) back[wid] = temp;
+#else // USE_WORK_GROUP_REDUCE
     for (int i = lsi; i != 0; i /= 2)
     {
         if (lid < i)
@@ -44,4 +78,6 @@ kernel void reduce(
         barrier(CLK_LOCAL_MEM_FENCE);
     }
     if (lid == 0) back[wid] = shared[0];
+#endif // USE_WORK_GROUP_REDUCE
+#endif // USE_SUB_GROUP_REDUCE
 }

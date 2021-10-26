@@ -58,6 +58,7 @@ template <> ReduceOptions cl::sdk::comprehend<ReduceOptions>(
     };
 }
 
+
 int main(int argc, char* argv[])
 {
     try
@@ -77,17 +78,67 @@ int main(int argc, char* argv[])
         cl::CommandQueue queue{ context, device };
         cl::Platform platform{ device.getInfo<CL_DEVICE_PLATFORM>() }; // https://github.com/KhronosGroup/OpenCL-CLHPP/issues/150
 
-        if (!diag_opts.quiet) {
+        if (!diag_opts.quiet)
             std::cout <<
                 "Selected platform: " << platform.getInfo<CL_PLATFORM_VENDOR>() << "\n" <<
                 "Selected device: " << device.getInfo<CL_DEVICE_NAME>() << "\n" <<
                 std::endl;
+
+        // Query device and runtime capabilities
+        auto may_use_work_group_reduce = [&]() // IILE
+        {
+            if (platform.getInfo<CL_PLATFORM_VERSION>().find("OpenCL 2.") != cl::string::npos)
+            {
+                if (device.getInfo<CL_DEVICE_OPENCL_C_VERSION>().find("OpenCL C 2.") != cl::string::npos) return true;
+                else return false;
+            }
+            else if (platform.getInfo<CL_PLATFORM_VERSION>().find("OpenCL 3.") != cl::string::npos)
+            {
+                auto c_features = device.getInfo<CL_DEVICE_OPENCL_C_FEATURES>();
+                auto feature_is_work_group_reduce = [](const cl_name_version& name_ver)
+                {
+                    return cl::string{name_ver.name} == "__opencl_c_work_group_collective_functions";
+                };
+                if (device.getInfo<CL_DEVICE_WORK_GROUP_COLLECTIVE_FUNCTIONS_SUPPORT>() &&
+                    std::find_if(c_features.cbegin(), c_features.cend(), feature_is_work_group_reduce) != c_features.cend()
+                )
+                    return true;
+                else
+                    return false;
+            }
+            else return false;
+        }();
+        auto may_use_sub_group_reduce = [&]() // IILE
+        {
+            if (platform.getInfo<CL_PLATFORM_VERSION>().find("OpenCL 3.") != cl::string::npos &&
+                device.getInfo<CL_DEVICE_EXTENSIONS>().find("cl_khr_subgroups") != cl::string::npos
+            )
+                return true;
+            else
+                return false;
+        }();
+        if (diag_opts.verbose)
+        {
+            if (may_use_work_group_reduce)
+                std::cout << "Device supports work-group reduction intrinsics." << std::endl;
+            else if (may_use_sub_group_reduce)
+                std::cout << "Device supports sub-group reduction intrinsics." << std::endl;
+            else
+                std::cout << "Device doesn't support any reduction intrinsics." << std::endl;
         }
 
         // User defined input
         std::string kernel_op = reduce_opts.op == "min" ?
-            "int op(int lhs, int rhs) { return min(lhs, rhs); }":
-            "int op(int lhs, int rhs) { return lhs + rhs; }";
+            "int op(int lhs, int rhs) { return min(lhs, rhs); }\n":
+            "int op(int lhs, int rhs) { return lhs + rhs; }\n";
+        if (may_use_work_group_reduce)
+            kernel_op += reduce_opts.op == "min" ?
+                "int work_group_reduce_op(int val) { return work_group_reduce_min(val); }":
+                "int work_group_reduce_op(int val) { return work_group_reduce_add(val); }";
+        else if (may_use_sub_group_reduce)
+            kernel_op += reduce_opts.op == "min" ?
+                "int sub_group_reduce_op(int val) { return sub_group_reduce_min(val); }":
+                "int sub_group_reduce_op(int val) { return sub_group_reduce_add(val); }";
         auto host_op = reduce_opts.op == "min" ?
             std::function<int(int, int)>{ [](int lhs, int rhs){ return std::min(lhs, rhs); } } :
             std::function<int(int, int)>{ std::plus<int>{} };
@@ -102,8 +153,11 @@ int main(int argc, char* argv[])
             throw std::runtime_error{ std::string{ "Cannot open kernel source: " } + kernel_location };
 
         cl::Program program{ context, std::string{ std::istreambuf_iterator<char>{ kernel_stream },
-                                                   std::istreambuf_iterator<char>{} }.append(kernel_op) };
-        program.build( device );
+                                                   std::istreambuf_iterator<char>{} }.append(kernel_op) }; // Note append
+        cl::string compiler_options =
+            cl::string{may_use_work_group_reduce ? "-D USE_WORK_GROUP_REDUCE " : "" } +
+            cl::string{may_use_sub_group_reduce ? "-D USE_SUB_GROUP_REDUCE " : "" };
+        program.build( device, compiler_options.c_str() );
 
         auto reduce = cl::KernelFunctor<cl::Buffer, cl::Buffer, cl::LocalSpaceArg, cl_uint, cl_int>(program, "reduce");
 
@@ -111,25 +165,8 @@ int main(int argc, char* argv[])
         auto wgs = reduce.getKernel().getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(device);
 
         // Further constrain (reduce) WGS based on shared mem size on device
-        auto wgs_step_size = [&]()
-        {
-            auto device_supports_sub_groups = device.getInfo<CL_DEVICE_EXTENSIONS>().find("cl_khr_subgroups")
-            auto plat_ver = platform.getInfo<CL_PLATFORM_VERSION>();
-            auto sub_group_ver = std::string{"2.1"};
-            auto pre_subgroup_query =
-                std::lexicographical_compare(
-                    plat_ver.cbegin(), plat_ver.cend(),
-                    sub_group_ver.cbegin(), sub_group_ver.cend()
-                );
-
-            return true;
-        }();
         while (device.getInfo<CL_DEVICE_LOCAL_MEM_SIZE>() < wgs * 2 * sizeof(cl_int))
-#if CL_HPP_TARGET_OPENCL_VERSION < 210
             wgs -= reduce.getKernel().getWorkGroupInfo<CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE>(device);
-#else
-            wgs -= reduce.getKernel().getSubGroupInfo<CL_KERNEL_MAX_NUM_SUB_GROUPS>(device, cl::NullRange);
-#endif
 
         if (wgs == 0) throw std::runtime_error{"Not enough local memory to serve a single sub-group."};
 
