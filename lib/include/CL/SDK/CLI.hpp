@@ -81,7 +81,7 @@ cl::sdk::options::Diagnostic cl::sdk::comprehend<cl::sdk::options::Diagnostic>(
 template <>
 auto cl::sdk::parse<cl::sdk::options::SingleDevice>()
 {
-    std::vector<std::string> valid_dev_strings{ "all", "cpu", "gpu", "acc", "def" };
+    std::vector<std::string> valid_dev_strings{ "all", "cpu", "gpu", "acc", "cus", "def" };
     TCLAP::ValuesConstraint<std::string> valid_dev_constraint{ valid_dev_strings };
 
     return std::make_tuple(
@@ -102,6 +102,7 @@ cl::sdk::options::SingleDevice cl::sdk::comprehend<cl::sdk::options::SingleDevic
         else if (in == "cpu") return CL_DEVICE_TYPE_CPU;
         else if (in == "gpu") return CL_DEVICE_TYPE_GPU;
         else if (in == "acc") return CL_DEVICE_TYPE_ACCELERATOR;
+        else if (in == "cus") return CL_DEVICE_TYPE_CUSTOM;
         else if (in == "def") return CL_DEVICE_TYPE_DEFAULT;
         else throw std::logic_error{ "Unkown device type after cli parse. Should not have happened." };
     };
