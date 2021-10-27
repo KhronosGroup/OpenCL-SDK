@@ -16,6 +16,7 @@
 
 // OpenCL SDK includes
 #include <CL/Utils/Context.hpp>
+#include <CL/Utils/Event.hpp>
 #include <CL/SDK/Context.hpp>
 #include <CL/SDK/Options.hpp>
 #include <CL/SDK/CLI.hpp>
@@ -75,7 +76,8 @@ int main(int argc, char* argv[])
         // Create runtime objects based on user preference or default
         cl::Context context = cl::sdk::get_context(dev_opts.triplet);
         cl::Device device = context.getInfo<CL_CONTEXT_DEVICES>().at(0);
-        cl::CommandQueue queue{ context, device };
+        auto valami = device.getInfo<CL_DEVICE_QUEUE_ON_HOST_PROPERTIES>();
+        cl::CommandQueue queue{ context, device, cl::QueueProperties::Profiling };
         cl::Platform platform{ device.getInfo<CL_DEVICE_PLATFORM>() }; // https://github.com/KhronosGroup/OpenCL-CLHPP/issues/150
 
         if (!diag_opts.quiet)
@@ -205,13 +207,13 @@ int main(int argc, char* argv[])
             std::cout << "Executing on device... "; std::cout.flush();
         std::vector<cl::Event> passes;
         cl_uint curr = static_cast<cl_uint>(arr.size());
+        auto dev_start = std::chrono::high_resolution_clock::now();
         while ( curr > 1 )
         {
             passes.push_back(
                 reduce(
                     cl::EnqueueArgs{
                         queue,
-                        passes,
                         global(curr),
                         wgs
                     },
@@ -226,12 +228,15 @@ int main(int argc, char* argv[])
             curr = static_cast<cl_uint>(new_size(curr));
             if (curr > 1) std::swap(front, back);
         }
-        for (auto& pass : passes) pass.wait();
+        cl::WaitForEvents(passes);
+        auto dev_end = std::chrono::high_resolution_clock::now();
         if (diag_opts.verbose)
             std::cout << "done." << std::endl;
 
         // calculate reference dataset
+        auto host_start = std::chrono::high_resolution_clock::now();
         auto seq_ref = std::accumulate(arr.cbegin(), arr.cend(), zero_elem, host_op);
+        auto host_end = std::chrono::high_resolution_clock::now();
 
         // Fetch results
         cl_int dev_res;
@@ -243,6 +248,15 @@ int main(int argc, char* argv[])
             std::cerr << "Sequential reference: " << seq_ref << std::endl;
             std::cerr << "Device result: " << dev_res << std::endl;
             throw std::runtime_error{ "Validation failed!" };
+        }
+
+        if (!diag_opts.quiet)
+        {
+            std::cout << "Total device execution as seen by host: " << std::chrono::duration_cast<std::chrono::microseconds>(dev_end - dev_start).count() << " us." << std::endl;
+            std::cout << "Reduction steps as measured by device :\n";
+            for (auto& pass : passes)
+                std::cout << "\t" << cl::util::get_duration<CL_PROFILING_COMMAND_START, CL_PROFILING_COMMAND_END, std::chrono::microseconds>(pass).count() << " us." << std::endl;
+            std::cout << "Reference execution as seen by host   : " << std::chrono::duration_cast<std::chrono::microseconds>(host_end - host_start).count() << " us." << std::endl;
         }
     }
     catch(cl::util::Error& e)
