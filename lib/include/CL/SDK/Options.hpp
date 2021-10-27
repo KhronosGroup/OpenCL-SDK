@@ -8,7 +8,7 @@ namespace sdk
 {
 namespace options
 {
-    struct Triplet
+    struct DeviceTriplet
     {
         int plat_index;
         int dev_index;
@@ -21,11 +21,11 @@ namespace options
     };
     struct SingleDevice
     {
-        Triplet triplet;
+        DeviceTriplet triplet;
     };
     struct MultiDevice
     {
-        cl::vector<Triplet> triplets;
+        cl::vector<DeviceTriplet> triplets;
     };
 }
 }

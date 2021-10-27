@@ -8,11 +8,11 @@ namespace cl
 {
 namespace sdk
 {
-    Context get_context(options::Triplet triplet, cl_int* error = nullptr);
+    Context get_context(options::DeviceTriplet triplet, cl_int* error = nullptr);
 }
 }
 
-cl::Context cl::sdk::get_context(options::Triplet triplet, cl_int* error)
+cl::Context cl::sdk::get_context(options::DeviceTriplet triplet, cl_int* error)
 {
     return cl::util::get_context(
         triplet.plat_index,
