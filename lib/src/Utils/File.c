@@ -7,7 +7,7 @@
 // returns pointer to C-string with file contents
 // can handle streams with no known size and no support for fseek
 // based on https://stackoverflow.com/questions/14002954/ by Nominal Animal
-char * cl_utils_read_text_file(char * filename, size_t * length, cl_int * errcode_ret)
+char * cl_utils_read_text_file(const char * filename, size_t * length, cl_int * errcode_ret)
 {
     char * data = NULL, * temp;
     size_t size = 0;
@@ -17,7 +17,7 @@ char * cl_utils_read_text_file(char * filename, size_t * length, cl_int * errcod
     cl_int err;
 
     /* Size of each input chunk to be read and allocate for. */
-    #define READALL_CHUNK 2097152
+#define READALL_CHUNK 2097152
 
     if (errcode_ret == NULL) {
         errcode_ret = &err;
@@ -38,6 +38,7 @@ char * cl_utils_read_text_file(char * filename, size_t * length, cl_int * errcod
 
     /* A read error already occurred? */
     if (ferror(in)) {
+        fclose(in);
         *errcode_ret = CL_INVALID_VALUE;
         return NULL;
     }
@@ -48,6 +49,7 @@ char * cl_utils_read_text_file(char * filename, size_t * length, cl_int * errcod
 
             /* Overflow check. */
             if (size <= used) {
+                fclose(in);
                 free(data);
                 *errcode_ret = CL_OUT_OF_RESOURCES;
                 return NULL;
@@ -55,6 +57,7 @@ char * cl_utils_read_text_file(char * filename, size_t * length, cl_int * errcod
 
             temp = (char *)realloc(data, size);
             if (temp == NULL) {
+                fclose(in);
                 free(data);
                 *errcode_ret = CL_OUT_OF_HOST_MEMORY;
                 return NULL;
@@ -70,6 +73,7 @@ char * cl_utils_read_text_file(char * filename, size_t * length, cl_int * errcod
     }
 
     if (ferror(in)) {
+        fclose(in);
         free(data);
         *errcode_ret = CL_INVALID_VALUE;
         return NULL;
@@ -77,6 +81,7 @@ char * cl_utils_read_text_file(char * filename, size_t * length, cl_int * errcod
 
     temp = (char *)realloc(data, used + 1);
     if (temp == NULL) {
+        fclose(in);
         free(data);
         *errcode_ret = CL_OUT_OF_HOST_MEMORY;
         return NULL;
@@ -86,6 +91,7 @@ char * cl_utils_read_text_file(char * filename, size_t * length, cl_int * errcod
     if (length != NULL)
         *length = used;
 
+    fclose(in);
     *errcode_ret = CL_SUCCESS;
     return data;
 }
