@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include<math.h>
 
 /*
  * PCG Random Number Generation for C.
