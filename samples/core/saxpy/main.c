@@ -21,6 +21,13 @@
 //#include <CL/SDK/CLI.h>
 #include <CL/SDK/Random.h>
 
+// includes
+#include<stdlib.h>
+#include<stdio.h>
+#include<stdbool.h>
+#include<math.h>
+#include<CL/cl.h>
+
 pcg32_random_t rng = { 111111, 222 };
 
 int main(int argc, char* argv[])
