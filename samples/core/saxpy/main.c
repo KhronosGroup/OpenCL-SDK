@@ -26,7 +26,25 @@
 #include<stdio.h>
 #include<stdbool.h>
 #include<math.h>
-#include<CL/cl.h>
+//#include<CL/cl.h>
+
+// builds program and shows log if build is not successful
+cl_int cl_utils_build_program(cl_program pr, const cl_device_id dev, const char * opt) {
+    // if error
+    cl_int err = clBuildProgram(pr, 1, &dev, opt, NULL, NULL);
+    if (err != CL_SUCCESS) {
+        char * program_log;
+        size_t log_size = 0;
+        clGetProgramBuildInfo(pr, dev, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
+        if ((program_log = (char *)calloc(log_size + 1, sizeof(char))) != NULL) {
+            clGetProgramBuildInfo(pr, dev, CL_PROGRAM_BUILD_LOG, log_size, program_log, NULL);
+            printf("Build log is:\n\n%s\n\n", program_log);
+            free(program_log);
+        }
+    }
+    return err;
+}
+
 
 pcg32_random_t rng = { 111111, 222 };
 
