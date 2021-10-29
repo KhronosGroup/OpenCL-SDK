@@ -24,6 +24,7 @@ project(OpenCL-SDK
 
 include(CMakeDependentOption)
 option(OPENCL_SDK_BUILD_SAMPLES "Build sample code" ON)
+cmake_dependent_option(OPENCL_SDK_BUILD_OPENGL_SAMPLES "Build OpenCL-OpenGL interop sample code" ON OPENCL_SDK_BUILD_SAMPLES OFF)
 cmake_dependent_option(OPENCL_SDK_TEST_SAMPLES "Add CTest to samples (where applicable)" ON OPENCL_SDK_BUILD_SAMPLES OFF)
 
 include(CTest)
@@ -43,6 +44,14 @@ add_subdirectory(external/OpenCL-CLHPP)
 
 add_subdirectory(third_party/cargs)
 add_subdirectory(third_party/stb)
+if(OPENCL_SDK_BUILD_OPENGL_SAMPLES)
+  find_package(OpenGL REQUIRED)
+  find_package(SFML 2
+    REQUIRED
+    COMPONENTS window
+  )
+  find_package(GLEW REQUIRED)
+endif()
 
 add_subdirectory(lib)
 add_subdirectory(samples)

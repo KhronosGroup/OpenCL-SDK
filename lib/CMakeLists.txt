@@ -13,6 +13,8 @@ foreach(UTIL_LIB_NAME IN ITEMS Utils UtilsCpp)
     set(UTIL_LIB_DEPS
       OpenCL::HeadersCpp
       OpenCL::Utils
+      OpenGL::GL
+      sfml-window
     )
     set(UTIL_CL_VERSION_MACRO_NAME CL_HPP_TARGET_OPENCL_VERSION)
   else()

@@ -7,6 +7,7 @@
 #include <CL/opencl.hpp>
 
 #define CL_UTIL_INDEX_OUT_OF_RANGE -2000
+#define CL_UTIL_DEVICE_NOT_INTEROPERABLE -2001
 
 namespace cl
 {
@@ -61,23 +62,22 @@ namespace util
 
 namespace detail
 {
-    void errHandler(cl_int err, cl_int* errPtr, const char* errStr = nullptr);
+    cl_int errHandler(cl_int err, cl_int* errPtr, const char* errStr = nullptr);
 }
 
 }
 }
 
-void cl::util::detail::errHandler(cl_int err, cl_int* errPtr, const char* errStr)
+cl_int cl::util::detail::errHandler(cl_int err, cl_int* errPtr, const char* errStr)
 {
     if (err != CL_SUCCESS)
     {
 #if defined(CL_HPP_ENABLE_EXCEPTIONS)
         throw cl::util::Error{err, errStr};
-#else
+#endif
         (void)errStr; // suppress unused variable warning
-        //std::cerr << errStr << std::endl;
         if (errPtr != nullptr)
             *errPtr = err;
-#endif
     }
+    return err;
 }
