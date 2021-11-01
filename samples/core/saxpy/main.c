@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+//#define CL_TARGET_OPENCL_VERSION 300
 
 // OpenCL SDK includes
 #include <CL/Utils/Utils.h>
 #include <CL/SDK/Context.h>
-//#include <CL/SDK/Options.h>
-//#include <CL/SDK/CLI.h>
+#include <CL/SDK/Options.h>
 #include <CL/SDK/Random.h>
 
 // includes
@@ -26,33 +26,83 @@
 #include<stdio.h>
 #include<stdbool.h>
 #include<math.h>
-//#include<CL/cl.h>
 
-// builds program and shows log if build is not successful
-cl_int cl_utils_build_program(cl_program pr, const cl_device_id dev, const char * opt) {
-    // if error
-    cl_int err = clBuildProgram(pr, 1, &dev, opt, NULL, NULL);
-    if (err != CL_SUCCESS) {
-        char * program_log;
-        size_t log_size = 0;
-        clGetProgramBuildInfo(pr, dev, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
-        if ((program_log = (char *)calloc(log_size + 1, sizeof(char))) != NULL) {
-            clGetProgramBuildInfo(pr, dev, CL_PROGRAM_BUILD_LOG, log_size, program_log, NULL);
-            printf("Build log is:\n\n%s\n\n", program_log);
-            free(program_log);
-        }
-    }
-    return err;
+// Sample-specific option
+struct SaxpyOptions { size_t length; };
+
+cag_option SaxpyOptions[] = {
+ {.identifier = 'l',
+  .access_letters = "l",
+  .access_name = "length",
+  .value_name = "(positive integer)",
+  .description = "Length of input"}
+};
+
+pcg32_random_t rng;
+
+void parse_error(cag_option * opts, size_t const num_opts)
+{
+    printf("Usage: saxpy [OPTION]...\n");
+    //printf("Demonstrates the cargs library.\n\n");
+    cag_option_print(opts, num_opts, stdout);
+    exit(CL_SUCCESS);
 }
 
+ParseState parse_SaxpyOptions(const char identifier, cag_option_context * cag_context, struct SaxpyOptions * opts)
+{
+    const char * value;
+    switch (identifier) {
+    case 'l':
+        if ((value = cag_option_get_value(cag_context))) {
+            opts->length = strtoul(value, NULL, 0);
+            return ParsedOK;
+        }
+        else return ParseError;
+    }
+    return NotParsed;
+}
 
-pcg32_random_t rng = { 111111, 222 };
+void parse_options(int argc,
+                   char* argv[],
+                   struct cl_sdk_options_Diagnostic * diag_opts,
+                   struct cl_sdk_options_SingleDevice * dev_opts,
+                   struct SaxpyOptions * saxpy_opts)
+{
+    struct cag_option * FullOptions = NULL;
+    size_t FullOptionsNumber = 0;
+    FullOptions = add_CLI_options(FullOptions, &FullOptionsNumber, DiagnosticOptions, CAG_ARRAY_SIZE(DiagnosticOptions));
+    FullOptions = add_CLI_options(FullOptions, &FullOptionsNumber, SingleDeviceOptions, CAG_ARRAY_SIZE(SingleDeviceOptions));
+    FullOptions = add_CLI_options(FullOptions, &FullOptionsNumber, SaxpyOptions, CAG_ARRAY_SIZE(SaxpyOptions));
+
+    char identifier;
+    cag_option_context cag_context;
+
+    /* Prepare the context and iterate over all options. */
+    cag_option_prepare(&cag_context, FullOptions, FullOptionsNumber, argc, argv);
+    while (cag_option_fetch(&cag_context)) {
+        ParseState state = NotParsed;
+        identifier = cag_option_get(&cag_context);
+
+        state = parse_DiagnosticOptions(identifier, diag_opts);
+        if (state == ParsedOK) continue;
+        state = parse_SingleDeviceOptions(identifier, &cag_context, dev_opts);
+        if (state == ParsedOK) continue;
+        state = parse_SaxpyOptions(identifier, &cag_context, saxpy_opts);
+        if (state == ParsedOK) continue;
+
+        if ((identifier == 'h') || (state == ParseError)) {
+            printf("Usage: saxpy [OPTION]...\n");
+            //printf("Demonstrates the cargs library.\n\n");
+            cag_option_print(FullOptions, FullOptionsNumber, stdout);
+            exit((state == ParseError) ? CL_INVALID_ARG_VALUE : CL_SUCCESS);
+        }
+    }
+}
 
 int main(int argc, char* argv[])
 {
-    cl_int error = CL_SUCCESS;
-    cl_device_type type = CL_DEVICE_TYPE_DEFAULT;
-    int plat_id = 0, dev_id = 0;
+    cl_int error = CL_SUCCESS,
+        end_error = CL_SUCCESS;
     cl_platform_id platform;
     cl_device_id device;
     cl_context context;
@@ -64,49 +114,55 @@ int main(int argc, char* argv[])
     cl_program program = NULL;
 
     // Parse command-line options
-    bool quiet = false;
+    struct cl_sdk_options_Diagnostic diag_opts = { .quiet = false };
+    struct cl_sdk_options_SingleDevice dev_opts = { .triplet = { 0, 0, CL_DEVICE_TYPE_ALL } };
+    struct SaxpyOptions saxpy_opts = { .length = 1234 };
+
+    parse_options(argc, argv, &diag_opts, &dev_opts, &saxpy_opts);
 
     // Create runtime objects based on user preference or default
     //OCLERROR_PAR(context = cl_util_get_context(plat_id, dev_id, type, &error), error, end);
-    OCLERROR_PAR(device = cl_util_get_device(plat_id, dev_id, type, &error), error, end);
+    OCLERROR_PAR(device = cl_util_get_device_by_triplet(&(dev_opts.triplet), &error), error, end);
     OCLERROR_PAR(context = clCreateContext(NULL, 1, &device, NULL, NULL, &error), error, end);
-    OCLERROR_PAR(queue = clCreateCommandQueueWithProperties(context, device, NULL, &error), error, cont);
+    OCLERROR_PAR(queue = clCreateCommandQueue(context, device, 0, &error), error, cont);
+    //OCLERROR_PAR(queue = clCreateCommandQueueWithProperties(context, device, NULL, &error), error, cont);
     OCLERROR_RET(clGetDeviceInfo(device, CL_DEVICE_PLATFORM, sizeof(cl_platform_id), &platform, NULL), error, que);
 
-    if (!quiet)//(!diag_opts.quiet)
-    {
-        char * vendor = NULL,
-            * name = NULL;
-        size_t v = 0, n = 0;
+    if (!diag_opts.quiet) {
+        char * name = NULL, * tmp = NULL;
+        size_t n = 0;
 
-        OCLERROR_RET(clGetPlatformInfo(platform, CL_PLATFORM_VENDOR, sizeof(size_t), NULL, &v), error, que);
-        MEM_CHECK(vendor = (char *)malloc(sizeof(char) * (v+1)), error, ven);
-        OCLERROR_RET(clGetPlatformInfo(platform, CL_PLATFORM_VENDOR, sizeof(char) * v, vendor, NULL), error, ven);
-        vendor[v] = '\0';
+        // CL_PLATFORM_VENDOR is not supported by NVIDIA CUDA platform
+        //error = clGetPlatformInfo(platform, CL_PLATFORM_NAME, sizeof(size_t), NULL, &n);
+        OCLERROR_RET(clGetPlatformInfo(platform, CL_PLATFORM_NAME, sizeof(size_t), NULL, &n), error, ven);
+        MEM_CHECK(name = (char *)malloc(sizeof(char) * (n+1)), error, ven);
+        OCLERROR_RET(clGetPlatformInfo(platform, CL_PLATFORM_NAME, sizeof(char) * n, name, NULL), error, ven);
+        name[n] = '\0';
+        printf("Selected platform: %s\n", name);
 
-        OCLERROR_RET(clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(size_t), NULL, &n), error, ven);
-        MEM_CHECK(name = (char *)malloc(sizeof(char) * (n+1)), error, nam);
+ven:    OCLERROR_RET(clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(size_t), NULL, &n), error, nam);
+        MEM_CHECK(tmp = (char *)realloc(name, sizeof(char) * (n+1)), error, nam);
+        name = tmp;
         OCLERROR_RET(clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(char) * n, name, NULL), error, nam);
         name[n] = '\0';
-
-        printf("Selected platform: %s\n" "Selected device: %s\n\n", vendor, name);
+        printf("Selected device: %s\n\n", name);
 
 nam:    free(name);
-ven:    free(vendor);
     }
 
     // Compile kernel
     OCLERROR_PAR(kernel = cl_utils_read_text_file(kernel_location, &program_size, &error), error, que);
 
-    OCLERROR_PAR(program = clCreateProgramWithSource(context, 1, &kernel, &program_size, &error), error, ker);
+    OCLERROR_PAR(program = clCreateProgramWithSource(context, 1, (const char **)&kernel, &program_size, &error), error, ker);
     OCLERROR_RET(cl_utils_build_program(program, device, NULL), error, prg);
 
     cl_kernel saxpy;
     OCLERROR_PAR(saxpy = clCreateKernel(program, "saxpy", &error), error, prg);
 
     // Initialize host-side storage
-    const size_t length = 1234;//saxpy_opts.length;
+    const size_t length = saxpy_opts.length;
 
+    pcg32_srandom_r(&rng, 111111, -222);
     cl_float * arr_x, * arr_y,
         a = pcg32_random_float(&rng);
     MEM_CHECK(arr_x = (cl_float *)malloc(sizeof(cl_float) * length), error, sxp);
@@ -129,7 +185,7 @@ ven:    free(vendor);
 
     // Concurrently calculate reference dataset
     for (size_t i = 0; i < length; ++i)
-        arr_y[i] += a * arr_x[i];
+        arr_y[i] = fmaf(a, arr_x[i], arr_y[i]);//arr_y[i] = a * arr_x[i] + arr_y[i];
 
     // Fetch results
     OCLERROR_RET(clEnqueueReadBuffer(queue, buf_y, CL_BLOCKING, 0, sizeof(cl_float) * length, (void *)arr_x, 0, NULL, NULL), error, bufy);
@@ -139,20 +195,21 @@ ven:    free(vendor);
         if (arr_y[i] != arr_x[i]) {
             printf("Verification failed! %f != %f at index %zu\n", arr_y[i], arr_x[i], i);
             error = CL_INVALID_VALUE;
-            goto bufy;
+            if (!diag_opts.verbose) goto bufy;
         }
-    printf("Verification passed.\n");
+    if (error == CL_SUCCESS)
+        printf("Verification passed.\n");
 
     // Release resources
-bufy:   clReleaseMemObject(buf_y);
-bufx:   clReleaseMemObject(buf_x);
+bufy:   OCLERROR_RET(clReleaseMemObject(buf_y), end_error, bufx);
+bufx:   OCLERROR_RET(clReleaseMemObject(buf_x), end_error, arry);
 arry:   free(arr_y);
 arrx:   free(arr_x);
-sxp:    clReleaseKernel(saxpy);
-prg:    clReleaseProgram(program);
+sxp:    OCLERROR_RET(clReleaseKernel(saxpy), end_error, prg);
+prg:    OCLERROR_RET(clReleaseProgram(program), end_error, ker);
 ker:    free(kernel);
-que:    clReleaseCommandQueue(queue);
-cont:   clReleaseContext(context);
-
-end:    return error;
+que:    OCLERROR_RET(clReleaseCommandQueue(queue), end_error, cont);
+cont:   OCLERROR_RET(clReleaseContext(context), end_error, end);
+end:    if (error) printf("Error: %i", error);
+    return error;
 }
