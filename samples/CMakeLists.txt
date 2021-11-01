@@ -72,6 +72,19 @@ macro(add_sample)
         $<$<PLATFORM_ID:Windows>:_CRT_SECURE_NO_WARNINGS> # TODO: remove
     )
 
+    # add math library to link if needed
+    # method by Michael Ambrus, https://stackoverflow.com/questions/34625627
+    include(CheckLibraryExists)
+    CHECK_LIBRARY_EXISTS(m sin "" HAVE_LIB_M)
+    if (HAVE_LIB_M)
+      set(EXTRA_LIBS ${EXTRA_LIBS} m)
+    endif (HAVE_LIB_M)
+
+    target_link_libraries(${OPENCL_SAMPLE_TARGET}
+      PUBLIC
+        ${EXTRA_LIBS}
+    )
+
     set_target_properties(${OPENCL_SAMPLE_TARGET}
       PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}
