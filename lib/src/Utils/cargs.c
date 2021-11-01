@@ -27,7 +27,7 @@
  * which are received in the main function).
  */
 
-#define __STDC_WANT_LIB_EXT1__
+#define __STDC_WANT_LIB_EXT1__ 1
 #include <assert.h>
 #include <memory.h>
 #include <stdio.h>
