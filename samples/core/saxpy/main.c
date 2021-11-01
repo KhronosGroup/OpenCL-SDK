@@ -22,6 +22,7 @@
 #include <CL/SDK/Random.h>
 
 // includes
+#define __STDC_WANT_LIB_EXT1__
 #include<stdlib.h>
 #include<stdio.h>
 #include<stdbool.h>
