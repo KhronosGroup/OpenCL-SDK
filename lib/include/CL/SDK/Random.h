@@ -46,12 +46,12 @@ uint32_t pcg32_random_r(pcg32_random_t * rng)
     return (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
 }
 
-inline cl_float pcg32_random_float(pcg32_random_t * rng)
+cl_float pcg32_random_float(pcg32_random_t * rng)
 {
     return ldexp(pcg32_random_r(rng), -32);
 }
 
-inline cl_float pcg32_random_float_range(pcg32_random_t * rng, cl_float low, cl_float hi)
+cl_float pcg32_random_float_range(pcg32_random_t * rng, cl_float low, cl_float hi)
 {
     return ldexp(pcg32_random_r(rng), -32) * (hi - low) + low;
 }
