@@ -13,8 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-//#define CL_TARGET_OPENCL_VERSION 300
-#define __STDC_WANT_LIB_EXT1__ 1
 
 // OpenCL SDK includes
 #include <CL/Utils/Utils.h>

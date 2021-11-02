@@ -27,7 +27,8 @@
  * which are received in the main function).
  */
 
-#define __STDC_WANT_LIB_EXT1__ 1
+/* Changes: Copyright (c) 2021 The Khronos Group Inc. */
+
 #include <assert.h>
 #include <memory.h>
 #include <stdio.h>
@@ -83,7 +84,7 @@ void cag_option_print(const cag_option *options, size_t option_count,
   int i, accessor_length, max_accessor_length = 0;
 
   FILE * tmp;
-  if (!tmpfile_s(&tmp)) {
+  if ((tmp = tmpfile())) {
     for (option_index = 0; option_index < option_count; ++option_index) {
       option = &options[option_index];
       accessor_length = 0;

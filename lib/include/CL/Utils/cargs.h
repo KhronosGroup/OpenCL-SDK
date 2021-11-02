@@ -22,8 +22,7 @@
  * which are received in the main function).
  */
 
-#ifndef CAG_LIBRARY_H
-#define CAG_LIBRARY_H
+/* Changes: Copyright (c) 2021 The Khronos Group Inc. */
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -159,6 +158,4 @@ int cag_option_get_index(const cag_option_context *context);
 
 #ifdef __cplusplus
 } // extern "C"
-#endif
-
 #endif

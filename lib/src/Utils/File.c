@@ -30,7 +30,7 @@ do { if (func) {*errcode_ret = err; goto label;} } while (0)
     IF_ERR(!filename, CL_INVALID_ARG_VALUE, end);
 
     /* Open file. */
-    IF_ERR(fopen_s(&in, filename, "r"), CL_INVALID_VALUE, end);
+    IF_ERR(!(in = fopen(filename, "r")), CL_INVALID_VALUE, end);
 
     /* A read error already occurred? */
     IF_ERR(ferror(in), CL_INVALID_VALUE, fl);
