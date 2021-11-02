@@ -27,7 +27,7 @@
 #include<math.h>
 
 // Sample-specific option
-struct SaxpyOptions { size_t length; };
+struct options_Saxpy { size_t length; };
 
 cag_option SaxpyOptions[] = {
  {.identifier = 'l',
@@ -44,10 +44,10 @@ void parse_error(cag_option * opts, size_t const num_opts)
     printf("Usage: saxpy [OPTION]...\n");
     //printf("Demonstrates the cargs library.\n\n");
     cag_option_print(opts, num_opts, stdout);
-    exit(CL_SUCCESS);
+    exit(CL_INVALID_ARG_VALUE);
 }
 
-ParseState parse_SaxpyOptions(const char identifier, cag_option_context * cag_context, struct SaxpyOptions * opts)
+ParseState parse_SaxpyOptions(const char identifier, cag_option_context * cag_context, struct options_Saxpy * opts)
 {
     const char * value;
     switch (identifier) {
@@ -61,23 +61,28 @@ ParseState parse_SaxpyOptions(const char identifier, cag_option_context * cag_co
     return NotParsed;
 }
 
-void parse_options(int argc,
+cl_int parse_options(int argc,
                    char* argv[],
                    struct cl_sdk_options_Diagnostic * diag_opts,
                    struct cl_sdk_options_SingleDevice * dev_opts,
-                   struct SaxpyOptions * saxpy_opts)
+                   struct options_Saxpy * saxpy_opts)
 {
-    struct cag_option * FullOptions = NULL;
-    size_t FullOptionsNumber = 0;
-    FullOptions = add_CLI_options(FullOptions, &FullOptionsNumber, DiagnosticOptions, CAG_ARRAY_SIZE(DiagnosticOptions));
-    FullOptions = add_CLI_options(FullOptions, &FullOptionsNumber, SingleDeviceOptions, CAG_ARRAY_SIZE(SingleDeviceOptions));
-    FullOptions = add_CLI_options(FullOptions, &FullOptionsNumber, SaxpyOptions, CAG_ARRAY_SIZE(SaxpyOptions));
+    cl_int error = CL_SUCCESS;
+    struct cag_option * opts = NULL, * tmp = NULL;
+    size_t n = 0;
+
+    /* Prepare all options array. */
+    MEM_CHECK(opts = add_CLI_options(opts, &n, DiagnosticOptions,   CAG_ARRAY_SIZE(DiagnosticOptions)),   error, end);
+    MEM_CHECK(tmp  = add_CLI_options(opts, &n, SingleDeviceOptions, CAG_ARRAY_SIZE(SingleDeviceOptions)), error, end);
+    opts = tmp;
+    MEM_CHECK(tmp  = add_CLI_options(opts, &n, SaxpyOptions,        CAG_ARRAY_SIZE(SaxpyOptions)),        error, end);
+    opts = tmp;
 
     char identifier;
     cag_option_context cag_context;
 
     /* Prepare the context and iterate over all options. */
-    cag_option_prepare(&cag_context, FullOptions, FullOptionsNumber, argc, argv);
+    cag_option_prepare(&cag_context, opts, n, argc, argv);
     while (cag_option_fetch(&cag_context)) {
         ParseState state = NotParsed;
         identifier = cag_option_get(&cag_context);
@@ -92,10 +97,12 @@ void parse_options(int argc,
         if ((identifier == 'h') || (state == ParseError)) {
             printf("Usage: saxpy [OPTION]...\n");
             //printf("Demonstrates the cargs library.\n\n");
-            cag_option_print(FullOptions, FullOptionsNumber, stdout);
+            cag_option_print(opts, n, stdout);
             exit((state == ParseError) ? CL_INVALID_ARG_VALUE : CL_SUCCESS);
         }
-    }
+
+end:    free(opts);
+    return error;
 }
 
 int main(int argc, char* argv[])
@@ -117,7 +124,7 @@ int main(int argc, char* argv[])
     struct cl_sdk_options_SingleDevice dev_opts = { .triplet = { 0, 0, CL_DEVICE_TYPE_ALL } };
     struct SaxpyOptions saxpy_opts = { .length = 1234 };
 
-    parse_options(argc, argv, &diag_opts, &dev_opts, &saxpy_opts);
+    OCLERROR_RET(parse_options(argc, argv, &diag_opts, &dev_opts, &saxpy_opts), error, end);
 
     // Create runtime objects based on user preference or default
     //OCLERROR_PAR(context = cl_util_get_context(plat_id, dev_id, type, &error), error, end);
@@ -150,7 +157,7 @@ nam:    free(name);
     }
 
     // Compile kernel
-    OCLERROR_PAR(kernel = cl_utils_read_text_file(kernel_location, &program_size, &error), error, que);
+    OCLERROR_PAR(kernel = cl_util_read_text_file(kernel_location, &program_size, &error), error, que);
 
     OCLERROR_PAR(program = clCreateProgramWithSource(context, 1, (const char **)&kernel, &program_size, &error), error, ker);
     OCLERROR_RET(cl_utils_build_program(program, device, NULL), error, prg);
