@@ -36,6 +36,7 @@ namespace util
         virtual void event(const sf::Event& e) = 0; // Function that handles render area resize
 
         cl::Context opencl_context;
+        bool cl_khr_gl_event_supported;
 
     private:
         int plat_id;

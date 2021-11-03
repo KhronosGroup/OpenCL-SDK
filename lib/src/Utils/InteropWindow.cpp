@@ -26,6 +26,9 @@ void cl::util::InteropWindow::run()
 
     opencl_context = get_interop_context(plat_id, dev_id, dev_type);
 
+    cl_khr_gl_event_supported =
+        opencl_context.getInfo<CL_CONTEXT_DEVICES>().at(0).getInfo<CL_DEVICE_EXTENSIONS>().find("cl_khr_gl_event") != cl::string::npos;
+
     initializeCL();
 
     while(isOpen())
@@ -34,11 +37,11 @@ void cl::util::InteropWindow::run()
         while (pollEvent(ev))
             event(ev);
 
-        updateScene();
-
         render();
 
         display();
+
+        updateScene();
     }
 
     setActive(false);
