@@ -21,9 +21,7 @@ kernel void reduce(
                  wsi = get_num_groups(0);
 
     const size_t wg_stride = lsi * 2,
-                 valid_count = wid != wsi - 1 ? // If not last group
-                    wg_stride :                 // as much as possible
-                    length - wid * wg_stride;   // only the remaining
+                 valid_count = min(wg_stride, length - wid * wg_stride);
 
     // Copy real data to local
     event_t read;
