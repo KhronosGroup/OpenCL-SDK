@@ -11,6 +11,7 @@ namespace util
 }
 }
 
+// Scott Meyers, Effective STL, Addison-Wesley Professional, 2001, Item 29
 std::string cl::util::read_text_file(const char * filename)
 {
     std::ifstream in(filename);

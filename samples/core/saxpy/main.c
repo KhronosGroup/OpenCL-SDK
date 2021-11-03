@@ -100,6 +100,7 @@ cl_int parse_options(int argc,
             cag_option_print(opts, n, stdout);
             exit((state == ParseError) ? CL_INVALID_ARG_VALUE : CL_SUCCESS);
         }
+    }
 
 end:    free(opts);
     return error;
@@ -122,7 +123,7 @@ int main(int argc, char* argv[])
     // Parse command-line options
     struct cl_sdk_options_Diagnostic diag_opts = { .quiet = false };
     struct cl_sdk_options_SingleDevice dev_opts = { .triplet = { 0, 0, CL_DEVICE_TYPE_ALL } };
-    struct SaxpyOptions saxpy_opts = { .length = 1234 };
+    struct options_Saxpy saxpy_opts = { .length = 1234 };
 
     OCLERROR_RET(parse_options(argc, argv, &diag_opts, &dev_opts, &saxpy_opts), error, end);
 
