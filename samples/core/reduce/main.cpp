@@ -91,8 +91,7 @@ int main(int argc, char* argv[])
         {
             if (platform.getInfo<CL_PLATFORM_VERSION>().find("OpenCL 2.") != cl::string::npos)
             {
-                if (device.getInfo<CL_DEVICE_OPENCL_C_VERSION>().find("OpenCL C 2.") != cl::string::npos) return true;
-                else return false;
+                return device.getInfo<CL_DEVICE_OPENCL_C_VERSION>().find("OpenCL C 2.") != cl::string::npos;
             }
             else if (platform.getInfo<CL_PLATFORM_VERSION>().find("OpenCL 3.") != cl::string::npos)
             {
@@ -101,24 +100,14 @@ int main(int argc, char* argv[])
                 {
                     return cl::string{name_ver.name} == "__opencl_c_work_group_collective_functions";
                 };
-                if (device.getInfo<CL_DEVICE_WORK_GROUP_COLLECTIVE_FUNCTIONS_SUPPORT>() &&
-                    std::find_if(c_features.cbegin(), c_features.cend(), feature_is_work_group_reduce) != c_features.cend()
-                )
-                    return true;
-                else
-                    return false;
+                return device.getInfo<CL_DEVICE_WORK_GROUP_COLLECTIVE_FUNCTIONS_SUPPORT>() &&
+                    std::find_if(c_features.cbegin(), c_features.cend(), feature_is_work_group_reduce) != c_features.cend();
             }
             else return false;
         }();
-        auto may_use_sub_group_reduce = [&]() // IILE
-        {
-            if (platform.getInfo<CL_PLATFORM_VERSION>().find("OpenCL 3.") != cl::string::npos &&
-                device.getInfo<CL_DEVICE_EXTENSIONS>().find("cl_khr_subgroups") != cl::string::npos
-            )
-                return true;
-            else
-                return false;
-        }();
+        auto may_use_sub_group_reduce =
+            platform.getInfo<CL_PLATFORM_VERSION>().find("OpenCL 3.") != cl::string::npos &&
+                    device.getInfo<CL_DEVICE_EXTENSIONS>().find("cl_khr_subgroups") != cl::string::npos;
         if (diag_opts.verbose)
         {
             if (may_use_work_group_reduce)
