@@ -5,7 +5,6 @@
 #include <CL/cl.h>
 #include <CL/Utils/File.h>
 #include <CL/Utils/Context.h>
-#include <CL/Utils/cargs.h>
 
 // RET = function returns error code
 // PAR = functions sets error code in the paremeter

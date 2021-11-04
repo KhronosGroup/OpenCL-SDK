@@ -43,6 +43,7 @@ add_subdirectory(external/OpenCL-CLHPP)
 
 add_subdirectory(lib)
 add_subdirectory(samples)
+add_subdirectory(third_party/cargs)
 
 include (GNUInstallDirs)
 set_target_properties(OpenCL OpenCLUtils OpenCLUtilsCpp

@@ -1,4 +1,6 @@
 /**
+ * https://github.com/likle/cargs
+ *
  * MIT License
  *
  * Copyright (c) 2020 Leonard Iklé
@@ -34,7 +36,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <CL/Utils/cargs.h>
+#include <cargs.h>
 
 static void cag_option_print_value(const cag_option *option,
   int *accessor_length, FILE *destination)
@@ -74,7 +76,6 @@ static void cag_option_print_name(const cag_option *option, bool *first,
   }
 }
 
-UTILS_EXPORT
 void cag_option_print(const cag_option *options, size_t option_count,
   FILE *destination)
 {
@@ -121,7 +122,6 @@ void cag_option_print(const cag_option *options, size_t option_count,
   }
 }
 
-UTILS_EXPORT
 void cag_option_prepare(cag_option_context *context, const cag_option *options,
   size_t option_count, int argc, char **argv)
 {
@@ -377,7 +377,6 @@ static int cag_option_find_next(cag_option_context *context)
   return next_option_index;
 }
 
-UTILS_EXPORT
 bool cag_option_fetch(cag_option_context *context)
 {
   char *c;
@@ -433,14 +432,12 @@ bool cag_option_fetch(cag_option_context *context)
   return context->forced_end == false;
 }
 
-UTILS_EXPORT
 char cag_option_get(const cag_option_context *context)
 {
   // We just return the identifier here.
   return context->identifier;
 }
 
-UTILS_EXPORT
 const char * cag_option_get_value(const cag_option_context *context)
 {
   // We just return the internal value pointer of the context.

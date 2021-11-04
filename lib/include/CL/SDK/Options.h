@@ -1,11 +1,12 @@
 #pragma once
 
-#include<stdlib.h>
-#include<stdbool.h>
-#include<string.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <string.h>
 
-#include<CL/cl.h>
-#include<CL/Utils/cargs.h>
+#include <cargs.h>
+
+#include <CL/cl.h>
 
 struct cl_sdk_options_Triplet
 {

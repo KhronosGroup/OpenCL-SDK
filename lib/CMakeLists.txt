@@ -38,6 +38,8 @@ foreach(UTIL_LIB_NAME IN ITEMS Utils UtilsCpp)
     PUBLIC
       ${UTIL_LIB_DEPS}
       OpenCL::OpenCL
+    PRIVATE
+      cargs
   )
   target_compile_definitions(${UTIL_LIB_TARGET}
     PRIVATE
