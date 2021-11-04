@@ -40,7 +40,7 @@ namespace impl
 namespace impl
 {
     // Borrowed from https://codereview.stackexchange.com/questions/193420/apply-a-function-to-each-element-of-a-tuple-map-a-tuple
-    template <class F, typename Tuple, size_t... Is>
+    template <class F, typename Tuple, std::size_t... Is>
     auto transform_tuple(Tuple&& t, F&& f, std::index_sequence<Is...>) {
         return std::make_tuple(
             std::forward<F>(f)(std::get<Is>(t))...
@@ -57,7 +57,7 @@ namespace impl
 {
     // Borrowed from http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3658.html
     // with modifications of Casey Carter at https://stackoverflow.com/a/51365112/1476661
-    template<typename F, typename Tuple, size_t... I>
+    template<typename F, typename Tuple, std::size_t... I>
     auto apply(F&& f, Tuple&& args, std::index_sequence<I...>)
       -> decltype(std::forward<F>(f)(std::get<I>(std::forward<Tuple>(args))...))
     {
