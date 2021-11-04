@@ -1,13 +1,16 @@
+// OpenCL SDK
 #include <CL/Utils/Utils.h>
 
-#include<stdlib.h>
-#include<stdio.h>
+// STL includes
+#include<stdlib.h> // realloc, free
+#include<stdio.h>  // fopen, ferror, fread, fclose
 
 // reads all the text file contents securely in ANSI C89
 // returns pointer to C-string with file contents
 // can handle streams with no known size and no support for fseek
 // based on https://stackoverflow.com/questions/14002954/ by Nominal Animal
-UTILS_EXPORT char * cl_util_read_text_file(const char * filename, size_t * length, cl_int * errcode_ret)
+UTILS_EXPORT
+char * cl_util_read_text_file(const char * filename, size_t * length, cl_int * error)
 {
     char * data = NULL, * temp;
     size_t size = 0;
@@ -20,10 +23,10 @@ UTILS_EXPORT char * cl_util_read_text_file(const char * filename, size_t * lengt
 #define READALL_CHUNK 2097152
 
 #define IF_ERR(func, err, label) \
-do { if (func) {*errcode_ret = err; goto label;} } while (0)
+do { if (func) {*error = err; goto label;} } while (0)
 
-    if (errcode_ret == NULL) {
-        errcode_ret = &err;
+    if (error == NULL) {
+        error = &err;
     }
 
     /* File name can not be NULL. */
@@ -42,7 +45,7 @@ do { if (func) {*errcode_ret = err; goto label;} } while (0)
             /* Overflow check. */
             IF_ERR(size <= used, CL_OUT_OF_RESOURCES, dt);
 
-            MEM_CHECK(temp = (char *)realloc(data, size), *errcode_ret, dt);
+            MEM_CHECK(temp = (char *)realloc(data, size), *error, dt);
             data = temp;
         }
 
@@ -58,17 +61,19 @@ do { if (func) {*errcode_ret = err; goto label;} } while (0)
     IF_ERR(ferror(in), CL_INVALID_VALUE, dt);
 
     /* Put null termination. */
-    MEM_CHECK(temp = (char *)realloc(data, used + 1), *errcode_ret, dt);
+    MEM_CHECK(temp = (char *)realloc(data, used + 1), *error, dt);
     data = temp;
     data[used] = '\0';
     if (length != NULL)
         *length = used;
 
-    *errcode_ret = CL_SUCCESS;
+    *error = CL_SUCCESS;
 fl:     fclose(in);
 end:    return data;
 
 dt:     fclose(in);
         free(data);
         return NULL;
+
+#undef IF_ERR
 }

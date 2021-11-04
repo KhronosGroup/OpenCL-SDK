@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-// OpenCL SDK includes
+// OpenCL SDK
 #include <CL/Utils/Utils.h>
-#include <CL/SDK/Context.h>
-#include <CL/SDK/Options.h>
+#include <CL/SDK/CLI.h>
 #include <CL/SDK/Random.h>
 
-// includes
+// STL includes
 #include<stdlib.h>
 #include<stdio.h>
 #include<stdbool.h>
@@ -128,8 +127,8 @@ int main(int argc, char* argv[])
     OCLERROR_RET(parse_options(argc, argv, &diag_opts, &dev_opts, &saxpy_opts), error, end);
 
     // Create runtime objects based on user preference or default
-    //OCLERROR_PAR(context = cl_util_get_context(plat_id, dev_id, type, &error), error, end);
-    OCLERROR_PAR(device = cl_util_get_device_by_triplet(&(dev_opts.triplet), &error), error, end);
+    OCLERROR_PAR(device = cl_util_get_device(dev_opts.triplet.plat_index,
+        dev_opts.triplet.dev_index, dev_opts.triplet.dev_type, &error), error, end);
     OCLERROR_PAR(context = clCreateContext(NULL, 1, &device, NULL, NULL, &error), error, end);
     OCLERROR_PAR(queue = clCreateCommandQueue(context, device, 0, &error), error, cont);
     //OCLERROR_PAR(queue = clCreateCommandQueueWithProperties(context, device, NULL, &error), error, cont);

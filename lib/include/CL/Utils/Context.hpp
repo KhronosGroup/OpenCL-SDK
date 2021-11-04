@@ -1,6 +1,8 @@
 #pragma once
 
+// OpenCL SDK
 #include "OpenCLUtilsCpp_Export.h"
+
 #include <CL/Utils/Error.hpp>
 
 #include <CL/opencl.hpp>
