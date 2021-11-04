@@ -76,7 +76,6 @@ int main(int argc, char* argv[])
         // Create runtime objects based on user preference or default
         cl::Context context = cl::sdk::get_context(dev_opts.triplet);
         cl::Device device = context.getInfo<CL_CONTEXT_DEVICES>().at(0);
-        auto valami = device.getInfo<CL_DEVICE_QUEUE_ON_HOST_PROPERTIES>();
         cl::CommandQueue queue{ context, device, cl::QueueProperties::Profiling };
         cl::Platform platform{ device.getInfo<CL_DEVICE_PLATFORM>() }; // https://github.com/KhronosGroup/OpenCL-CLHPP/issues/150
 
@@ -150,7 +149,7 @@ int main(int argc, char* argv[])
             cl::string{may_use_sub_group_reduce ? "-D USE_SUB_GROUP_REDUCE " : "" };
         program.build( device, compiler_options.c_str() );
 
-        auto reduce = cl::KernelFunctor<cl::Buffer, cl::Buffer, cl::LocalSpaceArg, cl_uint, cl_int>(program, "reduce");
+        auto reduce = cl::KernelFunctor<cl::Buffer, cl::Buffer, cl::LocalSpaceArg, cl_ulong, cl_int>(program, "reduce");
 
         // Query maximum supported WGS of kernel on device based on private mem (register) constraints
         auto wgs = reduce.getKernel().getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(device);
@@ -161,12 +160,12 @@ int main(int argc, char* argv[])
 
         if (wgs == 0) throw std::runtime_error{"Not enough local memory to serve a single sub-group."};
 
-        auto factor = wgs * 2;
+        cl_ulong factor = wgs * 2;
         // Every pass reduces input length by 'factor'.
         // If actual size is not divisible by factor,
         // an extra output element is produced using some
         // number of zero_elem inputs.
-        auto new_size = [factor](const std::size_t actual)
+        auto new_size = [factor](const cl_ulong actual)
         {
             return actual / factor + (actual % factor == 0 ? 0 : 1);
         };
@@ -195,7 +194,7 @@ int main(int argc, char* argv[])
         if (diag_opts.verbose)
             std::cout << "Executing on device... "; std::cout.flush();
         std::vector<cl::Event> passes;
-        cl_uint curr = static_cast<cl_uint>(arr.size());
+        cl_ulong curr = static_cast<cl_ulong>(arr.size());
         auto dev_start = std::chrono::high_resolution_clock::now();
         while ( curr > 1 )
         {
@@ -214,7 +213,7 @@ int main(int argc, char* argv[])
                 )
             );
 
-            curr = static_cast<cl_uint>(new_size(curr));
+            curr = static_cast<cl_ulong>(new_size(curr));
             if (curr > 1) std::swap(front, back);
         }
         cl::WaitForEvents(passes);

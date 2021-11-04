@@ -23,11 +23,16 @@ int read_local(local int* shared, size_t count, int zero, size_t i)
     return i < count ? shared[i] : zero;
 }
 
+size_t zmin(size_t a, size_t b)
+{
+    return a < b ? a : b;
+}
+
 kernel void reduce(
     global int* front,
     global int* back,
     local int* shared,
-    unsigned int length,
+    unsigned long length,
     int zero_elem
 )
 {
@@ -37,7 +42,7 @@ kernel void reduce(
                  wsi = get_num_groups(0);
 
     const size_t wg_stride = lsi * 2,
-                 valid_count = min(wg_stride, length - wid * wg_stride);
+                 valid_count = zmin(wg_stride, (size_t)(length) - wid * wg_stride);
 
     // Copy real data to local
     event_t read;
