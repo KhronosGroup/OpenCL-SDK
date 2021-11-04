@@ -15,7 +15,7 @@
 add_sample(
     TEST
     TARGET reduce
-    VERSION 120
+    VERSION 300
     SOURCES main.c
     INCLUDES ${PROJECT_SOURCE_DIR}/third_party/cargs)
 
