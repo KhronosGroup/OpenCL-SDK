@@ -59,6 +59,39 @@ variables:
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@projects.streamhpc.com/".insteadOf "git@projects.streamhpc.com:"
     - git submodule sync && git submodule update --init --recursive
 
+.exec-matrix-minimum:
+  parallel:
+    matrix:
+  # NOTE: Old CMake versions will likely not use cutting-edge compilers
+      - C_COMPILER: gcc-7
+        CXX_COMPILER: g++-7
+      - C_COMPILER: gcc-8
+        CXX_COMPILER: g++-8
+      - C_COMPILER: clang-8
+        CXX_COMPILER: clang++-8
+      - C_COMPILER: clang-9
+        CXX_COMPILER: clang++-9
+      - C_COMPILER: clang-10
+        CXX_COMPILER: clang++-10
+  before_script:
+    - export PATH=/opt/Kitware/CMake/$CMAKE_MINIMUM/bin:$PATH
+
+.exec-matrix-latest:
+  parallel:
+    matrix:
+  # NOTE: Cutting edge CMake versions will likely not use old compilers
+      - C_COMPILER: gcc-9
+        CXX_COMPILER: g++-9
+      - C_COMPILER: gcc-10
+        CXX_COMPILER: g++-10
+      - C_COMPILER: clang-11
+        CXX_COMPILER: clang++-11
+      - C_COMPILER: clang-12
+        CXX_COMPILER: clang++-12
+      - C_COMPILER: clang-13
+        CXX_COMPILER: clang++-13
+  before_script:
+    - export PATH=/opt/Kitware/CMake/$CMAKE_LATEST/bin:$PATH
 
 #################
 ##             ##
@@ -159,25 +192,27 @@ build:cmake-latest:
 ##            ##
 ################
 
-test:cmake-minimum:
-  extends: .toolchain-matrix-minimum
+test:cmake-minimum-rocm:
+  extends: .exec-matrix-minimum
+  image: streamhpc/opencl-sdk-rocm:ubuntu-18.04-20211104
+  tags:
+    - rocm
   stage: test
   needs:
     - build:cmake-minimum
-  # Until a suitable runtime is found
-  allow_failure: true
   # NOTE: CTest has to be invoked from the build folder.
   script:
     - cd $BUILD_DIR
     - ctest --output-on-failure
 
-test:cmake-latest:
-  extends: .toolchain-matrix-minimum
+test:cmake-latest-rocm:
+  extends: .exec-matrix-latest
+  image: streamhpc/opencl-sdk-rocm:ubuntu-18.04-20211104
+  tags:
+    - rocm
   stage: test
   needs:
     - build:cmake-latest
-  # Until a suitable runtime is found
-  allow_failure: true
   # NOTE: CTest has to be invoked from the build folder.
   script:
     - cd $BUILD_DIR
