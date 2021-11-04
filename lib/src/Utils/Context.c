@@ -80,7 +80,7 @@ end:    return result;
 
 // build program and show log if build is not successful
 UTILS_EXPORT
-cl_int cl_utils_build_program(cl_program pr, const cl_device_id dev, const char * opt) {
+cl_int cl_util_build_program(cl_program pr, const cl_device_id dev, const char * opt) {
     // if error
     cl_int err = clBuildProgram(pr, 1, &dev, opt, NULL, NULL);
     if (err != CL_SUCCESS) { // no error handling here as error from build program is more valuable

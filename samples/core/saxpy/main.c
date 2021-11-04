@@ -160,7 +160,7 @@ nam:    free(name);
     OCLERROR_PAR(kernel = cl_util_read_text_file(kernel_location, &program_size, &error), error, que);
 
     OCLERROR_PAR(program = clCreateProgramWithSource(context, 1, (const char **)&kernel, &program_size, &error), error, ker);
-    OCLERROR_RET(cl_utils_build_program(program, device, NULL), error, prg);
+    OCLERROR_RET(cl_util_build_program(program, device, NULL), error, prg);
 
     cl_kernel saxpy;
     OCLERROR_PAR(saxpy = clCreateKernel(program, "saxpy", &error), error, prg);
