@@ -192,7 +192,7 @@ int main(int argc, char* argv[])
 
         // Launch kernels
         if (diag_opts.verbose)
-            std::cout << "Executing on device... "; std::cout.flush();
+            { std::cout << "Executing on device... "; std::cout.flush(); }
         std::vector<cl::Event> passes;
         cl_ulong curr = static_cast<cl_ulong>(arr.size());
         auto dev_start = std::chrono::high_resolution_clock::now();
