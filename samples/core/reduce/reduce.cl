@@ -54,6 +54,15 @@ kernel void reduce(
     wait_group_events(1, &read);
     barrier(CLK_LOCAL_MEM_FENCE);
 
+#ifdef USE_WORK_GROUP_REDUCE
+    int temp = work_group_reduce_op(
+        op(
+            read_local(shared, valid_count, zero_elem, lid),
+            read_local(shared, valid_count, zero_elem, lid + lsi)
+        )
+    );
+    if (lid == 0) back[wid] = temp;
+#else // USE_WORK_GROUP_REDUCE
 #ifdef USE_SUB_GROUP_REDUCE
     const uint sid = get_sub_group_id();
     const uint ssi = get_sub_group_size();
@@ -77,15 +86,6 @@ kernel void reduce(
     }
     if (lid == 0) back[wid] = shared[0];
 #else // USE_SUB_GROUP_REDUCE
-#ifdef USE_WORK_GROUP_REDUCE
-    int temp = work_group_reduce_op(
-        op(
-            read_local(shared, valid_count, zero_elem, lid),
-            read_local(shared, valid_count, zero_elem, lid + lsi)
-        )
-    );
-    if (lid == 0) back[wid] = temp;
-#else // USE_WORK_GROUP_REDUCE
     for (int i = lsi; i != 0; i /= 2)
     {
         if (lid < i)
@@ -97,6 +97,6 @@ kernel void reduce(
         barrier(CLK_LOCAL_MEM_FENCE);
     }
     if (lid == 0) back[wid] = shared[0];
-#endif // USE_WORK_GROUP_REDUCE
 #endif // USE_SUB_GROUP_REDUCE
+#endif // USE_WORK_GROUP_REDUCE
 }
