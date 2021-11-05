@@ -20,7 +20,7 @@ variables:
 ########################
 
 .toolchain-matrix-minimum:
-  image: streamhpc/opencl-sdk-base:ubuntu-18.04-20211006
+  image: streamhpc/opencl-sdk-base:ubuntu-18.04-20211103
   parallel:
     matrix:
   # NOTE: Old CMake versions will likely not use cutting-edge compilers
@@ -40,7 +40,7 @@ variables:
     - git submodule sync && git submodule update --init --recursive
 
 .toolchain-matrix-latest:
-  image: streamhpc/opencl-sdk-base:ubuntu-18.04-20211006
+  image: streamhpc/opencl-sdk-base:ubuntu-18.04-20211103
   parallel:
     matrix:
   # NOTE: Cutting edge CMake versions will likely not use old compilers
