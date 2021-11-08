@@ -95,7 +95,7 @@ cl_int parse_options(int argc,
 
         if ((identifier == 'h') || (state == ParseError)) {
             printf("Usage: saxpy [OPTION]...\n");
-            //printf("Demonstrates the cargs library.\n\n");
+            printf("Demonstrates typical OpenCL application layout.\n\n");
             cag_option_print(opts, n, stdout);
             exit((state == ParseError) ? CL_INVALID_ARG_VALUE : CL_SUCCESS);
         }
@@ -122,7 +122,7 @@ int main(int argc, char* argv[])
     // Parse command-line options
     struct cl_sdk_options_Diagnostic diag_opts = { .quiet = false };
     struct cl_sdk_options_SingleDevice dev_opts = { .triplet = { 0, 0, CL_DEVICE_TYPE_ALL } };
-    struct options_Saxpy saxpy_opts = { .length = 1234 };
+    struct options_Saxpy saxpy_opts = { .length = 1048576 };
 
     OCLERROR_RET(parse_options(argc, argv, &diag_opts, &dev_opts, &saxpy_opts), error, end);
 
@@ -216,6 +216,6 @@ prg:    OCLERROR_RET(clReleaseProgram(program), end_error, ker);
 ker:    free(kernel);
 que:    OCLERROR_RET(clReleaseCommandQueue(queue), end_error, cont);
 cont:   OCLERROR_RET(clReleaseContext(context), end_error, end);
-end:    if (error) printf("Error: %i", error);
+end:    if (error) cl_util_print_error(error);
     return error;
 }
