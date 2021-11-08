@@ -4,5 +4,5 @@ __kernel void saxpy(float a,
 {
     int gid = get_global_id(0);
 
-    y[gid] = a * x[gid] + y[gid];
+    y[gid] = fma(a, x[gid], y[gid]);
 }

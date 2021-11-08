@@ -48,6 +48,19 @@ template <> SaxpyOptions cl::sdk::comprehend<SaxpyOptions>(
     };
 }
 
+std::valarray<float> fma(float x, std::valarray<float> y, std::valarray<float> z)
+{
+    if (y.size() == z.size())
+    {
+        size_t len = y.size();
+        std::valarray<float> res(len);
+        for (size_t i = 0; i < len; ++i)
+            res[i] = fmaf(x, y[i], z[i]);
+        return res;
+    }
+    else throw std::exception {"Different sizes!"};
+}
+
 int main(int argc, char* argv[])
 {
     try
@@ -107,7 +120,7 @@ int main(int argc, char* argv[])
         saxpy(cl::EnqueueArgs{ queue, cl::NDRange{ length } }, a, buf_x, buf_y);
 
         // Concurrently calculate reference dataset
-        arr_y = a * arr_x + arr_y;
+        arr_y = fma(a, arr_x, arr_y);//a * arr_x + arr_y;
 
         // Fetch results
         cl::copy(queue, buf_y, std::begin(arr_x), std::end(arr_x));

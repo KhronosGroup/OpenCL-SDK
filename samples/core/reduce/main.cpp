@@ -188,7 +188,7 @@ int main(int argc, char* argv[])
 
         // Initialize device-side storage
         cl::Buffer front{ queue, std::begin(arr), std::end(arr), false },
-                   back{ context, CL_MEM_READ_WRITE, new_size(arr.size()) * sizeof(cl_int) };
+                   back{ context, CL_MEM_READ_WRITE, static_cast<cl::size_type>(new_size(arr.size()) * sizeof(cl_int)) };
 
         // Launch kernels
         if (diag_opts.verbose)
