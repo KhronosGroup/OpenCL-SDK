@@ -58,7 +58,7 @@ std::valarray<float> fma(float x, std::valarray<float> y, std::valarray<float> z
             res[i] = fmaf(x, y[i], z[i]);
         return res;
     }
-    else throw std::exception {"Different sizes!"};
+    else throw std::logic_error("Different sizes!");
 }
 
 int main(int argc, char* argv[])
