@@ -2,6 +2,7 @@
 
 // STL includes
 #include <stdint.h>
+#include <stdbool.h>
 #include<math.h>
 
 /*
@@ -71,14 +72,39 @@ void pcg32_srandom_r(pcg32_random_t * rng, uint64_t initstate, uint64_t initseq)
     pcg32_random_r(rng);
 }
 
-// fills array with random floats in [0, 1)
-void cl_sdk_fill_with_random(pcg32_random_t * rng, cl_float * arr, size_t len)
+// fill array with random floats in [0, 1)
+void cl_sdk_fill_with_random_floats(pcg32_random_t * rng, cl_float * arr, size_t len)
 {
     for (; len > 0; arr[--len] = pcg32_random_float(rng));
 }
 
-void cl_sdk_fill_with_random_range(pcg32_random_t * rng, cl_float * arr, size_t len, cl_float low, cl_float hi)
+void cl_sdk_fill_with_random_floats_range(pcg32_random_t * rng, cl_float * arr, size_t len, cl_float low, cl_float hi)
 {
     cl_float diff = hi - low;
     for (; len > 0; arr[--len] = pcg32_random_float(rng) * diff + low);
+}
+
+// return uniformly distributed numbers in the range [low, hi]
+// uses rejection sampling from uniform bit distribution
+void cl_sdk_fill_with_random_ints_range(pcg32_random_t * rng, cl_int * arr, size_t len, cl_int low, cl_int hi)
+{
+    const uint32_t
+        diff = hi - low,
+        bits = log2(diff),
+        mask = (1u << (bits + 1)) - 1;
+    while (len > 0) {
+        --len;
+        uint32_t res;
+        bool bad = true;
+        do {
+            res = pcg32_random_r(rng);
+            for (int i = 0; i < 32 / bits; ++i, res >>= bits)
+                if ((res & mask) <= diff) {
+                    res &= mask;
+                    bad = false;
+                    break;
+                }
+        } while (bad);
+        arr[len] = low + (cl_int)res;
+    }
 }
