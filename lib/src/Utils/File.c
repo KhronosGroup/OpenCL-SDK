@@ -1,4 +1,4 @@
-// OpenCL SDK
+// OpenCL SDK includes
 #include <CL/Utils/Utils.h>
 
 // STL includes

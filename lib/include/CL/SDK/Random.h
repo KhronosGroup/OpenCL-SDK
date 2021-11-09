@@ -85,7 +85,7 @@ void cl_sdk_fill_with_random_floats_range(pcg32_random_t * rng, cl_float * arr, 
 }
 
 // return uniformly distributed numbers in the range [low, hi]
-// uses rejection sampling from uniform bit distribution
+// use rejection sampling from uniform bit distribution
 void cl_sdk_fill_with_random_ints_range(pcg32_random_t * rng, cl_int * arr, size_t len, cl_int low, cl_int hi)
 {
     const uint32_t

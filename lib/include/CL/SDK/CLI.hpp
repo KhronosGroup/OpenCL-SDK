@@ -1,6 +1,6 @@
 #pragma once
 
-// OpenCL SDK
+// OpenCL SDK includes
 #include <CL/SDK/Options.hpp>
 
 // OpenCL Utils includes

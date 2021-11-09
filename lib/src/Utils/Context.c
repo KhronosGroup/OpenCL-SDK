@@ -1,4 +1,4 @@
-// OpenCL SDK
+// OpenCL SDK includes
 #include <CL/Utils/Utils.h>
 #include <CL/Utils/Error.h>
 #include <CL/Utils/Context.h>
@@ -87,8 +87,6 @@ void cl_util_print_device_info(cl_device_id device)
     cl_platform_id platform;
     OCLERROR_PAR(clGetDeviceInfo(device, CL_DEVICE_PLATFORM, sizeof(cl_platform_id), &platform, NULL), error, nam);
 
-    // CL_PLATFORM_VENDOR is not supported by NVIDIA CUDA platform
-    //error = clGetPlatformInfo(platform, CL_PLATFORM_NAME, sizeof(size_t), NULL, &n);
     OCLERROR_PAR(name = cl_util_get_platform_info(platform, CL_PLATFORM_VENDOR, &error), error, ven);
     printf("Selected platform by %s\n", name);
 

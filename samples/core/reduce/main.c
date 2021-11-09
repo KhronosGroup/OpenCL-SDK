@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// OpenCL SDK
+// OpenCL SDK includes
 #include <CL/Utils/Utils.h>
 #include <CL/SDK/CLI.h>
 #include <CL/SDK/Random.h>
