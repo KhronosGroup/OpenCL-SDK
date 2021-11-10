@@ -1,10 +1,12 @@
-# saxpy
+# histogram
+
+The sample calculate the histogram of a random sequence with global atomic add and when it is possible, it's using local atomic add.
 
 ## Sample Purpose
 
 This sample intends to be a minimal end-to-end OpenCL application doing actual device-side computation. The structure of the sample rhymes well with the [How Does OpenCL Work?](https://github.com/KhronosGroup/OpenCL-Guide/blob/main/chapters/how_does_opencl_work.md) chapter of the OpenCL-Guide, particularly the [Executing an OpenCL Program](https://github.com/KhronosGroup/OpenCL-Guide/blob/main/chapters/how_does_opencl_work.md#executing-an-opencl-program) part.
 
-This sample is implemented using both C and C++ languages to demonstrate the difference in verbosity when using the naked C bindings compared to the C++ wrapper.
+This sample is implemented using C++ languages.
 
 ## Key APIs and Concepts
 
@@ -44,4 +46,5 @@ cl::KernelFunctor<...>(cl::Program, const char*)
 cl::sdk::fill_with_random(...)
 cl::Buffer(cl::CommandQueue, Iter, Iter, bool)
 cl::copy(cl::CommandQueue, cl::Buffer, Iter, Iter)
+unsigned int atomic_add (volatile __global unsigned int *p, unsigned int val)
 ```
