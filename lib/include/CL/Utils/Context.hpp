@@ -5,6 +5,7 @@
 
 #include <CL/Utils/Error.hpp>
 
+// OpenCL includes
 #include <CL/opencl.hpp>
 
 namespace cl

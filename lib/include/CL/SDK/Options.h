@@ -3,6 +3,7 @@
 // STL includes
 #include <stdbool.h>
 
+// OpenCL includes
 #include <CL/cl.h>
 
 struct cl_sdk_options_DeviceTriplet

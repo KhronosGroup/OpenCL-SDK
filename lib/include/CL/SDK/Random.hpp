@@ -1,7 +1,9 @@
 #pragma once
 
+// OpenCL SDK includes
 #include <CL/Utils/Detail.hpp>  // cl::util::detail::for_each_arg
 
+// STL includes
 #include <algorithm>            // std::generate_n
 
 namespace cl

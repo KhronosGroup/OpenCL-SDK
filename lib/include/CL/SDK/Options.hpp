@@ -1,5 +1,6 @@
 #pragma once
 
+// OpenCL includes
 #include <CL/opencl.hpp>
 
 namespace cl

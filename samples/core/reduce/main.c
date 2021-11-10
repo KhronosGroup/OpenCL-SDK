@@ -18,12 +18,12 @@
 #include <CL/Utils/Utils.h>
 #include <CL/SDK/CLI.h>
 #include <CL/SDK/Random.h>
+#include <CL/Utils/Event.h>
 
 // STL includes
-//#include<stdlib.h>
-//#include<stdio.h>
+#include<stdlib.h>
+#include<stdio.h>
 #include<stdbool.h>
-//#include<math.h>
 
 // Sample-specific option
 struct options_Reduce {
@@ -114,9 +114,9 @@ end:    free(opts);
     return error;
 }
 
-bool check_use_work_group_reduce(cl_platform_id platform, cl_device_id device, cl_int * error)
+int check_use_work_group_reduce(cl_platform_id platform, cl_device_id device, cl_int * error)
 {
-    bool res = false;
+    int res = 0;
     char * name = NULL;
 
     OCLERROR_PAR(name = cl_util_get_platform_info(platform, CL_PLATFORM_VERSION, error), *error, nam);
@@ -124,7 +124,8 @@ bool check_use_work_group_reduce(cl_platform_id platform, cl_device_id device, c
     if (strstr(name, "OpenCL 2.")) {
         free(name);
         OCLERROR_PAR(name = cl_util_get_device_info(device, CL_DEVICE_OPENCL_C_VERSION, error), *error, nam);
-        res = strstr(name, "OpenCL C 2.");
+        if (strstr(name, "OpenCL C 2."))
+            res = 2;
     }
     else if (strstr(name, "OpenCL 3.")) {
         cl_bool coll_func;
@@ -144,7 +145,7 @@ bool check_use_work_group_reduce(cl_platform_id platform, cl_device_id device, c
             const size_t feat = sizeof(char) * n / sizeof(cl_name_version);
             for (size_t i = 0; i < feat; ++i)
                 if (strstr(c_features[i].name, "__opencl_c_work_group_collective_functions")) {
-                    res = true;
+                    res = 3;
                     break;
                 }
 cf:         free(c_features);
@@ -154,9 +155,9 @@ nam:    free(name);
     return res;
 }
 
-bool check_use_sub_group_reduce(cl_platform_id platform, cl_device_id device, cl_int * error)
+int check_use_sub_group_reduce(cl_platform_id platform, cl_device_id device, cl_int * error)
 {
-    bool res = false;
+    int res = 0;
     char * name = NULL;
 
     OCLERROR_PAR(name = cl_util_get_platform_info(platform, CL_PLATFORM_VERSION, error), *error, nam);
@@ -164,7 +165,8 @@ bool check_use_sub_group_reduce(cl_platform_id platform, cl_device_id device, cl
     if (strstr(name, "OpenCL 3.")) {
         free(name);
         OCLERROR_PAR(name = cl_util_get_device_info(device, CL_DEVICE_EXTENSIONS, error), *error, nam);
-        res = strstr(name, "cl_khr_subgroups");
+        if (strstr(name, "cl_khr_subgroups"))
+            res = 3;
     }
 nam:    free(name);
     return res;
@@ -225,19 +227,23 @@ int main(int argc, char* argv[])
     OCLERROR_PAR(device = cl_util_get_device(dev_opts.triplet.plat_index,
         dev_opts.triplet.dev_index, dev_opts.triplet.dev_type, &error), error, end);
     OCLERROR_PAR(context = clCreateContext(NULL, 1, &device, NULL, NULL, &error), error, end);
+    OCLERROR_RET(clGetDeviceInfo(device, CL_DEVICE_PLATFORM, sizeof(cl_platform_id), &platform, NULL), error, cont);
+#if CL_HPP_TARGET_OPENCL_VERSION >= 200
+    cl_command_queue_properties props[] = {CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE, 0};
+    OCLERROR_PAR(queue = clCreateCommandQueueWithProperties(context, device, props, &error), error, cont);
+#else
     OCLERROR_PAR(queue = clCreateCommandQueue(context, device, CL_QUEUE_PROFILING_ENABLE, &error), error, cont);
-    //OCLERROR_PAR(queue = clCreateCommandQueueWithProperties(context, device, NULL, &error), error, cont);
-    OCLERROR_RET(clGetDeviceInfo(device, CL_DEVICE_PLATFORM, sizeof(cl_platform_id), &platform, NULL), error, que);
+#endif
 
     if (!diag_opts.quiet) {
         cl_util_print_device_info(device);
     }
 
     // Query device and runtime capabilities
-    bool may_use_work_group_reduce;
+    int may_use_work_group_reduce;
     OCLERROR_PAR(may_use_work_group_reduce = check_use_work_group_reduce(platform, device, &error), error, que);
 
-    bool may_use_sub_group_reduce;
+    int may_use_sub_group_reduce;
     OCLERROR_PAR(may_use_sub_group_reduce = check_use_sub_group_reduce(platform, device, &error), error, que);
 
     if (diag_opts.verbose) {
@@ -284,8 +290,10 @@ int main(int argc, char* argv[])
 
     OCLERROR_PAR(program = clCreateProgramWithSource(context, 1, (const char **)&kernel, &program_size, &error), error, ker);
     kernel_op[0] = '\0';
-    if (may_use_work_group_reduce)
+    if (may_use_work_group_reduce == 2)
         strcat(kernel_op, "-D USE_WORK_GROUP_REDUCE -cl-std=CL2.0 ");
+    else if (may_use_work_group_reduce == 3)
+        strcat(kernel_op, "-D USE_WORK_GROUP_REDUCE -cl-std=CL3.0 ");
     else if (may_use_sub_group_reduce)
         strcat(kernel_op, "-D USE_SUB_GROUP_REDUCE -cl-std=CL3.0 ");
 

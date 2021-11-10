@@ -4,8 +4,8 @@
 #include <CL/Utils/Context.h>
 
 // STL includes
-#include <stdlib.h> // malloc, free
-#include <stdio.h>  // printf
+#include <stdlib.h>     // malloc, free
+#include <stdio.h>      // printf
 
 static cl_uint MAXOCLPLAT = 65535;
 static cl_uint MAXOCLDEV = 65535;
@@ -177,15 +177,4 @@ cl_int cl_util_build_program(cl_program pr, const cl_device_id dev, const char *
         }
     }
     return err;
-}
-
-UTILS_EXPORT
-cl_ulong cl_util_get_event_duration(cl_event event, cl_profiling_info start, cl_profiling_info end, cl_int * error)
-{
-    cl_ulong start_time = 0, end_time = 0;
-    OCLERROR_RET(clGetEventProfilingInfo(event, start, sizeof(cl_ulong), &start_time, NULL), *error, end);
-    OCLERROR_RET(clGetEventProfilingInfo(event, end, sizeof(cl_ulong), &end_time, NULL), *error, end);
-    return end_time - start_time;
-
-end:    return 0;
 }

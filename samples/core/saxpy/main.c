@@ -124,8 +124,12 @@ int main(int argc, char* argv[])
         dev_opts.triplet.dev_index, dev_opts.triplet.dev_type, &error), error, end);
     OCLERROR_PAR(context = clCreateContext(NULL, 1, &device, NULL, NULL, &error), error, end);
     OCLERROR_PAR(queue = clCreateCommandQueue(context, device, 0, &error), error, cont);
-    //OCLERROR_PAR(queue = clCreateCommandQueueWithProperties(context, device, NULL, &error), error, cont);
-    OCLERROR_RET(clGetDeviceInfo(device, CL_DEVICE_PLATFORM, sizeof(cl_platform_id), &platform, NULL), error, que);
+    OCLERROR_RET(clGetDeviceInfo(device, CL_DEVICE_PLATFORM, sizeof(cl_platform_id), &platform, NULL), error, cont);
+#if CL_HPP_TARGET_OPENCL_VERSION >= 200
+    OCLERROR_PAR(queue = clCreateCommandQueueWithProperties(context, device, NULL, &error), error, cont);
+#else
+    OCLERROR_PAR(queue = clCreateCommandQueue(context, device, CL_QUEUE_PROFILING_ENABLE, &error), error, cont);
+#endif
 
     if (!diag_opts.quiet) {
         cl_util_print_device_info(device);

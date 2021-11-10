@@ -1,5 +1,9 @@
 #pragma once
 
+// STL includes
+//#include <iostream>
+
+// OpenCL includes
 #include <CL/opencl.hpp>
 
 #define CL_UTIL_INDEX_OUT_OF_RANGE -2000
@@ -9,8 +13,8 @@ namespace cl
 namespace util
 {
 #if defined(CL_HPP_ENABLE_EXCEPTIONS)
-    /*! \brief Exception class 
-     * 
+    /*! \brief Exception class
+     *
      *  This may be thrown by SDK utility functions when CL_HPP_ENABLE_EXCEPTIONS is defined.
      */
     class Error : public std::exception
@@ -21,7 +25,7 @@ namespace util
     public:
         /*! \brief Create a new SDK error exception for a given error code
          *  and corresponding message.
-         * 
+         *
          *  \param err error code value.
          *
          *  \param errStr a descriptive string that must remain in scope until
@@ -71,6 +75,7 @@ void cl::util::detail::errHandler(cl_int err, cl_int* errPtr, const char* errStr
         throw cl::util::Error{err, errStr};
 #else
         (void)errStr; // suppress unused variable warning
+        //std::cerr << errStr << std::endl;
         if (errPtr != nullptr)
             *errPtr = err;
 #endif

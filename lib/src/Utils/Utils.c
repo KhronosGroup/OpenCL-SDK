@@ -3,3 +3,4 @@
 
 #include "Context.c"
 #include "File.c"
+#include "Image.c"

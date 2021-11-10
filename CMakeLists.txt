@@ -41,9 +41,11 @@ add_subdirectory(external/OpenCL-Headers)
 add_subdirectory(external/OpenCL-ICD-Loader)
 add_subdirectory(external/OpenCL-CLHPP)
 
+add_subdirectory(third_party/cargs)
+add_subdirectory(third_party/stb)
+
 add_subdirectory(lib)
 add_subdirectory(samples)
-add_subdirectory(third_party/cargs)
 
 include (GNUInstallDirs)
 set_target_properties(OpenCL OpenCLUtils OpenCLUtilsCpp

@@ -40,6 +40,7 @@ foreach(UTIL_LIB_NAME IN ITEMS Utils UtilsCpp)
       OpenCL::OpenCL
     PRIVATE
       cargs
+      stb
   )
   target_compile_definitions(${UTIL_LIB_TARGET}
     PRIVATE

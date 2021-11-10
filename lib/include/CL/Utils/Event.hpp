@@ -1,10 +1,13 @@
 #pragma once
 
+// OpenCL SDK includes
 #include "OpenCLUtilsCpp_Export.h"
 
-#include <CL/opencl.hpp>
-
+// STL includes
 #include <chrono>
+
+// OpenCL includes
+#include <CL/opencl.hpp>
 
 namespace cl
 {

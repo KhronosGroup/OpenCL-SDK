@@ -1,9 +1,9 @@
 #pragma once
 
 // STL includes
-#include <stdint.h>
-#include <stdbool.h>
-#include<math.h>
+#include <stdint.h>     // uint64_t, uint32_t
+#include <stdbool.h>    // bool
+#include <math.h>       // ldexpf
 
 /*
  * PCG Random Number Generation for C.
@@ -50,12 +50,12 @@ uint32_t pcg32_random_r(pcg32_random_t * rng)
 
 cl_float pcg32_random_float(pcg32_random_t * rng)
 {
-    return ldexp(pcg32_random_r(rng), -32);
+    return ldexpf(pcg32_random_r(rng), -32);
 }
 
 cl_float pcg32_random_float_range(pcg32_random_t * rng, cl_float low, cl_float hi)
 {
-    return ldexp(pcg32_random_r(rng), -32) * (hi - low) + low;
+    return ldexpf(pcg32_random_r(rng), -32) * (hi - low) + low;
 }
 
 // pcg32_srandom(initstate, initseq)
@@ -90,7 +90,7 @@ void cl_sdk_fill_with_random_ints_range(pcg32_random_t * rng, cl_int * arr, size
 {
     const uint32_t
         diff = hi - low,
-        bits = log2(diff),
+        bits = diff ? log2(diff) : 0,
         mask = (1u << (bits + 1)) - 1;
     while (len > 0) {
         --len;

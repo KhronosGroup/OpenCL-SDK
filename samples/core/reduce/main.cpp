@@ -90,7 +90,7 @@ int main(int argc, char* argv[])
         {
             if (platform.getInfo<CL_PLATFORM_VERSION>().find("OpenCL 2.") != cl::string::npos)
             {
-                return device.getInfo<CL_DEVICE_OPENCL_C_VERSION>().find("OpenCL C 2.") != cl::string::npos;
+                return device.getInfo<CL_DEVICE_OPENCL_C_VERSION>().find("OpenCL C 2.") != cl::string::npos ? 2 : 0;
             }
             else if (platform.getInfo<CL_PLATFORM_VERSION>().find("OpenCL 3.") != cl::string::npos)
             {
@@ -100,13 +100,13 @@ int main(int argc, char* argv[])
                     return cl::string{name_ver.name} == "__opencl_c_work_group_collective_functions";
                 };
                 return device.getInfo<CL_DEVICE_WORK_GROUP_COLLECTIVE_FUNCTIONS_SUPPORT>() &&
-                    std::find_if(c_features.cbegin(), c_features.cend(), feature_is_work_group_reduce) != c_features.cend();
+                    std::find_if(c_features.cbegin(), c_features.cend(), feature_is_work_group_reduce) != c_features.cend() ? 3 : 0;
             }
-            else return false;
+            else return 0;
         }();
         auto may_use_sub_group_reduce =
             platform.getInfo<CL_PLATFORM_VERSION>().find("OpenCL 3.") != cl::string::npos &&
-                    device.getInfo<CL_DEVICE_EXTENSIONS>().find("cl_khr_subgroups") != cl::string::npos;
+                    device.getInfo<CL_DEVICE_EXTENSIONS>().find("cl_khr_subgroups") != cl::string::npos ? 3 : 0;
         if (diag_opts.verbose)
         {
             if (may_use_work_group_reduce)
@@ -145,8 +145,9 @@ int main(int argc, char* argv[])
         cl::Program program{ context, std::string{ std::istreambuf_iterator<char>{ kernel_stream },
                                                    std::istreambuf_iterator<char>{} }.append(kernel_op) }; // Note append
         cl::string compiler_options =
-            cl::string{may_use_work_group_reduce ? "-D USE_WORK_GROUP_REDUCE " : "" } +
-            cl::string{may_use_sub_group_reduce ? "-D USE_SUB_GROUP_REDUCE " : "" };
+            (may_use_work_group_reduce ?
+                cl::string{"-D USE_WORK_GROUP_REDUCE -cl-std=CL"} + std::to_string(may_use_work_group_reduce) + ".0 " :
+                (may_use_sub_group_reduce ? "-D USE_SUB_GROUP_REDUCE -cl-std=CL3.0 " : " " ));
         program.build( device, compiler_options.c_str() );
 
         auto reduce = cl::KernelFunctor<cl::Buffer, cl::Buffer, cl::LocalSpaceArg, cl_ulong, cl_int>(program, "reduce");

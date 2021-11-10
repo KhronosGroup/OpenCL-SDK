@@ -1,3 +1,4 @@
+// OpenCL SDK includes
 #include <CL/Utils/Context.hpp>
 
 cl::Context cl::util::get_context(int plat_id, int dev_id, cl_device_type type, cl_int* error)

@@ -1,5 +1,6 @@
 #pragma once
 
+// STL includes
 #include <time.h>
 
 UTILS_EXPORT
@@ -18,9 +19,6 @@ char * cl_util_get_platform_info(cl_platform_id platform, cl_platform_info info,
 // build program and show log if build is not successful
 UTILS_EXPORT
 cl_int cl_util_build_program(cl_program pr, const cl_device_id dev, const char * opt);
-
-UTILS_EXPORT
-cl_ulong cl_util_get_event_duration(cl_event event, cl_profiling_info start, cl_profiling_info end, cl_int * error);
 
 #define GET_CURRENT_TIMER(time)                                         \
 struct timespec time;                                                   \

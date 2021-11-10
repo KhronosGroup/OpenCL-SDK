@@ -3,13 +3,13 @@
 // OpenCL SDK includes
 #include <CL/SDK/Options.h>
 
-// cargs includes
-#include <cargs.h>
-
 // STL includes
 #include <stdlib.h> // realloc
 #include <stdbool.h> // bool
 #include <string.h> // memcpy, strcmp, strtoul
+
+// cargs includes
+#include <cargs.h>
 
 typedef struct cag_option cag_option;
 
@@ -107,11 +107,11 @@ else return ParseError;
 
     switch (identifier) {
     case 'p':
-        IF_ERR(dev_opts->triplet.plat_index = strtoul(value, NULL, 0));
+        IF_ERR(dev_opts->triplet.plat_index = strtoul(value, NULL, 0))
     case 'd':
-        IF_ERR(dev_opts->triplet.dev_index = strtoul(value, NULL, 0));
+        IF_ERR(dev_opts->triplet.dev_index = strtoul(value, NULL, 0))
     case 't':
-        IF_ERR(dev_opts->triplet.dev_type = get_dev_type(value));
+        IF_ERR(dev_opts->triplet.dev_type = get_dev_type(value))
     }
     return NotParsed;
 
