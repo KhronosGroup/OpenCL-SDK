@@ -1,6 +1,7 @@
 #pragma once
 
 // STL includes
+#include <stddef.h>
 #include <utility>          // std::forward, std::integer_sequence
 #include <tuple>            // std::tuple, std::get
 #include <initializer_list> // std::initializer_list
