@@ -94,20 +94,24 @@ void cl_sdk_fill_with_random_ints_range(pcg32_random_t * rng,
 {
     const uint32_t
         diff = hi - low,
-        bits = diff ? log2(diff) : 0,
-        mask = (1u << (bits + 1)) - 1;
+        bits_of_uint32_t = 32,
+        bits_needed = diff ? log2(diff) + 1 : 1,
+        mask = diff ? (1u << bits_needed) - 1 : 0;
     for (size_t index = 0; index < len; ++index) {
         uint32_t res;
-        bool bad = true;
+        bool reject = true;
         do {
-            res = pcg32_random_r(rng);
-            for (int i = 0; i < 32 / bits; ++i, res >>= bits)
-                if ((res & mask) <= diff) {
-                    res &= mask;
-                    bad = false;
+            res = pcg32_random_r(rng); // get 32 random bits
+            // and take enough of them to cover [0..diff] range
+            for (int i = 0; i < bits_of_uint32_t / bits_needed; ++i)
+                if ((res & mask) <= diff) { // no rejection
+                    res &= mask; // take this number
+                    reject = false;
                     break;
                 }
-        } while (bad);
+                else // take next piece of bits
+                    res >>= bits_needed;
+        } while (reject);
         arr[index] = low + (cl_int)res;
     }
 }
