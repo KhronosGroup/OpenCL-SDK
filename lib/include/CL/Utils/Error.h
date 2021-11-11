@@ -4,7 +4,7 @@
 #include <stdio.h>      // fprintf
 
 // OpenCL includes
-#include <CL/CL.h>
+#include <CL/cl.h>
 
 #define CL_UTIL_INDEX_OUT_OF_RANGE -2000
 
