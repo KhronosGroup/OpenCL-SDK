@@ -13,7 +13,7 @@
 #include <stb_image_write.h>
 
 // OpenCL includes
-#include <CL/CL.h>
+#include <CL/cl.h>
 
 UTILS_EXPORT
 cl_sdk_image cl_sdk_read_image(const char* file_name, cl_int* err)

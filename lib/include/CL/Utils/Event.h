@@ -1,7 +1,7 @@
 #pragma once
 
 // OpenCL includes
-#include <CL/CL.h>
+#include <CL/cl.h>
 
 cl_ulong cl_util_get_event_duration(cl_event event, cl_profiling_info start, cl_profiling_info end, cl_int * error)
 {
