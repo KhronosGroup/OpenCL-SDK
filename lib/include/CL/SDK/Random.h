@@ -73,27 +73,30 @@ void pcg32_srandom_r(pcg32_random_t * rng, uint64_t initstate, uint64_t initseq)
 }
 
 // fill array with random floats in [0, 1)
-void cl_sdk_fill_with_random_floats(pcg32_random_t * rng, cl_float * arr, size_t len)
+void cl_sdk_fill_with_random_floats(pcg32_random_t * rng, cl_float * arr, const size_t len)
 {
-    for (; len > 0; arr[--len] = pcg32_random_float(rng));
+    for (size_t index = 0; index < len; ++index)
+        arr[index] = pcg32_random_float(rng);
 }
 
-void cl_sdk_fill_with_random_floats_range(pcg32_random_t * rng, cl_float * arr, size_t len, cl_float low, cl_float hi)
+void cl_sdk_fill_with_random_floats_range(pcg32_random_t * rng,
+    cl_float * arr, const size_t len, const cl_float low, const cl_float hi)
 {
     cl_float diff = hi - low;
-    for (; len > 0; arr[--len] = pcg32_random_float(rng) * diff + low);
+    for (size_t index = 0; index < len; ++index)
+        arr[index] = pcg32_random_float(rng) * diff + low;
 }
 
 // return uniformly distributed numbers in the range [low, hi]
 // use rejection sampling from uniform bit distribution
-void cl_sdk_fill_with_random_ints_range(pcg32_random_t * rng, cl_int * arr, size_t len, cl_int low, cl_int hi)
+void cl_sdk_fill_with_random_ints_range(pcg32_random_t * rng,
+    cl_int * arr, const size_t len, const cl_int low, const cl_int hi)
 {
     const uint32_t
         diff = hi - low,
         bits = diff ? log2(diff) : 0,
         mask = (1u << (bits + 1)) - 1;
-    while (len > 0) {
-        --len;
+    for (size_t index = 0; index < len; ++index) {
         uint32_t res;
         bool bad = true;
         do {
@@ -105,6 +108,6 @@ void cl_sdk_fill_with_random_ints_range(pcg32_random_t * rng, cl_int * arr, size
                     break;
                 }
         } while (bad);
-        arr[len] = low + (cl_int)res;
+        arr[index] = low + (cl_int)res;
     }
 }
