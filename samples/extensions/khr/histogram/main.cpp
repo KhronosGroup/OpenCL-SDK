@@ -51,12 +51,6 @@ template <> HistogramOptions cl::sdk::comprehend<HistogramOptions>(
     };
 }
 
-// Enable +-1
-bool predict_with_treshold(cl_uint i, cl_uint j)
-{
-      return i < j ? (j - i) <= 1u : (i - j) <= 1u;
-}
-
 int main(int argc, char* argv[])
 {
     try
@@ -168,7 +162,7 @@ int main(int argc, char* argv[])
 
         // Validate
         if (std::equal(std::begin(histogram_expected), std::end(histogram_expected),
-                       std::begin(histogram), predict_with_treshold))
+                       std::begin(histogram)))
             std::cout << "Verification passed." << std::endl;
         else
             throw std::runtime_error{ "Verification FAILED!" };
