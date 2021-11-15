@@ -115,10 +115,11 @@ int main(int argc, char* argv[])
         // Initialize input variables
         cl::sdk::fill_with_random(prng, input);
         cl_float epsilon = (max - min) / bins;
-        for(uint index = 0; index <= bins; index++)
+        for(uint index = 0; index < bins; index++)
         {
             levels[index] = min + epsilon * index;
         }
+        levels[bins] = max;
 
         // Initialize device-side storage
         cl::Buffer buf_input{ context, std::begin(input), std::end(input), true },
@@ -129,9 +130,9 @@ int main(int argc, char* argv[])
         if( bins * sizeof(cl_uint) <= device.getInfo<CL_DEVICE_LOCAL_MEM_SIZE>() )
         {
             size_t items_per_thread = 32;
-            size_t gird_size = (length + items_per_thread - 1) / items_per_thread;
+            size_t grid_size = (length + items_per_thread - 1) / items_per_thread;
             histogram_shared(
-                cl::EnqueueArgs{ queue, cl::NDRange{ gird_size } },
+                cl::EnqueueArgs{ queue, cl::NDRange{ grid_size } },
                 length, bins, items_per_thread, buf_input, buf_levels,
                 cl::Local(bins * sizeof(cl_uint)), buf_histogram
             );
