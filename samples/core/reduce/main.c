@@ -26,7 +26,7 @@
 #include<stdbool.h>
 
 // Sample-specific option
-struct options_Reduce {
+struct options_Blur {
     size_t length;
     const char * op;
 };
@@ -45,7 +45,7 @@ cag_option ReduceOptions[] = {
   .description = "Operation to perform"}
 };
 
-ParseState parse_ReduceOptions(const char identifier, cag_option_context * cag_context, struct options_Reduce * opts)
+ParseState parse_BlurOptions(const char identifier, cag_option_context * cag_context, struct options_Blur * opts)
 {
     const char * value;
     switch (identifier) {
@@ -71,7 +71,7 @@ cl_int parse_options(int argc,
                    char* argv[],
                    struct cl_sdk_options_Diagnostic * diag_opts,
                    struct cl_sdk_options_SingleDevice * dev_opts,
-                   struct options_Reduce * reduce_opts)
+                   struct options_Blur * reduce_opts)
 {
     cl_int error = CL_SUCCESS;
     struct cag_option * opts = NULL, * tmp = NULL;
@@ -97,14 +97,14 @@ cl_int parse_options(int argc,
         if (state == ParsedOK) continue;
         state = parse_SingleDeviceOptions(identifier, &cag_context, dev_opts);
         if (state == ParsedOK) continue;
-        state = parse_ReduceOptions(identifier, &cag_context, reduce_opts);
+        state = parse_BlurOptions(identifier, &cag_context, reduce_opts);
         if (state == ParsedOK) continue;
 
         if ((identifier == 'h') || (state == ParseError)) {
             printf("Usage: reduce [OPTION]...\n");
-            printf("Demonstrates how to query various OpenCL extensions applicable \
-                in the context of a reduction algorithm and to touch up kernel sources \
-                at runtime to select the best kernel implementation for the task.\n\n");
+            printf("Demonstrates how to query various OpenCL extensions applicable "
+                "in the context of a reduction algorithm and to touch up kernel sources "
+                "at runtime to select the best kernel implementation for the task.\n\n");
             cag_option_print(opts, n, stdout);
             exit((state == ParseError) ? CL_INVALID_ARG_VALUE : CL_SUCCESS);
         }
@@ -219,7 +219,7 @@ int main(int argc, char* argv[])
     // Parse command-line options
     struct cl_sdk_options_Diagnostic diag_opts = { .quiet = false, .verbose = false };
     struct cl_sdk_options_SingleDevice dev_opts = { .triplet = { 0, 0, CL_DEVICE_TYPE_ALL } };
-    struct options_Reduce reduce_opts = { .length = 1048576, .op = "min" };
+    struct options_Blur reduce_opts = { .length = 1048576, .op = "min" };
 
     OCLERROR_RET(parse_options(argc, argv, &diag_opts, &dev_opts, &reduce_opts), error, end);
 

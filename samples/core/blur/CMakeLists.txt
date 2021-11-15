@@ -14,13 +14,13 @@
 
 add_sample(
     TEST
-    TARGET reduce
+    TARGET blur
     VERSION 300
     SOURCES main.c)
 
 add_sample(
     TEST
-    TARGET reducecpp
+    TARGET blurcpp
     VERSION 300
     SOURCES main.cpp
     INCLUDES ${TCLAP_INCLUDE_DIR})
