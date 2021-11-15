@@ -24,6 +24,7 @@
 #include<stdlib.h>
 #include<stdio.h>
 #include<stdbool.h>
+#include<math.h>
 
 // Sample-specific option
 struct options_Blur {
@@ -296,7 +297,7 @@ int main(int argc, char* argv[])
     if (format->image_channel_data_type == CL_UNSIGNED_INT8)
         printf("CL_UNSIGNED_INT8\n");
 
-    cl_mem input_image_buf, output_image_buf;
+    cl_mem input_image_buf, output_image_buf, temp_image_buf;
     const cl_image_desc desc = {
         .image_type      = CL_MEM_OBJECT_IMAGE2D,
         .image_width     = input_image.width,
@@ -306,28 +307,28 @@ int main(int argc, char* argv[])
         .num_samples     = 0,
         .mem_object      = NULL
     };
-    OCLERROR_PAR(input_image_buf = clCreateImage(context, 0 /*CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY*/,
+    OCLERROR_PAR(input_image_buf = clCreateImage(context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY,
         format, &desc, NULL, &error), error, frmt);
-    OCLERROR_PAR(output_image_buf = clCreateImage(context, 0 /*CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY*/,
+    OCLERROR_PAR(output_image_buf = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY,
         format, &desc, NULL, &error), error, inbuf);
 
     OCLERROR_RET(clSetKernelArg(blur, 0, sizeof(cl_mem), &input_image_buf), error, outbuf);
     OCLERROR_RET(clSetKernelArg(blur, 1, sizeof(cl_mem), &output_image_buf), error, outbuf);
     OCLERROR_RET(clSetKernelArg(blur, 2, sizeof(cl_int), &blur_opts.size), error, outbuf);
 
+    cl_event pass[3];
+
     size_t image_size[3] = { input_image.width, input_image.height, 1 };
     size_t origin[3] = { 0, 0, 0 };
 
-    OCLERROR_RET(clEnqueueWriteImage(queue, input_image_buf, CL_NON_BLOCKING, origin, image_size, 0, 0,
+    OCLERROR_RET(clEnqueueWriteImage(queue, input_image_buf, CL_BLOCKING, origin, image_size, 0, 0,
         input_image.pixels, 0, NULL, NULL), error, outbuf);
 
-    clFinish(queue);
-
-    size_t shift[3] = {0, 0, 0};
-    size_t size[3] = { input_image.width * 1 - shift[0] - 0, input_image.height * 1 - shift[1] - 0, 1 };
-    OCLERROR_RET(clEnqueueNDRangeKernel(queue, blur, 2, shift, size, NULL, 0, NULL, NULL), error, outbuf);
-
-    clFinish(queue);
+    // Single-pass blur
+    GET_CURRENT_TIMER(single_start)
+    OCLERROR_RET(clEnqueueNDRangeKernel(queue, blur, 2, origin, image_size, NULL, 0, NULL, pass), error, outbuf);
+    OCLERROR_RET(clWaitForEvents(1, pass), error, outbuf);
+    GET_CURRENT_TIMER(single_end)
 
     OCLERROR_RET(clEnqueueReadImage(queue, output_image_buf, CL_BLOCKING, origin, image_size, 0, 0,
         output_image.pixels, 0, NULL, NULL), error, outbuf);
@@ -341,8 +342,62 @@ int main(int argc, char* argv[])
     }
 
     OCLERROR_PAR(cl_sdk_write_image(blur_opts.out, &output_image, &error), error, outbuf);
-    printf("File %s written.", blur_opts.out);
+    cl_ulong single_time;
+    TIMER_DIFFERENCE(single_time, single_start, single_end)
+    printf("Single-pass execution as seen by host: %llu us, by device: %llu us\n",
+        (unsigned long long)(single_time + 500) / 1000,
+        (unsigned long long)(cl_util_get_event_duration(pass[0],
+            CL_PROFILING_COMMAND_START, CL_PROFILING_COMMAND_END, &error) + 500) / 1000);
+    printf("Single-pass blurred image %s written.\n", blur_opts.out);
 
+    // Dual-pass blur
+    OCLERROR_PAR(temp_image_buf = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY,
+        format, &desc, NULL, &error), error, outbuf);
+    cl_kernel blur1, blur2;
+    OCLERROR_PAR(blur1 = clCreateKernel(program, "blur_box_horizontal", &error), error, tmpbuf);
+    OCLERROR_PAR(blur2 = clCreateKernel(program, "blur_box_vertical", &error), error, blr1);
+
+    OCLERROR_RET(clSetKernelArg(blur1, 0, sizeof(cl_mem), &input_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur1, 1, sizeof(cl_mem), &temp_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur1, 2, sizeof(cl_int), &blur_opts.size), error, blr2);
+
+    OCLERROR_RET(clSetKernelArg(blur2, 0, sizeof(cl_mem), &temp_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur2, 1, sizeof(cl_mem), &output_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur2, 2, sizeof(cl_int), &blur_opts.size), error, blr2);
+
+    GET_CURRENT_TIMER(dual_start)
+    OCLERROR_RET(clEnqueueNDRangeKernel(queue, blur1, 2, origin, image_size, NULL, 0, NULL, pass + 1), error, blr2);
+    OCLERROR_RET(clEnqueueNDRangeKernel(queue, blur2, 2, origin, image_size, NULL, 0, NULL, pass + 2), error, blr2);
+    OCLERROR_RET(clWaitForEvents(2, pass + 1), error, outbuf);
+    GET_CURRENT_TIMER(dual_end)
+
+    OCLERROR_RET(clEnqueueReadImage(queue, output_image_buf, CL_BLOCKING, origin, image_size, 0, 0,
+        output_image.pixels, 0, NULL, NULL), error, outbuf);
+
+    if (input_image.pixel_size != output_image.pixel_size) {
+        const size_t
+            pixels = input_image.width * input_image.height,
+            pixel_size = output_image.pixel_size;
+        for (size_t i = 1; i < pixels; ++i)
+            memcpy(output_image.pixels + pixel_size * i, output_image.pixels + 4 * i, pixel_size);
+    }
+
+    strcat(kernel_op, "2");
+    strncat(kernel_op, blur_opts.out, sizeof(kernel_op) - 2);
+    OCLERROR_PAR(cl_sdk_write_image(kernel_op, &output_image, &error), error, outbuf);
+    cl_ulong dual_time;
+    TIMER_DIFFERENCE(dual_time, dual_start, dual_end)
+    printf("Dual-pass execution as seen by host: %llu us, by device: %llu us\n",
+        (unsigned long long)(dual_time + 500) / 1000,
+        (unsigned long long)(
+            cl_util_get_event_duration(pass[1], CL_PROFILING_COMMAND_START, CL_PROFILING_COMMAND_END, &error) +
+            cl_util_get_event_duration(pass[2], CL_PROFILING_COMMAND_START, CL_PROFILING_COMMAND_END, &error) +
+            500) / 1000);
+    printf("Dual-pass blurred image %s written.\n", kernel_op);
+
+blr2:   OCLERROR_RET(clReleaseKernel(blur2), end_error, blr1);
+blr1:   OCLERROR_RET(clReleaseKernel(blur1), end_error, tmpbuf);
+tmpbuf: OCLERROR_RET(clReleaseMemObject(temp_image_buf), end_error, outbuf);
 outbuf: OCLERROR_RET(clReleaseMemObject(output_image_buf), end_error, inbuf);
 inbuf:  OCLERROR_RET(clReleaseMemObject(input_image_buf), end_error, outim);
 frmt:   free(formats);
