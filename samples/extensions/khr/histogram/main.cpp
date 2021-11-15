@@ -107,7 +107,6 @@ int main(int argc, char* argv[])
             return dist(engine);
         };
 
-        cl_float a = prng();
         std::valarray<cl_float> input(length);
         std::valarray<cl_float> levels(bins + 1);
         std::valarray<cl_uint> histogram(length);
