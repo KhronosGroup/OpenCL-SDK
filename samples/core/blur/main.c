@@ -163,6 +163,9 @@ int main(int argc, char* argv[])
         fprintf(stderr, "No input image name!\n");
         goto end;
     }
+    if (!diag_opts.quiet) {
+        printf("Blur size: %u\n", blur_opts.size);
+    }
 
     // Create runtime objects based on user preference or default
     OCLERROR_PAR(device = cl_util_get_device(dev_opts.triplet.plat_index,
@@ -234,10 +237,10 @@ int main(int argc, char* argv[])
         for (cl_uint i = 0; i < formats_number; ++i)
             if (    ((input_image.pixel_size == 3)
                     && (formats[i].image_channel_order == CL_RGB)
-                    && (formats[i].image_channel_data_type == CL_UNORM_INT8))
+                    && (formats[i].image_channel_data_type == CL_UNSIGNED_INT8))
                 ||  ((input_image.pixel_size == 1)
                     && (formats[i].image_channel_order == CL_R)
-                    && (formats[i].image_channel_data_type == CL_UNORM_INT8)))
+                    && (formats[i].image_channel_data_type == CL_UNSIGNED_INT8)))
             {
                 format = formats + i;
                 break;
@@ -248,7 +251,7 @@ int main(int argc, char* argv[])
                 printf("Converting picture into supported format... ");
             format = formats;
             format->image_channel_order = CL_RGBA;
-            formats->image_channel_data_type = CL_UNORM_INT8;
+            formats->image_channel_data_type = CL_UNSIGNED_INT8;
 
             const size_t
                 pixels = input_image.width * input_image.height,
@@ -276,13 +279,22 @@ int main(int argc, char* argv[])
         MEM_CHECK(formats = (cl_image_format *)malloc(sizeof(cl_image_format)), error, outim);
         format = formats;
         format->image_channel_order = CL_RGBA;
-        formats->image_channel_data_type = CL_UNORM_INT8;
+        formats->image_channel_data_type = CL_UNSIGNED_INT8;
     }
     else {
         fprintf(stderr, "Unknown image format!\n");
         error = CL_INVALID_IMAGE_FORMAT_DESCRIPTOR;
         goto outim;
     }
+
+    if (format->image_channel_order == CL_R)
+        printf("CL_R ");
+    else if (format->image_channel_order == CL_RGB)
+        printf("CL_RBG ");
+    else if (format->image_channel_order == CL_RGBA)
+        printf("CL_RBGA ");
+    if (format->image_channel_data_type == CL_UNSIGNED_INT8)
+        printf("CL_UNSIGNED_INT8\n");
 
     cl_mem input_image_buf, output_image_buf;
     const cl_image_desc desc = {
@@ -294,9 +306,9 @@ int main(int argc, char* argv[])
         .num_samples     = 0,
         .mem_object      = NULL
     };
-    OCLERROR_PAR(input_image_buf = clCreateImage(context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY,
+    OCLERROR_PAR(input_image_buf = clCreateImage(context, 0 /*CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY*/,
         format, &desc, NULL, &error), error, frmt);
-    OCLERROR_PAR(output_image_buf = clCreateImage(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY,
+    OCLERROR_PAR(output_image_buf = clCreateImage(context, 0 /*CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY*/,
         format, &desc, NULL, &error), error, inbuf);
 
     OCLERROR_RET(clSetKernelArg(blur, 0, sizeof(cl_mem), &input_image_buf), error, outbuf);
@@ -306,10 +318,16 @@ int main(int argc, char* argv[])
     size_t image_size[3] = { input_image.width, input_image.height, 1 };
     size_t origin[3] = { 0, 0, 0 };
 
-    OCLERROR_RET(clEnqueueWriteImage(queue, input_image_buf, CL_BLOCKING, origin, image_size, 0, 0,
+    OCLERROR_RET(clEnqueueWriteImage(queue, input_image_buf, CL_NON_BLOCKING, origin, image_size, 0, 0,
         input_image.pixels, 0, NULL, NULL), error, outbuf);
 
-    OCLERROR_RET(clEnqueueNDRangeKernel(queue, blur, 2, origin, image_size/*gl_size*/, NULL, 0, NULL, NULL), error, outbuf);
+    clFinish(queue);
+
+    size_t shift[3] = {0, 0, 0};
+    size_t size[3] = { input_image.width * 1 - shift[0] - 0, input_image.height * 1 - shift[1] - 0, 1 };
+    OCLERROR_RET(clEnqueueNDRangeKernel(queue, blur, 2, shift, size, NULL, 0, NULL, NULL), error, outbuf);
+
+    clFinish(queue);
 
     OCLERROR_RET(clEnqueueReadImage(queue, output_image_buf, CL_BLOCKING, origin, image_size, 0, 0,
         output_image.pixels, 0, NULL, NULL), error, outbuf);
@@ -323,6 +341,7 @@ int main(int argc, char* argv[])
     }
 
     OCLERROR_PAR(cl_sdk_write_image(blur_opts.out, &output_image, &error), error, outbuf);
+    printf("File %s written.", blur_opts.out);
 
 outbuf: OCLERROR_RET(clReleaseMemObject(output_image_buf), end_error, inbuf);
 inbuf:  OCLERROR_RET(clReleaseMemObject(input_image_buf), end_error, outim);
