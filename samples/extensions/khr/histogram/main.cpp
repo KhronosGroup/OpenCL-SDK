@@ -121,7 +121,7 @@ int main(int argc, char* argv[])
         // Initialize input variables
         cl::sdk::fill_with_random(prng, input);
         cl_float epsilon = (max - min) / bins;
-        for(unsigned int index = 0; index <= bins; index++)
+        for(uint index = 0; index <= bins; index++)
         {
             levels[index] = min + epsilon * index;
         }
