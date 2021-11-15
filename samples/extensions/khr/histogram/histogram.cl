@@ -52,7 +52,6 @@ __kernel void histogram_shared(
                 uint channel = binary_search(value, levels_array, bins);
 
                 atomic_add(&block_histogram[channel], 1);
-                barrier(CLK_LOCAL_MEM_FENCE);
             }
         }
     }
@@ -66,7 +65,6 @@ __kernel void histogram_shared(
         if( block_histogram[channel] > 0)
         {
             atomic_add(&histogram[channel], block_histogram[channel]);
-            barrier(CLK_GLOBAL_MEM_FENCE);
         }
     }
 }
@@ -89,5 +87,4 @@ __kernel void histogram_global(
     uint channel = binary_search(input_array[gid], levels_array, bins);
 
     atomic_add(&histogram[channel], 1u);
-    barrier(CLK_GLOBAL_MEM_FENCE);
 }
