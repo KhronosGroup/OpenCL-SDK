@@ -55,6 +55,7 @@ __kernel void histogram_shared(
             }
         }
     }
+    barrier(CLK_LOCAL_MEM_FENCE);
 
     // Sum up the results to global memory
     for(
