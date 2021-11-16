@@ -182,7 +182,7 @@ test:cmake-minimum-rocm:
   extends: .exec-matrix-minimum
   image: streamhpc/opencl-sdk-rocm:ubuntu-18.04-20211104
   tags:
-    - rocm
+    - rocm-stable
   stage: test
   needs:
     - build:cmake-minimum
@@ -195,7 +195,7 @@ test:cmake-latest-rocm:
   extends: .exec-matrix-latest
   image: streamhpc/opencl-sdk-rocm:ubuntu-18.04-20211104
   tags:
-    - rocm
+    - rocm-stable
   stage: test
   needs:
     - build:cmake-latest
