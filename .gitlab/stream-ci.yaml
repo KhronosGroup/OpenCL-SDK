@@ -216,7 +216,6 @@ consume:cmake-minimum:
   stage: consume
   needs:
     - build:cmake-minimum
-    - test:cmake-minimum
   # NOTE 1: CMake creates build and install folders as needed.
   # NOTE 2: Lack of space in -H<folder> -B<folder> is important!
   #         https://stackoverflow.com/a/20611964/1476661
@@ -253,7 +252,6 @@ consume:cmake-latest:
   stage: consume
   needs:
     - build:cmake-latest
-    - test:cmake-latest
   script:
     # Test Package Config dependence
     - cmake
