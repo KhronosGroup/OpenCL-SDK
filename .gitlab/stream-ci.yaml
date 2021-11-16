@@ -223,7 +223,8 @@ consume:cmake-minimum:
     # Test Package Config dependence
     - cmake
       -G Ninja
-      -D CMAKE_C_COMPILER=$COMPILER
+      -D CMAKE_C_COMPILER=$C_COMPILER
+      -D CMAKE_CXX_COMPILER=$CXX_COMPILER
       -D CMAKE_BUILD_TYPE=Release
       -D CMAKE_PREFIX_PATH=$INSTALL_DIR
       -D BUILD_TESTING=ON
@@ -236,7 +237,8 @@ consume:cmake-minimum:
     # Test Find Module dependence
     - cmake
       -G Ninja
-      -D CMAKE_C_COMPILER=$COMPILER
+      -D CMAKE_C_COMPILER=$C_COMPILER
+      -D CMAKE_CXX_COMPILER=$CXX_COMPILER
       -D CMAKE_BUILD_TYPE=Release
       -D CMAKE_PREFIX_PATH=$INSTALL_DIR
       -D BUILD_TESTING=ON
@@ -256,7 +258,8 @@ consume:cmake-latest:
     # Test Package Config dependence
     - cmake
       -G "Ninja Multi-Config"
-      -D CMAKE_C_COMPILER=$COMPILER
+      -D CMAKE_C_COMPILER=$C_COMPILER
+      -D CMAKE_CXX_COMPILER=$CXX_COMPILER
       -D CMAKE_PREFIX_PATH=$INSTALL_DIR
       -D BUILD_TESTING=ON
       -B $CI_PROJECT_DIR/downstream/pkgconfig
@@ -273,7 +276,8 @@ consume:cmake-latest:
     # Test Find Module dependence
     - cmake
       -G "Ninja Multi-Config"
-      -D CMAKE_C_COMPILER=$COMPILER
+      -D CMAKE_C_COMPILER=$C_COMPILER
+      -D CMAKE_CXX_COMPILER=$CXX_COMPILER
       -D CMAKE_PREFIX_PATH=$INSTALL_DIR
       -D BUILD_TESTING=ON
       -B $CI_PROJECT_DIR/downstream/findmodule
