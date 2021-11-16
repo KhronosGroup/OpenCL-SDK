@@ -53,3 +53,33 @@ set_target_properties(OpenCL OpenCLUtils OpenCLUtilsCpp
     LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}
     RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}
 )
+
+include(GNUInstallDirs)
+file(
+  WRITE ${PROJECT_BINARY_DIR}/OpenCL/OpenCLConfig.cmake
+  [[
+get_filename_component(PARENT_DIR ${CMAKE_CURRENT_LIST_DIR} PATH)
+include("${PARENT_DIR}/OpenCLHeaders/OpenCLHeadersConfig.cmake")
+include("${PARENT_DIR}/OpenCLICDLoader/OpenCLICDLoaderConfig.cmake")
+include("${PARENT_DIR}/OpenCLHeadersCpp/OpenCLHeadersCppConfig.cmake")
+include("${PARENT_DIR}/OpenCLUtils/OpenCLUtilsConfig.cmake")
+include("${PARENT_DIR}/OpenCLUtilsCpp/OpenCLUtilsCppConfig.cmake")
+  ]]
+)
+set(config_package_location ${CMAKE_INSTALL_DATADIR}/cmake/OpenCL)
+install(
+  FILES ${PROJECT_BINARY_DIR}/OpenCL/OpenCLConfig.cmake
+  DESTINATION ${config_package_location}
+)
+
+unset(CMAKE_SIZEOF_VOID_P)
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/OpenCL/OpenCLConfigVersion.cmake
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY AnyNewerVersion
+)
+install(
+  FILES ${CMAKE_CURRENT_BINARY_DIR}/OpenCL/OpenCLConfigVersion.cmake
+  DESTINATION ${config_package_location}
+)
