@@ -131,7 +131,6 @@ build:cmake-minimum:
     paths:
       - $BUILD_DIR
       - $INSTALL_DIR
-      - $DEPS_DIR/tclap-1.2.4
     exclude:
       - build/**/CMakeFiles/
     expire_in: 2 weeks
@@ -168,7 +167,6 @@ build:cmake-latest:
     paths:
       - $BUILD_DIR
       - $INSTALL_DIR
-      - $DEPS_DIR/tclap-1.2.4
     exclude:
       - build/**/CMakeFiles/
     expire_in: 2 weeks
