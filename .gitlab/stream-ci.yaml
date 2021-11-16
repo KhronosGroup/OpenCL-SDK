@@ -106,12 +106,6 @@ build:cmake-minimum:
   # NOTE 2: Lack of space in -H<folder> -B<folder> is important!
   #         https://stackoverflow.com/a/20611964/1476661
   script:
-    # Download, extract TCLAP
-    - wget https://github.com/mirror/tclap/archive/refs/tags/v1.2.4.tar.gz
-      --directory-prefix $DEPS_DIR
-    - cmake -E tar xzf $DEPS_DIR/v1.2.4.tar.gz
-    - cmake -E rename tclap-1.2.4/ $DEPS_DIR/tclap-1.2.4
-    - cmake -E remove $DEPS_DIR/v1.2.4.tar.gz
     # Clone, configure, build, install OpenCL-SDK
     - cmake
       -G Ninja
@@ -146,12 +140,6 @@ build:cmake-latest:
   extends: .toolchain-matrix-latest
   stage: build
   script:
-    # Download, extract TCLAP
-    - wget https://github.com/mirror/tclap/archive/refs/tags/v1.2.4.tar.gz
-      --directory-prefix $DEPS_DIR
-    - cmake -E tar xzf $DEPS_DIR/v1.2.4.tar.gz
-    - cmake -E rename tclap-1.2.4/ $DEPS_DIR/tclap-1.2.4
-    - cmake -E remove $DEPS_DIR/v1.2.4.tar.gz
     # Clone, configure, build, install OpenCL-SDK
     - cmake
       -G "Ninja Multi-Config"
@@ -218,3 +206,40 @@ test:cmake-latest-rocm:
     - cd $BUILD_DIR
     - ctest --output-on-failure -C Debug
     - ctest --output-on-failure -C Release 
+
+###################
+##               ##
+## Consume stage ##
+##               ##
+###################
+
+consume:cmake-minimum:
+  extends: .toolchain-matrix-minimum
+  stage: consume
+  needs:
+    - build:cmake-minimum
+    - test:cmake-minimum
+  # NOTE 1: CMake creates build and install folders as needed.
+  # NOTE 2: Lack of space in -H<folder> -B<folder> is important!
+  #         https://stackoverflow.com/a/20611964/1476661
+  script:
+    - cmake
+      -G Ninja
+      -D CMAKE_C_COMPILER=$COMPILER
+      -D CMAKE_BUILD_TYPE=Release
+      -D CMAKE_PREFIX_PATH=$INSTALL_DIR
+      -B$CI_PROJECT_DIR/downstream/bare
+      -H$CI_PROJECT_DIR/test/cmake/pkgconfig/
+    - cmake
+      --build $CI_PROJECT_DIR/downstream/bare
+    # Emulate the presence of the SDK
+    - cmake -E make_directory $CI_PROJECT_DIR/install/share/cmake/OpenCL
+    - echo 'include("${CMAKE_CURRENT_LIST_DIR}/../OpenCLHeaders/OpenCLHeadersTargets.cmake")' > $CI_PROJECT_DIR/install/share/cmake/OpenCL/OpenCLConfig.cmake
+    - cmake
+      -G Ninja
+      -D CMAKE_BUILD_TYPE=Release
+      -D CMAKE_PREFIX_PATH=$INSTALL_DIR
+      -B$CI_PROJECT_DIR/downstream/sdk
+      -H$CI_PROJECT_DIR/tests/pkgconfig/sdk
+    - cmake
+      --build $CI_PROJECT_DIR/downstream/sdk
