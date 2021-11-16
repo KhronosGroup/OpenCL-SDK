@@ -4,6 +4,12 @@
 // C standard includes
 #include <stdio.h>
 
+#ifdef _MSC_VER
+#define print(...) printf_s(__VA_ARGS__)
+#else
+#define print(...) printf(__VA_ARGS__)
+#endif
+
 int main()
 {
     cl_int CL_err = CL_SUCCESS;
@@ -12,9 +18,9 @@ int main()
     CL_err = clGetPlatformIDs( 0, NULL, &numPlatforms );
 
     if (CL_err == CL_SUCCESS)
-        printf_s("%u platform(s) found\n", numPlatforms);
+        print("%u platform(s) found\n", numPlatforms);
     else
-        printf_s("clGetPlatformIDs(%i)\n", CL_err);
+        print("clGetPlatformIDs(%i)\n", CL_err);
 
     return 0;
 }
