@@ -7,9 +7,6 @@
 #include <stdlib.h>     // malloc, free
 #include <stdio.h>      // printf
 
-static cl_uint MAXOCLPLAT = 65535;
-static cl_uint MAXOCLDEV = 65535;
-
 UTILS_EXPORT
 cl_context cl_util_get_context(int plat_id, int dev_id, cl_device_type type, cl_int * error)
 {
@@ -19,7 +16,7 @@ cl_context cl_util_get_context(int plat_id, int dev_id, cl_device_type type, cl_
     cl_device_id * devices;
     cl_uint num_devices = 0;
 
-    OCLERROR_RET(clGetPlatformIDs(MAXOCLPLAT, NULL, &num_platforms), *error, end);
+    OCLERROR_RET(clGetPlatformIDs(0, NULL, &num_platforms), *error, end);
     MEM_CHECK(platforms = (cl_platform_id *)malloc(sizeof(cl_platform_id) * num_platforms), *error, end);
     OCLERROR_RET(clGetPlatformIDs(num_platforms, platforms, NULL), *error, plat);
 
@@ -28,7 +25,7 @@ cl_context cl_util_get_context(int plat_id, int dev_id, cl_device_type type, cl_
         goto plat;
     }
 
-    OCLERROR_RET(clGetDeviceIDs(platforms[plat_id], type, MAXOCLDEV, NULL, &num_devices), *error, plat);
+    OCLERROR_RET(clGetDeviceIDs(platforms[plat_id], type, 0, NULL, &num_devices), *error, plat);
     MEM_CHECK(devices = (cl_device_id *)malloc(sizeof(cl_device_id) * num_devices), *error, plat);
     OCLERROR_RET(clGetDeviceIDs(platforms[plat_id], type, num_devices, devices, NULL), *error, dev);
 
@@ -53,7 +50,7 @@ cl_device_id cl_util_get_device(int plat_id, int dev_id, cl_device_type type, cl
     cl_device_id * devices;
     cl_uint num_devices = 0;
 
-    OCLERROR_RET(clGetPlatformIDs(MAXOCLPLAT, NULL, &num_platforms), *error, end);
+    OCLERROR_RET(clGetPlatformIDs(0, NULL, &num_platforms), *error, end);
     MEM_CHECK(platforms = (cl_platform_id *)malloc(sizeof(cl_platform_id) * num_platforms), *error, end);
     OCLERROR_RET(clGetPlatformIDs(num_platforms, platforms, NULL), *error, plat);
 
@@ -62,7 +59,7 @@ cl_device_id cl_util_get_device(int plat_id, int dev_id, cl_device_type type, cl
         goto plat;
     }
 
-    OCLERROR_RET(clGetDeviceIDs(platforms[plat_id], type, MAXOCLDEV, NULL, &num_devices), *error, plat);
+    OCLERROR_RET(clGetDeviceIDs(platforms[plat_id], type, 0, NULL, &num_devices), *error, plat);
     MEM_CHECK(devices = (cl_device_id *)malloc(sizeof(cl_device_id) * num_devices), *error, plat);
     OCLERROR_RET(clGetDeviceIDs(platforms[plat_id], type, num_devices, devices, NULL), *error, dev);
 
