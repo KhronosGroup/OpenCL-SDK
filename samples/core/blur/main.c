@@ -69,8 +69,9 @@ else return ParseError;
 
     switch (identifier) {
     case 'i':
-    case 'o':
         IF_ERR(opts->in = value)
+    case 'o':
+        IF_ERR(opts->out = value)
     case 's':
         IF_ERR(opts->size = strtoul(value, NULL, 0))
     case 'b':
@@ -111,37 +112,30 @@ cl_int parse_options(int argc,
         ParseState state = NotParsed;
         identifier = cag_option_get(&cag_context);
 
-        state = parse_DiagnosticOptions(identifier, diag_opts);
-        if (state == ParsedOK) continue;
-        state = parse_SingleDeviceOptions(identifier, &cag_context, dev_opts);
-        if (state == ParsedOK) continue;
-        state = parse_BlurOptions(identifier, &cag_context, blur_opts);
-        if (state == ParsedOK) continue;
+#define PARS_OPTIONS(parser)                        \
+if ((state = parser) == ParsedOK)                   \
+    continue;                                       \
+else if (state == ParseError)                       \
+    {printf("Parse error\n"); identifier = 'h';}
 
-        if ((identifier == 'h') || (state == ParseError)) {
+        PARS_OPTIONS(parse_DiagnosticOptions(identifier, diag_opts))
+        PARS_OPTIONS(parse_SingleDeviceOptions(identifier, &cag_context, dev_opts))
+        PARS_OPTIONS(parse_BlurOptions(identifier, &cag_context, blur_opts))
+
+        if (identifier == 'h') {
             printf("Usage: blur [OPTION]...\n");
+            printf("Option name and value should be separated by '=' or a space\n");
             /*printf("Demonstrates how to query various OpenCL extensions applicable "
                 "in the context of a reduction algorithm and to touch up kernel sources "
                 "at runtime to select the best kernel implementation for the task.\n\n");*/
             cag_option_print(opts, n, stdout);
             exit((state == ParseError) ? CL_INVALID_ARG_VALUE : CL_SUCCESS);
         }
+#undef PARS_OPTIONS
     }
 
 end:    free(opts);
     return error;
-}
-
-int check_use_work_group_reduce(cl_platform_id platform, cl_device_id device, cl_int * error)
-{
-    int res = 0;
-    return res;
-}
-
-int check_use_sub_group_reduce(cl_platform_id platform, cl_device_id device, cl_int * error)
-{
-    int res = 0;
-    return res;
 }
 
 int main(int argc, char* argv[])
@@ -152,8 +146,9 @@ int main(int argc, char* argv[])
     cl_device_id device;
     cl_context context;
     cl_command_queue queue;
+    cl_event pass[3]; // events to measure execution time
 
-    // Parse command-line options
+    /// Parse command-line options
     struct cl_sdk_options_Diagnostic diag_opts = { .quiet = false, .verbose = false };
     struct cl_sdk_options_SingleDevice dev_opts = { .triplet = { 0, 0, CL_DEVICE_TYPE_ALL } };
     struct options_Blur blur_opts = { .size = 1, .op = "box", .in = NULL, .out = "out.png" };
@@ -164,11 +159,8 @@ int main(int argc, char* argv[])
         fprintf(stderr, "No input image name!\n");
         goto end;
     }
-    if (!diag_opts.quiet) {
-        printf("Blur size: %u\n", blur_opts.size);
-    }
 
-    // Create runtime objects based on user preference or default
+    /// Create runtime objects based on user preference or default
     OCLERROR_PAR(device = cl_util_get_device(dev_opts.triplet.plat_index,
         dev_opts.triplet.dev_index, dev_opts.triplet.dev_type, &error), error, end);
     OCLERROR_PAR(context = clCreateContext(NULL, 1, &device, NULL, NULL, &error), error, end);
@@ -182,32 +174,24 @@ int main(int argc, char* argv[])
 
     if (!diag_opts.quiet) {
         cl_util_print_device_info(device);
+        char * name = NULL;
+        OCLERROR_PAR(name = cl_util_get_device_info(device, CL_DEVICE_EXTENSIONS, &error), error, nam);
+        printf("%s", name);
+nam:    free(name);
     }
 
-    // Query device and runtime capabilities
-    // 1) query image support
-    cl_bool image_support = false;
-    OCLERROR_RET(clGetDeviceInfo(device, CL_DEVICE_IMAGE_SUPPORT, sizeof(cl_bool), &image_support, NULL), error, que);
-    if (!image_support) {
-        fprintf(stderr, "No image support on device!\n");
-        error = CL_INVALID_DEVICE;
-        goto que;
-    }
-
-    // Compile kernel
+    /// Compile kernel
     const char * kernel_location = "./blur.cl";
     char * kernel = NULL, * tmp = NULL;
     size_t program_size = 0;
     cl_program program = NULL;
-    char kernel_op[1024] = "";
+    char kernel_op[1024] = ""; // here we can put some dynamic definitions
 
     OCLERROR_PAR(kernel = cl_util_read_text_file(kernel_location, &program_size, &error), error, que);
-    // Note append of definitions
-    program_size += 1 + strlen(kernel_op);
-    MEM_CHECK(tmp = (char *)realloc(kernel, program_size), error, ker);
-    strcat(tmp, kernel_op);
-
-    kernel = tmp;
+    //program_size += 1 + strlen(kernel_op);
+    //MEM_CHECK(tmp = (char *)realloc(kernel, program_size), error, ker);
+    //strcat(tmp, kernel_op);
+    //kernel = tmp;
     //printf("%s", kernel);
 
     OCLERROR_PAR(program = clCreateProgramWithSource(context, 1, (const char **)&kernel, &program_size, &error), error, ker);
@@ -217,6 +201,7 @@ int main(int argc, char* argv[])
     cl_kernel blur;
     OCLERROR_PAR(blur = clCreateKernel(program, "blur_box", &error), error, prg);
 
+    /// Read input image and prepare output image
     cl_sdk_image input_image = { .width = 0, .height = 0, .pixel_size = 0, .pixels = NULL };
     OCLERROR_PAR(input_image = cl_sdk_read_image(blur_opts.in, &error), error, blr);
 
@@ -225,7 +210,17 @@ int main(int argc, char* argv[])
     MEM_CHECK(output_image.pixels = (unsigned char *)malloc(sizeof(unsigned char) *
         output_image.width * output_image.height * output_image.pixel_size), error, inim);
 
-    // query if the image format is supported and change image if not
+    /// Query device and runtime capabilities
+    // 1) query image support
+    cl_bool image_support = false;
+    OCLERROR_RET(clGetDeviceInfo(device, CL_DEVICE_IMAGE_SUPPORT, sizeof(cl_bool), &image_support, NULL), error, outim);
+    if (!image_support) {
+        fprintf(stderr, "No image support on device!\n");
+        error = CL_INVALID_DEVICE;
+        goto outim;
+    }
+
+    // 2) query if the image format is supported and change image if not
     cl_image_format * formats = NULL, * format = NULL;
     if ((input_image.pixel_size == 1) || (input_image.pixel_size == 3)) {
         cl_uint formats_number = 0;
@@ -288,15 +283,20 @@ int main(int argc, char* argv[])
         goto outim;
     }
 
-    if (format->image_channel_order == CL_R)
-        printf("CL_R ");
-    else if (format->image_channel_order == CL_RGB)
-        printf("CL_RBG ");
-    else if (format->image_channel_order == CL_RGBA)
-        printf("CL_RBGA ");
-    if (format->image_channel_data_type == CL_UNSIGNED_INT8)
-        printf("CL_UNSIGNED_INT8\n");
+    // show image format used
+    if (diag_opts.verbose) {
+        printf("Format: ");
+        if (format->image_channel_order == CL_R)
+            printf("CL_R, ");
+        else if (format->image_channel_order == CL_RGB)
+            printf("CL_RBG, ");
+        else if (format->image_channel_order == CL_RGBA)
+            printf("CL_RBGA, ");
+        if (format->image_channel_data_type == CL_UNSIGNED_INT8)
+            printf("CL_UNSIGNED_INT8\n\n");
+    }
 
+    /// Create image buffers
     cl_mem input_image_buf, output_image_buf, temp_image_buf;
     const cl_image_desc desc = {
         .image_type      = CL_MEM_OBJECT_IMAGE2D,
@@ -312,11 +312,12 @@ int main(int argc, char* argv[])
     OCLERROR_PAR(output_image_buf = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY,
         format, &desc, NULL, &error), error, inbuf);
 
+    /// Single-pass blur
+
+    // set kernel parameters
     OCLERROR_RET(clSetKernelArg(blur, 0, sizeof(cl_mem), &input_image_buf), error, outbuf);
     OCLERROR_RET(clSetKernelArg(blur, 1, sizeof(cl_mem), &output_image_buf), error, outbuf);
     OCLERROR_RET(clSetKernelArg(blur, 2, sizeof(cl_int), &blur_opts.size), error, outbuf);
-
-    cl_event pass[3];
 
     size_t image_size[3] = { input_image.width, input_image.height, 1 };
     size_t origin[3] = { 0, 0, 0 };
@@ -324,7 +325,7 @@ int main(int argc, char* argv[])
     OCLERROR_RET(clEnqueueWriteImage(queue, input_image_buf, CL_BLOCKING, origin, image_size, 0, 0,
         input_image.pixels, 0, NULL, NULL), error, outbuf);
 
-    // Single-pass blur
+    // blur
     GET_CURRENT_TIMER(single_start)
     OCLERROR_RET(clEnqueueNDRangeKernel(queue, blur, 2, origin, image_size, NULL, 0, NULL, pass), error, outbuf);
     OCLERROR_RET(clWaitForEvents(1, pass), error, outbuf);
@@ -333,6 +334,7 @@ int main(int argc, char* argv[])
     OCLERROR_RET(clEnqueueReadImage(queue, output_image_buf, CL_BLOCKING, origin, image_size, 0, 0,
         output_image.pixels, 0, NULL, NULL), error, outbuf);
 
+    // restore image type if needed
     if (input_image.pixel_size != output_image.pixel_size) {
         const size_t
             pixels = input_image.width * input_image.height,
@@ -342,21 +344,29 @@ int main(int argc, char* argv[])
     }
 
     OCLERROR_PAR(cl_sdk_write_image(blur_opts.out, &output_image, &error), error, outbuf);
-    cl_ulong single_time;
-    TIMER_DIFFERENCE(single_time, single_start, single_end)
-    printf("Single-pass execution as seen by host: %llu us, by device: %llu us\n",
-        (unsigned long long)(single_time + 500) / 1000,
-        (unsigned long long)(cl_util_get_event_duration(pass[0],
-            CL_PROFILING_COMMAND_START, CL_PROFILING_COMMAND_END, &error) + 500) / 1000);
+
+    if (diag_opts.verbose) {
+        cl_ulong single_time;
+        TIMER_DIFFERENCE(single_time, single_start, single_end)
+        printf("Single-pass execution as seen by host: %llu us, by device: %llu us\n",
+            (unsigned long long)(single_time + 500) / 1000,
+            (unsigned long long)(cl_util_get_event_duration(pass[0],
+                CL_PROFILING_COMMAND_START, CL_PROFILING_COMMAND_END, &error) + 500) / 1000);
+    }
     printf("Single-pass blurred image %s written.\n", blur_opts.out);
 
-    // Dual-pass blur
+    /// Dual-pass blur
+
+    // create temporary buffer
     OCLERROR_PAR(temp_image_buf = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY,
         format, &desc, NULL, &error), error, outbuf);
+
+    // create kernels
     cl_kernel blur1, blur2;
     OCLERROR_PAR(blur1 = clCreateKernel(program, "blur_box_horizontal", &error), error, tmpbuf);
     OCLERROR_PAR(blur2 = clCreateKernel(program, "blur_box_vertical", &error), error, blr1);
 
+    // set kernel parameters
     OCLERROR_RET(clSetKernelArg(blur1, 0, sizeof(cl_mem), &input_image_buf), error, blr2);
     OCLERROR_RET(clSetKernelArg(blur1, 1, sizeof(cl_mem), &temp_image_buf), error, blr2);
     OCLERROR_RET(clSetKernelArg(blur1, 2, sizeof(cl_int), &blur_opts.size), error, blr2);
@@ -365,6 +375,7 @@ int main(int argc, char* argv[])
     OCLERROR_RET(clSetKernelArg(blur2, 1, sizeof(cl_mem), &output_image_buf), error, blr2);
     OCLERROR_RET(clSetKernelArg(blur2, 2, sizeof(cl_int), &blur_opts.size), error, blr2);
 
+    // blur
     GET_CURRENT_TIMER(dual_start)
     OCLERROR_RET(clEnqueueNDRangeKernel(queue, blur1, 2, origin, image_size, NULL, 0, NULL, pass + 1), error, blr2);
     OCLERROR_RET(clEnqueueNDRangeKernel(queue, blur2, 2, origin, image_size, NULL, 0, NULL, pass + 2), error, blr2);
@@ -374,6 +385,7 @@ int main(int argc, char* argv[])
     OCLERROR_RET(clEnqueueReadImage(queue, output_image_buf, CL_BLOCKING, origin, image_size, 0, 0,
         output_image.pixels, 0, NULL, NULL), error, outbuf);
 
+    // restore image type if needed
     if (input_image.pixel_size != output_image.pixel_size) {
         const size_t
             pixels = input_image.width * input_image.height,
@@ -384,15 +396,18 @@ int main(int argc, char* argv[])
 
     strcat(kernel_op, "2");
     strncat(kernel_op, blur_opts.out, sizeof(kernel_op) - 2);
-    OCLERROR_PAR(cl_sdk_write_image(kernel_op, &output_image, &error), error, outbuf);
-    cl_ulong dual_time;
-    TIMER_DIFFERENCE(dual_time, dual_start, dual_end)
-    printf("Dual-pass execution as seen by host: %llu us, by device: %llu us\n",
-        (unsigned long long)(dual_time + 500) / 1000,
-        (unsigned long long)(
-            cl_util_get_event_duration(pass[1], CL_PROFILING_COMMAND_START, CL_PROFILING_COMMAND_END, &error) +
-            cl_util_get_event_duration(pass[2], CL_PROFILING_COMMAND_START, CL_PROFILING_COMMAND_END, &error) +
-            500) / 1000);
+    OCLERROR_PAR(cl_sdk_write_image(kernel_op, &output_image, &error), error, blr2);
+
+    if (diag_opts.verbose) {
+        cl_ulong dual_time;
+        TIMER_DIFFERENCE(dual_time, dual_start, dual_end)
+        printf("Dual-pass execution as seen by host: %llu us, by device: %llu us\n",
+            (unsigned long long)(dual_time + 500) / 1000,
+            (unsigned long long)(
+                cl_util_get_event_duration(pass[1], CL_PROFILING_COMMAND_START, CL_PROFILING_COMMAND_END, &error) +
+                cl_util_get_event_duration(pass[2], CL_PROFILING_COMMAND_START, CL_PROFILING_COMMAND_END, &error) +
+                500) / 1000);
+    }
     printf("Dual-pass blurred image %s written.\n", kernel_op);
 
 blr2:   OCLERROR_RET(clReleaseKernel(blur2), end_error, blr1);

@@ -93,14 +93,17 @@ cl_int parse_options(int argc,
         ParseState state = NotParsed;
         identifier = cag_option_get(&cag_context);
 
-        state = parse_DiagnosticOptions(identifier, diag_opts);
-        if (state == ParsedOK) continue;
-        state = parse_SingleDeviceOptions(identifier, &cag_context, dev_opts);
-        if (state == ParsedOK) continue;
-        state = parse_BlurOptions(identifier, &cag_context, reduce_opts);
-        if (state == ParsedOK) continue;
+#define PARS_OPTIONS(parser)                        \
+if ((state = parser) == ParsedOK)                   \
+    continue;                                       \
+else if (state == ParseError)                       \
+    {printf("Parse error\n"); identifier = 'h';}
 
-        if ((identifier == 'h') || (state == ParseError)) {
+        PARS_OPTIONS(parse_DiagnosticOptions(identifier, diag_opts))
+        PARS_OPTIONS(parse_SingleDeviceOptions(identifier, &cag_context, dev_opts))
+        PARS_OPTIONS(parse_BlurOptions(identifier, &cag_context, reduce_opts))
+
+        if (identifier == 'h') {
             printf("Usage: reduce [OPTION]...\n");
             printf("Demonstrates how to query various OpenCL extensions applicable "
                 "in the context of a reduction algorithm and to touch up kernel sources "
