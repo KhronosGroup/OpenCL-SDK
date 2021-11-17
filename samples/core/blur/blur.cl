@@ -257,3 +257,55 @@ kernel void blur_box_vertical_subgroup_exchange(
 }
 
 #endif // USE_SUBGROUP_EXCHANGE_RELATIVE || USE_SUBGROUP_EXCHANGE
+
+kernel void blur_gauss_horizontal(
+    read_only image2d_t input_image,
+    write_only image2d_t output_image,
+    int size,
+    const float * kern
+)
+{
+    const int width = get_image_width(input_image);
+    const int height = get_image_height(input_image);
+    // coordinates of the pixel to work on
+    const int2 coord = { get_global_id(0), get_global_id(1) };
+
+    float4 sum = 0;
+    float weight = 0;
+    int2 shift = 0;
+    for (shift.x = -size; shift.x <= size; ++shift.x) {
+        int2 cur = coord + shift;
+        if ((0 <= cur.x) && (cur.x < width)) {
+            const float w = kern[size + shift.x];
+            weight += w;
+            sum += read_imageui(input_image, cur) * w;
+        }
+    }
+    write_imageui(output_image, coord, convert_uint4(round(sum / weight)));
+}
+
+kernel void blur_gauss_vertical(
+    read_only image2d_t input_image,
+    write_only image2d_t output_image,
+    int size,
+    const float * kern
+)
+{
+    const int width = get_image_width(input_image);
+    const int height = get_image_height(input_image);
+    // coordinates of the pixel to work on
+    const int2 coord = { get_global_id(0), get_global_id(1) };
+
+    float4 sum = 0;
+    float weight = 0;
+    int2 shift = 0;
+    for (shift.y = -size; shift.y <= size; ++shift.y) {
+        int2 cur = coord + shift;
+        if ((0 <= cur.y) && (cur.y < height)) {
+            const float w = kern[size + shift.y];
+            weight += w;
+            sum += read_imageui(input_image, cur) * w;
+        }
+    }
+    write_imageui(output_image, coord, convert_uint4(round(sum / weight)));
+}

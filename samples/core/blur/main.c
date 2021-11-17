@@ -28,7 +28,7 @@
 
 // Sample-specific option
 struct options_Blur {
-    unsigned int size;
+    int size;
     const char * in, * out, * op;
 };
 
@@ -136,6 +136,32 @@ else if (state == ParseError)                       \
 
 end:    free(opts);
     return error;
+}
+
+float Gaussian(float x, float radius)
+{
+    const float M_PI = 3.141592653589793238462f;
+    return expf(-x * x / (2 * radius * radius)) / (sqrtf(2 * M_PI) * radius);
+}
+
+// note that the kernel is not normalized and has size of 2*(*size)+1 elements
+cl_int create_gaussian_kernel(float radius, float ** const kernel, int * const size)
+{
+    cl_int error = CL_SUCCESS;
+
+    radius = fabsf(radius);
+    *size = ceilf(3 * radius);
+    int span = 2 * *size + 1;
+    *kernel = NULL;
+    MEM_CHECK(*kernel = (float *)malloc(sizeof(float) * span), error, end);
+
+    for (int i = 0; i <= *size; ++i) {
+        float gx = Gaussian((float)i, radius);
+        (*kernel)[*size + i] = gx;
+        (*kernel)[*size - i] = gx;
+    }
+
+end:    return error;
 }
 
 cl_image_format set_image_format(cl_sdk_image * const input_image, cl_sdk_image * const output_image,
@@ -592,6 +618,55 @@ nam:    free(name);
         // cleanup for error handling
 newprg: clReleaseProgram(pr);
 sbg:    goto blr2;
+    }
+
+    /// Gaussian blur
+    {
+        printf("Dual-pass Gaussian blur\n");
+        ++im;
+
+        clReleaseKernel(blur2);
+        clReleaseKernel(blur1);
+
+        OCLERROR_PAR(blur1 = clCreateKernel(program, "blur_gauss_horizontal", &error), error, tmpbuf);
+        OCLERROR_PAR(blur2 = clCreateKernel(program, "blur_gauss_vertical", &error), error, blr1);
+
+        float * gauss = NULL;
+        int gauss_size = 0;
+        OCLERROR_RET(create_gaussian_kernel(blur_opts.size, &gauss, &gauss_size), error, gau);
+        cl_mem gauss_kern;
+        OCLERROR_PAR(gauss_kern = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+            sizeof(float) * (2 * gauss_size + 1), gauss, &error), error, gau);
+
+        // set kernel parameters
+        OCLERROR_RET(clSetKernelArg(blur1, 0, sizeof(cl_mem), &input_image_buf), error, gaukrn);
+        OCLERROR_RET(clSetKernelArg(blur1, 1, sizeof(cl_mem), &temp_image_buf), error, gaukrn);
+        OCLERROR_RET(clSetKernelArg(blur1, 2, sizeof(cl_int), &gauss_size), error, gaukrn);
+        OCLERROR_RET(clSetKernelArg(blur1, 3, sizeof(cl_mem), &gauss_kern), error, gaukrn);
+
+        OCLERROR_RET(clSetKernelArg(blur2, 0, sizeof(cl_mem), &temp_image_buf), error, gaukrn);
+        OCLERROR_RET(clSetKernelArg(blur2, 1, sizeof(cl_mem), &output_image_buf), error, gaukrn);
+        OCLERROR_RET(clSetKernelArg(blur2, 2, sizeof(cl_int), &gauss_size), error, gaukrn);
+        OCLERROR_RET(clSetKernelArg(blur2, 3, sizeof(cl_mem), &gauss_kern), error, gaukrn);
+
+        // blur
+        GET_CURRENT_TIMER(gauss_start)
+        OCLERROR_RET(clEnqueueNDRangeKernel(queue, blur1, 2, origin, image_size, NULL, 0, NULL, pass + 1), error, gaukrn);
+        OCLERROR_RET(clEnqueueNDRangeKernel(queue, blur2, 2, origin, image_size, NULL, 0, NULL, pass + 2), error, gaukrn);
+        OCLERROR_RET(clWaitForEvents(2, pass + 1), error, gaukrn);
+        GET_CURRENT_TIMER(gauss_end)
+
+        OCLERROR_RET(clEnqueueReadImage(queue, output_image_buf, CL_BLOCKING, origin, image_size, 0, 0,
+            output_image.pixels, 0, NULL, NULL), error, gaukrn);
+
+        if (diag_opts.verbose)
+            print_timings(gauss_start, gauss_end, pass + 1, 2);
+
+        // write output file
+        OCLERROR_RET(finalize_blur(&input_image, &output_image, blur_opts.out, im), error, gaukrn);
+
+gaukrn: OCLERROR_RET(clReleaseMemObject(gauss_kern), end_error, gau);
+gau:    free(gauss);
     }
 
     /// Cleanup
