@@ -53,13 +53,16 @@ class Conway : public cl::util::InteropWindow
 {
 public:
     explicit Conway(
+        int width,
+        int height,
+        bool fullscreen,
         int platform_id = 0,
         int device_id = 0,
         cl_bitfield device_type = CL_DEVICE_TYPE_DEFAULT
     ) : InteropWindow{
-            sf::VideoMode::VideoMode(800,800),
+            sf::VideoMode::VideoMode(width,height),
             "Conway's Game of Life",
-            sf::Style::Default,
+            fullscreen ? sf::Style::Fullscreen : sf::Style::Default,
             sf::ContextSettings{
                 0, 0, 0, // Depth, Stencil, AA
                 3, 3,    // OpenGL version
@@ -321,10 +324,15 @@ int main(int argc, char* argv[])
         // Parse command-line options
         auto opts = cl::sdk::parse_cli<
                         cl::sdk::options::Diagnostic,
-                        cl::sdk::options::SingleDevice>(argc, argv);
-        const auto& dev_opts   = std::get<1>(opts).triplet;
+                        cl::sdk::options::SingleDevice,
+                        cl::sdk::options::Window>(argc, argv);
+        const auto& dev_opts = std::get<1>(opts).triplet;
+        const auto& win_opts = std::get<2>(opts);
 
         Conway window{
+            win_opts.width,
+            win_opts.height,
+            win_opts.fullscreen,
             dev_opts.plat_index,
             dev_opts.dev_index,
             dev_opts.dev_type

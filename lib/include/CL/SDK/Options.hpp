@@ -28,6 +28,12 @@ namespace options
     {
         cl::vector<DeviceTriplet> triplets;
     };
+    struct Window
+    {
+        int width;
+        int height;
+        bool fullscreen;
+    };
 }
 }
 }

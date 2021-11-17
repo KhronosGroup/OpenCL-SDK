@@ -113,3 +113,25 @@ cl::sdk::options::SingleDevice cl::sdk::comprehend<cl::sdk::options::SingleDevic
         device_type(type_arg->getValue())
     };
 }
+
+template <>
+auto cl::sdk::parse<cl::sdk::options::Window>()
+{
+    return std::make_tuple(
+        std::make_shared<TCLAP::ValueArg<int>>("x", "width", "Width of window", false, 800, "positive integral"),
+        std::make_shared<TCLAP::ValueArg<int>>("y", "height", "Height of window", false, 800, "positive integral"),
+        std::make_shared<TCLAP::SwitchArg>("f", "fullscreen", "Fullscreen window", false)
+    );
+}
+template <>
+cl::sdk::options::Window cl::sdk::comprehend<cl::sdk::options::Window>(
+    std::shared_ptr<TCLAP::ValueArg<int>> width_arg,
+    std::shared_ptr<TCLAP::ValueArg<int>> height_arg,
+    std::shared_ptr<TCLAP::SwitchArg> fullscreen_arg)
+{
+    return options::Window{
+        width_arg->getValue(),
+        height_arg->getValue(),
+        fullscreen_arg->getValue()
+    };
+}
