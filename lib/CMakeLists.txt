@@ -13,9 +13,13 @@ foreach(UTIL_LIB_NAME IN ITEMS Utils UtilsCpp)
     set(UTIL_LIB_DEPS
       OpenCL::HeadersCpp
       OpenCL::Utils
-      OpenGL::GL
       sfml-window
     )
+    if(CMAKE_VERSION VERSION_LESS 3.4)
+      list(APPEND UTIL_LIB_DEPS ${OPENGL_LIBRARIES})
+    else()
+      list(APPEND UTIL_LIB_DEPS OpenGL::OpenGL)
+    endif()
     set(UTIL_CL_VERSION_MACRO_NAME CL_HPP_TARGET_OPENCL_VERSION)
   else()
     message(FATAL_ERROR "Unkown SDK flavor")
