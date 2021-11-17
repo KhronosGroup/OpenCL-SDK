@@ -477,7 +477,7 @@ nam:    free(name);
             CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(size_t), &psm2, NULL), error, blr2);
 
         // Further constrain (reduce) WGS based on shared mem size on device
-        if (loc_mem >= (max(psm1, psm2) + 2 * blur_opts.size) * sizeof(cl_uchar4)) {
+        if (loc_mem >= ((psm1 > psm2 ? psm1 : psm2) + 2 * blur_opts.size) * sizeof(cl_uchar4)) {
             while (loc_mem < (wgs1 + 2 * blur_opts.size) * sizeof(cl_uchar4))
                 wgs1 -= psm1;
             while (loc_mem < (wgs2 + 2 * blur_opts.size) * sizeof(cl_uchar4))
