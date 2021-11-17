@@ -45,7 +45,7 @@ add_subdirectory(external/OpenCL-CLHPP)
 add_subdirectory(third_party/cargs)
 add_subdirectory(third_party/stb)
 if(OPENCL_SDK_BUILD_OPENGL_SAMPLES)
-  cmake_minimum_required(VERSION 3.3) # SFML 2 won't find_dependency(Freetype) under 3.3
+  cmake_minimum_required(VERSION 3.10) # SFML 2 won't find Freetype::Freetype under 3.10
   find_package(OpenGL REQUIRED)
   find_package(SFML 2
     REQUIRED
