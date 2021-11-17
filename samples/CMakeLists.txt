@@ -59,7 +59,7 @@ macro(add_sample)
     )
     target_link_libraries(${OPENCL_SAMPLE_TARGET}
       PRIVATE
-        stb
+#        stb
         cargs
         OpenCL::Headers
         OpenCL::HeadersCpp
