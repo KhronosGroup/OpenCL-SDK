@@ -36,6 +36,7 @@
 #include <tclap/CmdLine.h>
 
 // OpenGL includes
+#include <SFML/Graphics.hpp>
 #include <SFML/OpenGL.hpp>
 
 template <typename T>

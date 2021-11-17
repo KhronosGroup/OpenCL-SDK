@@ -49,7 +49,7 @@ if(OPENCL_SDK_BUILD_OPENGL_SAMPLES)
   find_package(OpenGL REQUIRED)
   find_package(SFML 2
     REQUIRED
-    COMPONENTS window
+    COMPONENTS window graphics
   )
   find_package(GLEW REQUIRED)
 endif()
