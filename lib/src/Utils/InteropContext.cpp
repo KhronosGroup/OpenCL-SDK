@@ -1,5 +1,6 @@
 #include <CL/Utils/InteropContext.hpp>
 
+#include <SFML/Graphics.hpp
 #include <SFML/OpenGL.hpp>
 
 cl::vector<cl_context_properties> cl::util::get_interop_context_properties(const cl::Device& device)
