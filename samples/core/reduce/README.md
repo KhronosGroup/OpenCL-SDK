@@ -72,7 +72,7 @@ _(Note: the main reason why net kernel execution time doesn't amount to the time
 
 ## Kernel logic
 
-The sample implements a special case of reduction, where the binary operation can meaningfully operate on any combination of input data and accumulators. (for the non-special case interface, refer to [`std::reduce`](https://en.cppreference.com/w/cpp/algorithm/reduce)) The kernel holds three implementations which are all enabled/disabled based on host side queries.
+The sample implements a special case of reduction, where the binary operation can meaningfully operate on any combination of input data and accumulators. (For the non-special case interface, refer to [`std::reduce`](https://en.cppreference.com/w/cpp/algorithm/reduce).) The kernel holds three implementations which are all enabled/disabled based on host side queries.
 
 ### Vanilla work-group reduction
 
