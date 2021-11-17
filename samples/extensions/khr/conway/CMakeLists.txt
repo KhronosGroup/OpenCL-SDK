@@ -18,5 +18,5 @@ add_sample(
     VERSION 120
     SOURCES main.cpp
     INCLUDES ${TCLAP_INCLUDE_DIR}
-    LIBS sfml-window OpenGL::GL GLEW::GLEW
+    LIBS sfml-window GLEW::GLEW
     )
