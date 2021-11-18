@@ -70,6 +70,58 @@ kernel void blur_box_vertical(
     write_imageui(output_image, coord, (sum + num / 2) / num);
 }
 
+
+kernel void blur_kernel_horizontal(
+    read_only image2d_t input_image,
+    write_only image2d_t output_image,
+    int size,
+    const float * kern
+)
+{
+    const int width = get_image_width(input_image);
+    const int height = get_image_height(input_image);
+    const int2 coord = { get_global_id(0), get_global_id(1) };
+
+    float4 sum = 0;
+    float weight = 0;
+    int2 shift = 0;
+    for (shift.x = -size; shift.x <= size; ++shift.x) {
+        int2 cur = coord + shift;
+        if ((0 <= cur.x) && (cur.x < width)) {
+            const float w = kern[size + shift.x];
+            weight += w;
+            sum += read_imageui(input_image, cur) * w;
+        }
+    }
+    write_imageui(output_image, coord, convert_uint4(round(sum / weight)));
+}
+
+kernel void blur_kernel_vertical(
+    read_only image2d_t input_image,
+    write_only image2d_t output_image,
+    int size,
+    const float * kern
+)
+{
+    const int width = get_image_width(input_image);
+    const int height = get_image_height(input_image);
+    const int2 coord = { get_global_id(0), get_global_id(1) };
+
+    float4 sum = 0;
+    float weight = 0;
+    int2 shift = 0;
+    for (shift.y = -size; shift.y <= size; ++shift.y) {
+        int2 cur = coord + shift;
+        if ((0 <= cur.y) && (cur.y < height)) {
+            const float w = kern[size + shift.y];
+            weight += w;
+            sum += read_imageui(input_image, cur) * w;
+        }
+    }
+    write_imageui(output_image, coord, convert_uint4(round(sum / weight)));
+}
+
+
 kernel void blur_box_horizontal_exchange(
     read_only image2d_t input_image,
     write_only image2d_t output_image,
@@ -153,6 +205,7 @@ kernel void blur_box_vertical_exchange(
         write_imageui(output_image, coord, (sum + num / 2) / num);
     }
 }
+
 
 #if defined(USE_SUBGROUP_EXCHANGE_RELATIVE) || defined(USE_SUBGROUP_EXCHANGE)
 
@@ -256,56 +309,109 @@ kernel void blur_box_vertical_subgroup_exchange(
     }
 }
 
+
+kernel void blur_kernel_horizontal_subgroup_exchange(
+    read_only image2d_t input_image,
+    write_only image2d_t output_image,
+    int size,
+    constant float * kern
+)
+{
+    const int width = get_image_width(input_image);
+    const int height = get_image_height(input_image);
+    const int2 coord = { get_global_id(0), get_global_id(1) };
+
+    if (coord.x < width) {
+        uint4 pixel = 0;
+        float4 sum = 0;
+        float weight = 0;
+
+        // initial read
+        int2 cur = coord + (int2)(size, 0);
+        if (cur.x < width) {
+            pixel = read_imageui(input_image, cur);
+            weight = kern[2 * size];
+            sum = convert_float4(pixel) * weight;
+        }
+        // shifts and reads
+        const uint sglid = get_sub_group_local_id();
+        const uint shift = (sglid != 0);
+        for (int i = size - 1; i >= -size; --i) {
+            --cur.x;
+#if defined(USE_SUBGROUP_EXCHANGE_RELATIVE)
+            pixel = (uint4)(sub_group_shuffle_up(pixel.s0, shift),
+                            sub_group_shuffle_up(pixel.s1, shift),
+                            sub_group_shuffle_up(pixel.s2, shift),
+                            sub_group_shuffle_up(pixel.s3, shift));
+#elif defined(USE_SUBGROUP_EXCHANGE)
+            pixel = (uint4)(sub_group_shuffle(pixel.s0, sglid - shift),
+                            sub_group_shuffle(pixel.s1, sglid - shift),
+                            sub_group_shuffle(pixel.s2, sglid - shift),
+                            sub_group_shuffle(pixel.s3, sglid - shift));
+#endif
+            if ((cur.x >= 0) && (cur.x < width)) {
+                if (!shift) // 0th workitem reads new pixel
+                    pixel = read_imageui(input_image, cur);
+                float w = kern[size + i];
+                weight += w;
+                sum += convert_float4(pixel) * w;
+            }
+        }
+
+        write_imageui(output_image, coord, convert_uint4(round(sum / weight)));
+    }
+}
+
+kernel void blur_kernel_vertical_subgroup_exchange(
+    read_only image2d_t input_image,
+    write_only image2d_t output_image,
+    int size,
+    constant float * kern
+)
+{
+    const int width = get_image_width(input_image);
+    const int height = get_image_height(input_image);
+    const int2 coord = { get_global_id(0), get_global_id(1) };
+
+    if (coord.y < height) {
+        uint4 pixel = 0;
+        float4 sum = 0;
+        float weight = 0;
+
+        // initial read
+        int2 cur = coord + (int2)(0, size);
+        if (cur.y < height) {
+            pixel = read_imageui(input_image, cur);
+            weight = kern[2 * size];
+            sum = convert_float4(pixel) * weight;
+        }
+        // shifts and reads
+        const uint sglid = get_sub_group_local_id();
+        const uint shift = (sglid != 0);
+        for (int i = size - 1; i >= -size; --i) {
+            --cur.y;
+#if defined(USE_SUBGROUP_EXCHANGE_RELATIVE)
+            pixel = (uint4)(sub_group_shuffle_up(pixel.s0, shift),
+                            sub_group_shuffle_up(pixel.s1, shift),
+                            sub_group_shuffle_up(pixel.s2, shift),
+                            sub_group_shuffle_up(pixel.s3, shift));
+#elif defined(USE_SUBGROUP_EXCHANGE)
+            pixel = (uint4)(sub_group_shuffle(pixel.s0, sglid - shift),
+                            sub_group_shuffle(pixel.s1, sglid - shift),
+                            sub_group_shuffle(pixel.s2, sglid - shift),
+                            sub_group_shuffle(pixel.s3, sglid - shift));
+#endif
+            if ((cur.y >= 0) && (cur.y < height)) {
+                if (!shift) // 0th workitem reads new pixel
+                    pixel = read_imageui(input_image, cur);
+                float w = kern[size + i];
+                sum += convert_float4(pixel) * w;
+                weight += w;
+            }
+        }
+
+        write_imageui(output_image, coord, convert_uint4(round(sum / weight)));
+    }
+}
+
 #endif // USE_SUBGROUP_EXCHANGE_RELATIVE || USE_SUBGROUP_EXCHANGE
-
-kernel void blur_gauss_horizontal(
-    read_only image2d_t input_image,
-    write_only image2d_t output_image,
-    int size,
-    const float * kern
-)
-{
-    const int width = get_image_width(input_image);
-    const int height = get_image_height(input_image);
-    // coordinates of the pixel to work on
-    const int2 coord = { get_global_id(0), get_global_id(1) };
-
-    float4 sum = 0;
-    float weight = 0;
-    int2 shift = 0;
-    for (shift.x = -size; shift.x <= size; ++shift.x) {
-        int2 cur = coord + shift;
-        if ((0 <= cur.x) && (cur.x < width)) {
-            const float w = kern[size + shift.x];
-            weight += w;
-            sum += read_imageui(input_image, cur) * w;
-        }
-    }
-    write_imageui(output_image, coord, convert_uint4(round(sum / weight)));
-}
-
-kernel void blur_gauss_vertical(
-    read_only image2d_t input_image,
-    write_only image2d_t output_image,
-    int size,
-    const float * kern
-)
-{
-    const int width = get_image_width(input_image);
-    const int height = get_image_height(input_image);
-    // coordinates of the pixel to work on
-    const int2 coord = { get_global_id(0), get_global_id(1) };
-
-    float4 sum = 0;
-    float weight = 0;
-    int2 shift = 0;
-    for (shift.y = -size; shift.y <= size; ++shift.y) {
-        int2 cur = coord + shift;
-        if ((0 <= cur.y) && (cur.y < height)) {
-            const float w = kern[size + shift.y];
-            weight += w;
-            sum += read_imageui(input_image, cur) * w;
-        }
-    }
-    write_imageui(output_image, coord, convert_uint4(round(sum / weight)));
-}
