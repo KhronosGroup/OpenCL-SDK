@@ -140,8 +140,8 @@ end:    free(opts);
 
 float Gaussian(float x, float radius)
 {
-    const float M_PI = 3.141592653589793238462f;
-    return expf(-x * x / (2 * radius * radius)) / (sqrtf(2 * M_PI) * radius);
+    const float pi = 3.141592653589793238462f;
+    return expf(-x * x / (2 * radius * radius)) / (sqrtf(2 * pi) * radius);
 }
 
 // note that the kernel is not normalized and has size of 2*(*size)+1 elements
