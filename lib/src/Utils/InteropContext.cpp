@@ -1,7 +1,16 @@
 #include <CL/Utils/InteropContext.hpp>
 
-#include <SFML/Graphics.hpp
-#include <SFML/OpenGL.hpp>
+// Platform includes
+#ifdef _WIN32
+#include <wtypes.h>
+#include <wingdi.h> // wglGetCurrent...()
+#endif
+#ifdef __linux__
+#include <GL/glxew.h>
+#undef None
+#endif
+
+//#include <SFML/OpenGL.hpp>
 
 cl::vector<cl_context_properties> cl::util::get_interop_context_properties(const cl::Device& device)
 {
