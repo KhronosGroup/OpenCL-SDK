@@ -61,7 +61,7 @@ public:
         int device_id = 0,
         cl_bitfield device_type = CL_DEVICE_TYPE_DEFAULT
     ) : InteropWindow{
-            sf::VideoMode::VideoMode(width,height),
+            sf::VideoMode(width,height),
             "Conway's Game of Life",
             fullscreen ? sf::Style::Fullscreen : sf::Style::Default,
             sf::ContextSettings{
