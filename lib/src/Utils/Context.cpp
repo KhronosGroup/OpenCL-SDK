@@ -27,7 +27,7 @@ cl::Context cl::util::get_context(int plat_id, int dev_id, cl_device_type type, 
                     );
             }
             else
-                detail::errHandler(plat_err, error);
+                detail::errHandler(dev_err, error);
         }
         else
             detail::errHandler(
