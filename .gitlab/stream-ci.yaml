@@ -38,6 +38,7 @@ variables:
     - export PATH=/opt/Kitware/CMake/$CMAKE_MINIMUM/bin:$PATH
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@projects.streamhpc.com/".insteadOf "git@projects.streamhpc.com:"
     - git submodule sync && git submodule update --init --recursive
+    - apt install libglu1-mesa-dev -y -qq
 
 .toolchain-matrix-latest:
   image: streamhpc/opencl-sdk-base:ubuntu-18.04-20211117
@@ -58,6 +59,7 @@ variables:
     - export PATH=/opt/Kitware/CMake/$CMAKE_LATEST/bin:$PATH
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@projects.streamhpc.com/".insteadOf "git@projects.streamhpc.com:"
     - git submodule sync && git submodule update --init --recursive
+    - apt install libglu1-mesa-dev -y -qq
 
 .exec-matrix-minimum:
   parallel:
