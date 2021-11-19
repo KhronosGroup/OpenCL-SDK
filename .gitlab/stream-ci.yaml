@@ -20,7 +20,7 @@ variables:
 ########################
 
 .toolchain-matrix-minimum:
-  image: streamhpc/opencl-sdk-base:ubuntu-18.04-20211117
+  image: streamhpc/opencl-sdk-base:ubuntu-18.04-20211119
   parallel:
     matrix:
   # NOTE: Old CMake versions will likely not use cutting-edge compilers
@@ -41,7 +41,7 @@ variables:
     - apt install libglu1-mesa-dev -y -qq
 
 .toolchain-matrix-latest:
-  image: streamhpc/opencl-sdk-base:ubuntu-18.04-20211117
+  image: streamhpc/opencl-sdk-base:ubuntu-18.04-20211119
   parallel:
     matrix:
   # NOTE: Cutting edge CMake versions will likely not use old compilers
@@ -182,7 +182,7 @@ build:cmake-latest:
 
 test:cmake-minimum-rocm:
   extends: .exec-matrix-minimum
-  image: streamhpc/opencl-sdk-rocm:ubuntu-18.04-20211117
+  image: streamhpc/opencl-sdk-rocm:ubuntu-18.04-20211119
   tags:
     - rocm-stable
   stage: test
@@ -195,7 +195,7 @@ test:cmake-minimum-rocm:
 
 test:cmake-latest-rocm:
   extends: .exec-matrix-latest
-  image: streamhpc/opencl-sdk-rocm:ubuntu-18.04-20211117
+  image: streamhpc/opencl-sdk-rocm:ubuntu-18.04-20211119
   tags:
     - rocm-stable
   stage: test
