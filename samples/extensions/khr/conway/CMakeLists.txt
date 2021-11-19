@@ -13,7 +13,6 @@
 # limitations under the License.
 
 add_sample(
-    TEST
     TARGET conwaycpp
     VERSION 120
     SOURCES main.cpp
