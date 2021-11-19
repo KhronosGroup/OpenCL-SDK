@@ -13,7 +13,11 @@ foreach(UTIL_LIB_NAME IN ITEMS Utils UtilsCpp)
     set(UTIL_LIB_DEPS
       OpenCL::HeadersCpp
       OpenCL::Utils
-      sfml-window sfml-graphics
+      OpenGL::GL
+      GLEW::GLEW
+      $<$<PLATFORM_ID:Linux>:OpenGL::GLU>
+      sfml-window
+      sfml-graphics
     )
     if(CMAKE_VERSION VERSION_LESS 3.4)
       list(APPEND UTIL_LIB_DEPS ${OPENGL_LIBRARIES})
