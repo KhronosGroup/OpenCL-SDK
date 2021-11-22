@@ -26,7 +26,7 @@ foreach(UTIL_LIB_NAME IN ITEMS Utils UtilsCpp)
     endif()
     set(UTIL_CL_VERSION_MACRO_NAME CL_HPP_TARGET_OPENCL_VERSION)
   else()
-    message(FATAL_ERROR "Unkown SDK flavor")
+    message(FATAL_ERROR "Unkown Util flavor")
   endif()
   set(UTIL_LIB_TARGET OpenCL${UTIL_LIB_NAME})
   add_library(${UTIL_LIB_TARGET} ${UTIL_LIB_SOURCES})
@@ -106,5 +106,68 @@ foreach(UTIL_LIB_NAME IN ITEMS Utils UtilsCpp)
   install(
     FILES ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_DATADIR}/cmake/OpenCL${UTIL_LIB_NAME}/OpenCL${UTIL_LIB_NAME}ConfigVersion.cmake
     DESTINATION ${config_package_location}
+  )
+endforeach()
+
+foreach(SDK_LIB_NAME IN ITEMS SDK SDKCpp)
+  if(SDK_LIB_NAME STREQUAL SDK)
+    set(SDK_LIB_SOURCES src/SDK/SDK.c)
+    set(SDK_LIB_DEPS
+      OpenCL::Headers
+      OpenCL::Utils
+    )
+    set(SDK_CL_VERSION_MACRO_NAME CL_TARGET_OPENCL_VERSION)
+  elseif(SDK_LIB_NAME STREQUAL SDKCpp)
+    set(SDK_LIB_SOURCES src/SDK/SDK.cpp)
+    set(SDK_LIB_DEPS
+      OpenCL::HeadersCpp
+      OpenCL::UtilsCpp
+      GLEW::GLEW
+      $<$<PLATFORM_ID:Linux>:OpenGL::GLU>
+      sfml-window
+      sfml-graphics
+    )
+    if(CMAKE_VERSION VERSION_LESS 3.4)
+      list(APPEND SDK_LIB_DEPS ${OPENGL_LIBRARIES})
+    else()
+      list(APPEND SDK_LIB_DEPS OpenGL::GL)
+    endif()
+    set(SDK_CL_VERSION_MACRO_NAME CL_HPP_TARGET_OPENCL_VERSION)
+  else()
+    message(FATAL_ERROR "Unkown SDK flavor")
+  endif()
+  set(SDK_LIB_TARGET OpenCL${SDK_LIB_NAME})
+  add_library(${SDK_LIB_TARGET} ${SDK_LIB_SOURCES})
+  add_library(OpenCL::${SDK_LIB_NAME} ALIAS ${SDK_LIB_TARGET})
+
+  string(TOUPPER ${SDK_LIB_NAME} UPPER_SDK_LIB_NAME)
+  generate_export_header(${SDK_LIB_TARGET}
+    EXPORT_MACRO_NAME ${UPPER_SDK_LIB_NAME}_EXPORT
+    EXPORT_FILE_NAME OpenCL${SDK_LIB_NAME}_Export.h
+  )
+
+  target_include_directories(${SDK_LIB_TARGET}
+    PUBLIC
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+      $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+  )
+  target_link_libraries(${SDK_LIB_TARGET}
+    PUBLIC
+      ${SDK_LIB_DEPS}
+      OpenCL::OpenCL
+    PRIVATE
+      cargs
+      stb
+  )
+  target_compile_definitions(${SDK_LIB_TARGET}
+    PRIVATE
+      ${SDK_CL_VERSION_MACRO_NAME}=300
+  )
+
+  set_target_properties(${SDK_LIB_TARGET}
+    PROPERTIES
+      LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
+      FOLDER "Libraries/${SDK_LIB_NAME}"
   )
 endforeach()
