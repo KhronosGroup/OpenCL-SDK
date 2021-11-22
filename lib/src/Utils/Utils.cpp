@@ -1,6 +1,4 @@
 #include "Platform.cpp"
 #include "Device.cpp"
 #include "Context.cpp"
-#include "Image.cpp"
-#include "InteropContext.cpp"
-#include "InteropWindow.cpp"
+

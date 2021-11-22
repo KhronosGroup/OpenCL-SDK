@@ -5,6 +5,8 @@
 
 // STL includes
 #include <algorithm>            // std::generate_n
+#include <iterator>             // std::begin
+#include <valarray>
 
 namespace cl
 {

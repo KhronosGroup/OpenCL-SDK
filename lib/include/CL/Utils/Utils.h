@@ -1,6 +1,6 @@
 #pragma once
 
-// OpenCL SDK includes
+// OpenCL Utils includes
 #include "OpenCLUtils_Export.h"
 
 #include <CL/Utils/Error.h>
