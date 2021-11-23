@@ -2,7 +2,7 @@
 
 __kernel void conway(
     __read_only image2d_t front,
-    __write_only  image2d_t back,
+    __write_only image2d_t back,
     float2 inv_image_size
 )
 {
