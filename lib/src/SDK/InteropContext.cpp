@@ -2,6 +2,7 @@
 //
 // Note: gl.h need to be included before glxew.h which will define the glXGetCurrent...() functions.
 #ifdef _WIN32
+#define NOMINMAX
 #include <wtypes.h>
 #include <wingdi.h> // wglGetCurrent...()
 #endif
