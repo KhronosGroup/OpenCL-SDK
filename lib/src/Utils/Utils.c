@@ -1,6 +1,6 @@
-// OpenCL SDK includes
+// OpenCL Utils includes
 #include <CL/Utils/Utils.h>
 
-#include "Context.c"
 #include "File.c"
-
+#include "Context.c"
+#include "Event.c"

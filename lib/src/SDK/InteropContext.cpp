@@ -1,4 +1,8 @@
-#include <CL/Utils/InteropContext.hpp>
+// OpenCL SDK includes
+#include <CL/SDK/InteropContext.hpp>
+
+// OpenCL Utils includes
+#include <CL/Utils/Utils.hpp>
 
 // Platform includes
 #ifdef _WIN32
@@ -10,9 +14,7 @@
 #undef None
 #endif
 
-//#include <SFML/OpenGL.hpp>
-
-cl::vector<cl_context_properties> cl::util::get_interop_context_properties(const cl::Device& device)
+cl::vector<cl_context_properties> cl::sdk::get_interop_context_properties(const cl::Device& device)
 {
     return cl::vector<cl_context_properties>{
         CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties>(cl::Platform{ device.getInfo<CL_DEVICE_PLATFORM>() }()),
@@ -28,7 +30,7 @@ cl::vector<cl_context_properties> cl::util::get_interop_context_properties(const
     };
 }
 
-cl::Context cl::util::get_interop_context(int plat_id, int dev_id, cl_device_type type, cl_int* error)
+cl::Context cl::sdk::get_interop_context(int plat_id, int dev_id, cl_device_type type, cl_int* error)
 {
     cl::vector<cl::Platform> platforms;
     cl_int plat_err = cl::Platform::get(&platforms);
@@ -68,7 +70,7 @@ cl::Context cl::util::get_interop_context(int plat_id, int dev_id, cl_device_typ
                         return context;
                     else
                     {
-                        detail::errHandler(
+                        cl::util::detail::errHandler(
                             CL_UTIL_DEVICE_NOT_INTEROPERABLE,
                             error,
                             "Selected device isn't interoperable with the current OpenGL context."
@@ -77,24 +79,24 @@ cl::Context cl::util::get_interop_context(int plat_id, int dev_id, cl_device_typ
                     }
                 }
                 else
-                    detail::errHandler(
+                    cl::util::detail::errHandler(
                         CL_UTIL_INDEX_OUT_OF_RANGE,
                         error,
                         "Invalid device index provided for cl::Context cl::sdk::get_context()"
                     );
             }
             else
-                detail::errHandler(plat_err, error);
+                cl::util::detail::errHandler(plat_err, error);
         }
         else
-            detail::errHandler(
+            cl::util::detail::errHandler(
                 CL_UTIL_INDEX_OUT_OF_RANGE,
                 error,
                 "Invalid platform index provided for cl::Context cl::sdk::get_context()"
             );
     }
     else
-        detail::errHandler(plat_err, error, "Failed to get platforms inside cl::Context cl::sdk::get_context()");
+        cl::util::detail::errHandler(plat_err, error, "Failed to get platforms inside cl::Context cl::sdk::get_context()");
 
     return cl::Context{};
 }

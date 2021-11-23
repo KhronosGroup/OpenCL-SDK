@@ -1,6 +1,8 @@
 // OpenCL SDK includes
-#include <CL/Utils/Utils.h>
 #include <CL/SDK/Image.h>
+
+// OpenCL Utils includes
+#include <CL/Utils/Utils.h>
 
 // STL includes
 #include <stdio.h>      // fprintf
@@ -15,7 +17,6 @@
 // OpenCL includes
 #include <CL/cl.h>
 
-UTILS_EXPORT
 cl_sdk_image cl_sdk_read_image(const char* file_name, cl_int* err)
 {
     cl_sdk_image im = { .width = 0, .height = 0, .pixel_size = 1, .pixels = NULL };
@@ -40,7 +41,6 @@ static char * to_lowercase(const char * s, char * d, size_t n)
     return d;
 }
 
-UTILS_EXPORT
 void cl_sdk_write_image(const char * file_name, const cl_sdk_image * im, cl_int * err)
 {
     *err = CL_SUCCESS;

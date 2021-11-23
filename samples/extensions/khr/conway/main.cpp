@@ -17,12 +17,10 @@
 #include <GL/glew.h>
 
 // OpenCL SDK includes
-#include <CL/Utils/Context.hpp>
-#include <CL/Utils/InteropWindow.hpp>
-#include <CL/SDK/Context.hpp>
-#include <CL/SDK/Options.hpp>
-#include <CL/SDK/CLI.hpp>
-#include <CL/SDK/Random.hpp>
+#include <CL/SDK/SDK.hpp>
+
+// OpenCL Utils includes
+#include <CL/Utils/Utils.hpp>
 
 // STL includes
 #include <iostream>
@@ -31,9 +29,6 @@
 #include <algorithm>
 #include <fstream>
 #include <tuple>        // std::make_tuple
-
-// TCLAP includes
-#include <tclap/CmdLine.h>
 
 // OpenGL includes
 #include <SFML/Graphics.hpp>
@@ -50,7 +45,7 @@ struct DoubleBuffer
     }
 };
 
-class Conway : public cl::util::InteropWindow
+class Conway : public cl::sdk::InteropWindow
 {
 public:
     explicit Conway(

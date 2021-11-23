@@ -7,7 +7,7 @@
 #include <CL/SDK/Options.h>
 #include <CL/SDK/Context.h>
 #include <CL/SDK/Random.h>
-#include <CL/SDK/Image.h.h>
+#include <CL/SDK/Image.h>
 
 // OpenCL includes
 #include <CL/cl.h>

@@ -66,6 +66,8 @@ macro(add_sample)
         OpenCL::OpenCL
         OpenCL::Utils
         OpenCL::UtilsCpp
+        OpenCL::SDK
+        OpenCL::SDKCpp
         $<$<BOOL:${HAVE_LIB_M}>:m>
         ${OPENCL_SAMPLE_LIBS}
     )

@@ -1,7 +1,6 @@
-// OpenCL SDK includes
-#include <CL/Utils/Utils.h>
-#include <CL/Utils/Error.h>
+// OpenCL Utils includes
 #include <CL/Utils/Context.h>
+#include <CL/Utils/Error.h>
 
 // STL includes
 #include <stdlib.h>     // malloc, free

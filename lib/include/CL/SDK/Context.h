@@ -1,15 +1,16 @@
 #pragma once
 
 // OpenCL SDK includes
+#include "OpenCLSDK_Export.h"
+
+// OpenCL SDK includes
 #include <CL/SDK/Options.h>
-#include <CL/Utils/Context.h>
 
-cl_context cl_sdk_get_context_by_triplet(struct cl_sdk_options_DeviceTriplet * triplet, cl_int * error)
-{
-    return cl_util_get_context(triplet->plat_index, triplet->dev_index, triplet->dev_type, error);
-}
+// OpenCL includes
+#include <CL/cl.h>
 
-cl_device_id cl_sdk_get_device_by_triplet(struct cl_sdk_options_DeviceTriplet * triplet, cl_int * error)
-{
-    return cl_util_get_device(triplet->plat_index, triplet->dev_index, triplet->dev_type, error);
-}
+SDK_EXPORT
+cl_context cl_sdk_get_context_by_triplet(struct cl_sdk_options_DeviceTriplet * triplet, cl_int * error);
+
+SDK_EXPORT
+cl_device_id cl_sdk_get_device_by_triplet(struct cl_sdk_options_DeviceTriplet * triplet, cl_int * error);

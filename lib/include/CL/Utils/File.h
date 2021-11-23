@@ -1,5 +1,11 @@
 #pragma once
 
+// OpenCL Utils includes
+#include "OpenCLUtils_Export.h"
+
+// OpenCL includes
+#include <CL/cl.h>
+
 // read all the text file contents securely in ANSI C89
 // return pointer to C-string with file contents
 // can handle streams with no known size and no support for fseek

@@ -1,5 +1,5 @@
-// OpenCL SDK includes
-#include <CL/Utils/Utils.h>
+// OpenCL Utils includes
+#include <CL/Utils/File.h>
 
 // STL includes
 #include<stdlib.h> // realloc, free
@@ -9,7 +9,6 @@
 // return pointer to C-string with file contents
 // can handle streams with no known size and no support for fseek
 // based on https://stackoverflow.com/questions/14002954/ by Nominal Animal
-UTILS_EXPORT
 char * cl_util_read_text_file(const char * filename, size_t * length, cl_int * error)
 {
     char * data = NULL, * temp;

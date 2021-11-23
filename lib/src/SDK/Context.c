@@ -1,6 +1,7 @@
 // OpenCL SDK includes
-#include <CL/Utils/Utils.h>
-#include <CL/Utils/Error.h>
+#include <CL/SDK/Context.h>
+
+// OpenCL Utils includes
 #include <CL/Utils/Context.h>
 
 // STL includes

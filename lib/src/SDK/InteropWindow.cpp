@@ -1,8 +1,8 @@
-#include <CL/Utils/InteropWindow.hpp>
+// OpenCL SDK includes
+#include <CL/SDK/InteropWindow.hpp>
+#include <CL/SDK/InteropContext.hpp>
 
-#include <CL/Utils/InteropContext.hpp>
-
-cl::util::InteropWindow::InteropWindow(
+cl::sdk::InteropWindow::InteropWindow(
     sf::VideoMode mode,
     const sf::String& title,
     sf::Uint32 style,
@@ -18,7 +18,7 @@ cl::util::InteropWindow::InteropWindow(
 {
 }
 
-void cl::util::InteropWindow::run()
+void cl::sdk::InteropWindow::run()
 {
     setActive(true);
 

@@ -1,5 +1,11 @@
 #pragma once
 
+// OpenCL Utils includes
+#include "OpenCLUtils_Export.h"
+
+// OpenCL includes
+#include <CL/cl.h>
+
 // STL includes
 #include <time.h>
 

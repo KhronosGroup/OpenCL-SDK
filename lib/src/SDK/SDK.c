@@ -1,4 +1,5 @@
 // OpenCL SDK includes
-#include <CL/Utils/Utils.h>
+#include <CL/SDK/SDK.h>
 
+#include "Context.c"
 #include "Image.c"

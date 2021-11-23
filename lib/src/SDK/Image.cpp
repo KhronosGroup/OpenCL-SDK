@@ -24,7 +24,6 @@ namespace cl
 {
 namespace sdk
 {
-    UTILSCPP_EXPORT
     Image read_image(const char* file_name, cl_int * err)
     {
         Image im;
@@ -39,7 +38,6 @@ namespace sdk
         return im;
     }
 
-    UTILSCPP_EXPORT
     void write_image(const char * file_name, const Image& image, cl_int * err)
     {
         *err = CL_SUCCESS;

@@ -1,18 +1,23 @@
 #pragma once
 
-#include "OpenCLUtilsCpp_Export.h"
+// OpenCL SDK includes
+#include "OpenCLSDKCpp_Export.h"
+
+// OpenCL Utils includes
 #include <CL/Utils/Error.hpp>
 
+// OpenCL includes
 #include <CL/opencl.hpp>
 
+// SFML includes
 #include <SFML/Window.hpp>
 #include <SFML/OpenGL.hpp>
 
 namespace cl
 {
-namespace util
+namespace sdk
 {
-    class UTILSCPP_EXPORT InteropWindow : public sf::Window
+    class SDKCPP_EXPORT InteropWindow : public sf::Window
     {
     public:
         explicit InteropWindow(
