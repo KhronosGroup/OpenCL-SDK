@@ -1,13 +1,13 @@
 #pragma once
 
-// STL includes
-//#include <iostream>
+// OpenCL Utils includes
+#include "OpenCLUtils_Export.h"
+
+// OpenCL Utils includes
+#include <CL/Utils/ErrorCodes.h>
 
 // OpenCL includes
 #include <CL/opencl.hpp>
-
-#define CL_UTIL_INDEX_OUT_OF_RANGE -2000
-#define CL_UTIL_DEVICE_NOT_INTEROPERABLE -2001
 
 namespace cl
 {
@@ -18,7 +18,7 @@ namespace util
      *
      *  This may be thrown by SDK utility functions when CL_HPP_ENABLE_EXCEPTIONS is defined.
      */
-    class Error : public std::exception
+    class UTILS_EXPORT Error : public std::exception
     {
     private:
         int err_;
@@ -62,27 +62,8 @@ namespace util
 
 namespace detail
 {
-    cl_int errHandler(cl_int err, cl_int* errPtr, const char* errStr = nullptr);
+    UTILS_EXPORT cl_int errHandler(cl_int err, cl_int* errPtr, const char* errStr = nullptr);
 }
 
 }
 }
-
-#if defined(CL_HPP_ENABLE_EXCEPTIONS)
-cl_int cl::util::detail::errHandler(cl_int err, cl_int*, const char* errStr)
-{
-    if (err != CL_SUCCESS)
-        throw cl::util::Error{err, errStr};
-    return err;
-}
-#else
-cl_int cl::util::detail::errHandler(cl_int err, cl_int* errPtr, const char*)
-{
-    if (err != CL_SUCCESS)
-    {
-        if (errPtr != nullptr)
-            *errPtr = err;
-    }
-    return err;
-}
-#endif

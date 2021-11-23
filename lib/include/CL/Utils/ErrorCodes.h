@@ -1,0 +1,4 @@
+#pragma once
+
+#define CL_UTIL_INDEX_OUT_OF_RANGE -2000
+#define CL_UTIL_DEVICE_NOT_INTEROPERABLE -2001

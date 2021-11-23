@@ -55,6 +55,8 @@ foreach(UTIL_LIB_NAME IN ITEMS Utils UtilsCpp)
   target_compile_definitions(${UTIL_LIB_TARGET}
     PRIVATE
       ${UTIL_CL_VERSION_MACRO_NAME}=300
+    PUBLIC
+      CL_HPP_ENABLE_EXCEPTIONS
   )
 
   set_target_properties(${UTIL_LIB_TARGET}
@@ -118,7 +120,11 @@ foreach(SDK_LIB_NAME IN ITEMS SDK SDKCpp)
     )
     set(SDK_CL_VERSION_MACRO_NAME CL_TARGET_OPENCL_VERSION)
   elseif(SDK_LIB_NAME STREQUAL SDKCpp)
-    set(SDK_LIB_SOURCES src/SDK/SDK.cpp)
+    set(SDK_LIB_SOURCES
+      src/SDK/Image.cpp
+      src/SDK/InteropContext.cpp
+      src/SDK/InteropWindow.cpp
+    )
     set(SDK_LIB_DEPS
       OpenCL::HeadersCpp
       OpenCL::UtilsCpp
@@ -163,6 +169,8 @@ foreach(SDK_LIB_NAME IN ITEMS SDK SDKCpp)
   target_compile_definitions(${SDK_LIB_TARGET}
     PRIVATE
       ${SDK_CL_VERSION_MACRO_NAME}=300
+    PUBLIC
+      CL_HPP_ENABLE_EXCEPTIONS
   )
 
   set_target_properties(${SDK_LIB_TARGET}

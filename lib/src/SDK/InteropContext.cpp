@@ -1,10 +1,6 @@
-// OpenCL SDK includes
-#include <CL/SDK/InteropContext.hpp>
-
-// OpenCL Utils includes
-#include <CL/Utils/Utils.hpp>
-
 // Platform includes
+//
+// Note: gl.h need to be included before glxew.h which will define the glXGetCurrent...() functions.
 #ifdef _WIN32
 #include <wtypes.h>
 #include <wingdi.h> // wglGetCurrent...()
@@ -13,6 +9,12 @@
 #include <GL/glxew.h>
 #undef None
 #endif
+
+// OpenCL SDK includes
+#include <CL/SDK/InteropContext.hpp>
+
+// OpenCL Utils includes
+#include <CL/Utils/Utils.hpp>
 
 cl::vector<cl_context_properties> cl::sdk::get_interop_context_properties(const cl::Device& device)
 {
@@ -48,11 +50,12 @@ cl::Context cl::sdk::get_interop_context(int plat_id, int dev_id, cl_device_type
                 {
                     cl_int ctx_err = CL_SUCCESS;
                     auto props = get_interop_context_properties(devices[dev_id]);
+                    cl::Context context;
 #if defined(CL_HPP_ENABLE_EXCEPTIONS)
                     try
                     {
 #endif
-                        cl::Context context(
+                        context = cl::Context(
                             devices[dev_id],
                             props.data(),
                             nullptr,

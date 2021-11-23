@@ -1,6 +1,9 @@
 // OpenCL SDK includes
 #include <CL/SDK/Image.hpp>
 
+// OpenCL Utils includes
+#include <CL/Utils/Utils.hpp>
+
 // stb includes
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
