@@ -121,7 +121,7 @@ inline bool checkError(const char* Title)
 			ErrorString = "UNKNOWN";
 			break;
 		}
-		fprintf(stdout, "OpenGL Error(%s): %s\n", ErrorString.c_str(), Title);
+		std::cerr << "OpenGL Error(" << ErrorString.c_str() << "): " << Title << std::endl;
 	}
 	return Error == GL_NO_ERROR;
 }
