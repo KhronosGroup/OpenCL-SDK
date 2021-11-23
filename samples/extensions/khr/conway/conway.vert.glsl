@@ -12,8 +12,6 @@ out block
     vec2 TexCoord;
 } VS_Out;
 
-//uniform mat4 mat_MVP;
-
 void main()
 {
     gl_Position = vec4(in_Position, 0.0, 1.0);
