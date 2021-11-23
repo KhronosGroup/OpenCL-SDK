@@ -18,7 +18,7 @@ namespace util
      *
      *  This may be thrown by SDK utility functions when CL_HPP_ENABLE_EXCEPTIONS is defined.
      */
-    class UTILS_EXPORT Error : public std::exception
+    class Error : public std::exception
     {
     private:
         int err_;
