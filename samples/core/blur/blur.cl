@@ -207,6 +207,99 @@ kernel void blur_box_vertical_exchange(
 }
 
 
+kernel void blur_kernel_horizontal_exchange(
+    read_only image2d_t input_image,
+    write_only image2d_t output_image,
+    int size,
+    constant float * kern,
+    local uchar4 * line
+)
+{
+    const int width = get_image_width(input_image);
+    const int height = get_image_height(input_image);
+    const int2 coord = { get_global_id(0), get_global_id(1) };
+
+    const int grs = get_local_size(0);
+    const int lid = get_local_id(0);
+    // coordinates of the leftmost and rightmost pixels needed for the workgroup
+    const int start = get_group_id(0) * grs;
+    const int2 start_coord = { max(start - size, 0), coord.y };
+    const int2 end_coord = { min(start + grs + size, width - 1), coord.y};
+
+    // copy all pixels needed for workgroup into local memory
+    int2 cur = start_coord + (int2)(lid, 0);
+    uint pos = lid;
+    while (cur.x <= end_coord.x) {
+        line[pos] = convert_uchar4(read_imageui(input_image, cur));
+        cur.x += grs;
+        pos += grs;
+    }
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    // blur
+    if (coord.x < width) {
+        float4 sum = 0;
+        float weight = 0;
+        pos = lid + (start - size - start_coord.x);
+        for (int shift = -size; shift <= size; ++shift, ++pos) {
+            cur.x = coord.x + shift;
+            if ((0 <= cur.x) && (cur.x < width)) {
+                float w = kern[size + shift];
+                weight += w;
+                sum += convert_float4(line[pos]) * w;
+            }
+        }
+        write_imageui(output_image, coord, convert_uint4(round(sum / weight)));
+    }
+}
+
+kernel void blur_kernel_vertical_exchange(
+    read_only image2d_t input_image,
+    write_only image2d_t output_image,
+    int size,
+    constant float * kern,
+    local uchar4 * line
+)
+{
+    const int width = get_image_width(input_image);
+    const int height = get_image_height(input_image);
+    const int2 coord = { get_global_id(0), get_global_id(1) };
+
+    const int grs = get_local_size(1);
+    const int lid = get_local_id(1);
+    // coordinates of the topmost and lowest pixels needed for the workgroup
+    const int start = get_group_id(1) * grs;
+    const int2 start_coord = { coord.x, max(start - size, 0) };
+    const int2 end_coord = { coord.x, min(start + grs + size, height - 1) };
+
+    // copy all pixels needed for workgroup into local memory
+    int2 cur = start_coord + (int2)(0, lid);
+    uint pos = lid;
+    while (cur.y <= end_coord.y) {
+        line[pos] = convert_uchar4(read_imageui(input_image, cur));
+        cur.y += grs;
+        pos += grs;
+    }
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    // blur
+    if (coord.y < height) {
+        float4 sum = 0;
+        float weight = 0;
+        pos = lid + (start - size - start_coord.y);
+        for (int shift = -size; shift <= size; ++shift, ++pos) {
+            cur.y = coord.y + shift;
+            if ((0 <= cur.y) && (cur.y < height)) {
+                float w = kern[size + shift];
+                weight += w;
+                sum += convert_float4(line[pos]) * w;
+            }
+        }
+        write_imageui(output_image, coord, convert_uint4(round(sum / weight)));
+    }
+}
+
+
 #if defined(USE_SUBGROUP_EXCHANGE_RELATIVE) || defined(USE_SUBGROUP_EXCHANGE)
 
 kernel void blur_box_horizontal_subgroup_exchange(

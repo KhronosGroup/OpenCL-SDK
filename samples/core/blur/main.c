@@ -164,8 +164,25 @@ cl_int create_gaussian_kernel(float radius, float ** const kernel, int * const s
 end:    return error;
 }
 
-cl_image_format set_image_format(cl_sdk_image * const input_image, cl_sdk_image * const output_image,
-    const cl_context context, const bool verbose, cl_int * const error)
+typedef struct state {
+    cl_device_id device;
+    cl_context context;
+    cl_command_queue queue;
+    char * kernel;
+    size_t program_size;
+    char * options;
+    cl_program program;
+    cl_uint step;
+    cl_sdk_image input_image;
+    cl_mem input_image_buf;
+    cl_sdk_image output_image;
+    cl_mem output_image_buf;
+    cl_mem temp_image_buf;
+    const char * filename;
+    bool verbose;
+} state;
+
+cl_image_format set_image_format(state * const s, cl_int * const error)
 {
     // this format is always supported
     cl_image_format res = {
@@ -174,20 +191,20 @@ cl_image_format set_image_format(cl_sdk_image * const input_image, cl_sdk_image 
     };
     *error = CL_SUCCESS;
 
-    if ((input_image->pixel_size == 1) || (input_image->pixel_size == 3)) {
+    if ((s->input_image.pixel_size == 1) || (s->input_image.pixel_size == 3)) {
+        // search for 1/3 channels of uint8_t
         cl_image_format * formats = NULL;
         cl_uint formats_number = 0;
-        OCLERROR_RET(clGetSupportedImageFormats(context, CL_MEM_READ_ONLY, CL_MEM_OBJECT_IMAGE2D,
+        OCLERROR_RET(clGetSupportedImageFormats(s->context, CL_MEM_READ_ONLY, CL_MEM_OBJECT_IMAGE2D,
             0, NULL, &formats_number), *error, end);
         MEM_CHECK(formats = (cl_image_format *)malloc(sizeof(cl_image_format) * formats_number), *error, end);
-        OCLERROR_RET(clGetSupportedImageFormats(context, CL_MEM_READ_ONLY, CL_MEM_OBJECT_IMAGE2D,
+        OCLERROR_RET(clGetSupportedImageFormats(s->context, CL_MEM_READ_ONLY, CL_MEM_OBJECT_IMAGE2D,
             formats_number, formats, NULL), *error, end);
-        // search for 3/1 channels of uint8_t
         for (cl_uint i = 0; i < formats_number; ++i)
-            if (    ((input_image->pixel_size == 3)
+            if (    ((s->input_image.pixel_size == 3)
                     && (formats[i].image_channel_order == CL_RGB)
                     && (formats[i].image_channel_data_type == CL_UNSIGNED_INT8))
-                ||  ((input_image->pixel_size == 1)
+                ||  ((s->input_image.pixel_size == 1)
                     && (formats[i].image_channel_order == CL_R)
                     && (formats[i].image_channel_data_type == CL_UNSIGNED_INT8)))
             {
@@ -195,38 +212,38 @@ cl_image_format set_image_format(cl_sdk_image * const input_image, cl_sdk_image 
             }
 
         // if not found, default to 4 channels of uint8_t
-        if (verbose)
+        if (s->verbose)
             printf("Converting picture into supported format... ");
 
         const size_t
-            pixels = input_image->width * input_image->height,
+            pixels = s->input_image.width * s->input_image.height,
             new = sizeof(unsigned char) * pixels * 4;
         unsigned char * tmp = NULL;
-        MEM_CHECK(tmp = (unsigned char *)realloc(input_image->pixels, new), *error, end);
-        input_image->pixels = tmp;
-        MEM_CHECK(tmp = (unsigned char *)realloc(output_image->pixels, new), *error, end);
-        output_image->pixels = tmp;
+        MEM_CHECK(tmp = (unsigned char *)realloc(s->input_image.pixels, new), *error, end);
+        s->input_image.pixels = tmp;
+        MEM_CHECK(tmp = (unsigned char *)realloc(s->output_image.pixels, new), *error, end);
+        s->output_image.pixels = tmp;
 
         // change picture
-        const size_t pixel_size = input_image->pixel_size;
+        const size_t pixel_size = s->input_image.pixel_size;
         for (size_t i = pixels - 1; i != 0; --i) {
-            memcpy(input_image->pixels + 4 * i, input_image->pixels + pixel_size * i, pixel_size);
-            memset(input_image->pixels + 4 * i + pixel_size, 0, 4 - pixel_size);
+            memcpy(s->input_image.pixels + 4 * i, s->input_image.pixels + pixel_size * i, pixel_size);
+            memset(s->input_image.pixels + 4 * i + pixel_size, 0, 4 - pixel_size);
         }
-        memset(input_image->pixels + pixel_size, 0, 4 - pixel_size);
-        input_image->pixel_size = 4;
-        // store initial pixel_size in output_image->pixel_size
-        if (verbose)
+        memset(s->input_image.pixels + pixel_size, 0, 4 - pixel_size);
+        s->input_image.pixel_size = 4;
+        // store initial pixel_size in s->output_image.pixel_size
+        if (s->verbose)
             printf("done.\n");
     }
-    else if (input_image->pixel_size != 4) {
+    else if (s->input_image.pixel_size != 4) {
         fprintf(stderr, "Unknown image format!\n");
         *error = CL_INVALID_IMAGE_FORMAT_DESCRIPTOR;
         return res;
     }
 
     // show image format used
-    if (verbose) {
+    if (s->verbose) {
         printf("Format: ");
         if (res.image_channel_order == CL_R)
             printf("CL_R, ");
@@ -241,24 +258,23 @@ cl_image_format set_image_format(cl_sdk_image * const input_image, cl_sdk_image 
 end:    return res;
 }
 
-cl_int finalize_blur(cl_sdk_image * const input_image, cl_sdk_image * const output_image,
-    const char * const filename, const cl_uint step)
+cl_int finalize_blur(state * const s)
 {
     cl_int error = CL_SUCCESS;
 
     // restore image type if needed
-    if (input_image->pixel_size != output_image->pixel_size) {
+    if (s->input_image.pixel_size != s->output_image.pixel_size) {
         const size_t
-            pixels = input_image->width * input_image->height,
-            pixel_size = output_image->pixel_size;
+            pixels = s->input_image.width * s->input_image.height,
+            pixel_size = s->output_image.pixel_size;
         for (size_t i = 1; i < pixels; ++i)
-            memcpy(output_image->pixels + pixel_size * i, output_image->pixels + 4 * i, pixel_size);
+            memcpy(s->output_image.pixels + pixel_size * i, s->output_image.pixels + 4 * i, pixel_size);
     }
 
     char name[1024];
-    sprintf(name, "%u", (unsigned int)step);
-    strncat(name, filename, sizeof(name) - 2);
-    cl_sdk_write_image(name, output_image, &error);
+    sprintf(name, "%u", (unsigned int)s->step);
+    strncat(name, s->filename, sizeof(name) - 2);
+    cl_sdk_write_image(name, &s->output_image, &error);
     if (error == CL_SUCCESS)
         printf("Image %s written.\n\n", name);
 
@@ -284,122 +300,117 @@ cl_int print_timings(struct timespec start, struct timespec end, const cl_event 
     return error;
 }
 
-cl_int single_pass_box_blur(cl_command_queue queue, cl_program program, cl_event * const pass,
-    cl_sdk_image * input_image, cl_mem input_image_buf, cl_sdk_image * output_image, cl_mem output_image_buf,
-    cl_int size, const char * const filename, cl_uint * const step, bool verbose)
+cl_int single_pass_box_blur(state * const s, cl_int size)
 {
     cl_int error = CL_SUCCESS;
     printf("Single-pass blur\n");
-    ++(*step);
+    ++(s->step);
 
-    size_t image_size[3] = { input_image->width, input_image->height, 1 };
+    size_t image_size[3] = { s->input_image.width, s->input_image.height, 1 };
     size_t origin[3] = { 0, 0, 0 };
 
     // compile kernel
     cl_kernel blur;
-    OCLERROR_PAR(blur = clCreateKernel(program, "blur_box", &error), error, end);
+    OCLERROR_PAR(blur = clCreateKernel(s->program, "blur_box", &error), error, end);
 
     // set kernel parameters
-    OCLERROR_RET(clSetKernelArg(blur, 0, sizeof(cl_mem), &input_image_buf), error, blr);
-    OCLERROR_RET(clSetKernelArg(blur, 1, sizeof(cl_mem), &output_image_buf), error, blr);
+    OCLERROR_RET(clSetKernelArg(blur, 0, sizeof(cl_mem), &s->input_image_buf), error, blr);
+    OCLERROR_RET(clSetKernelArg(blur, 1, sizeof(cl_mem), &s->output_image_buf), error, blr);
     OCLERROR_RET(clSetKernelArg(blur, 2, sizeof(cl_int), &size), error, blr);
 
     // blur
-    GET_CURRENT_TIMER(single_start)
-    OCLERROR_RET(clEnqueueNDRangeKernel(queue, blur, 2, origin, image_size, NULL, 0, NULL, pass), error, blr);
-    OCLERROR_RET(clWaitForEvents(1, pass), error, blr);
-    GET_CURRENT_TIMER(single_end)
+    cl_event pass;
+    GET_CURRENT_TIMER(start)
+    OCLERROR_RET(clEnqueueNDRangeKernel(s->queue, blur, 2, origin, image_size, NULL, 0, NULL, &pass), error, blr);
+    OCLERROR_RET(clWaitForEvents(1, &pass), error, blr);
+    GET_CURRENT_TIMER(end)
 
-    OCLERROR_RET(clEnqueueReadImage(queue, output_image_buf, CL_BLOCKING, origin, image_size, 0, 0,
-        output_image->pixels, 0, NULL, NULL), error, blr);
+    OCLERROR_RET(clEnqueueReadImage(s->queue, s->output_image_buf, CL_BLOCKING, origin, image_size, 0, 0,
+        s->output_image.pixels, 0, NULL, NULL), error, blr);
 
-    if (verbose)
-        print_timings(single_start, single_end, pass, 1);
+    if (s->verbose)
+        print_timings(start, end, &pass, 1);
 
     // write output file
-    OCLERROR_RET(finalize_blur(input_image, output_image, filename, *step), error, blr);
+    OCLERROR_RET(finalize_blur(s), error, blr);
 
 blr:    clReleaseKernel(blur);
 end:    return error;
 }
 
-cl_int dual_pass_box_blur(cl_command_queue queue, cl_program program, cl_event * const pass,
-    cl_sdk_image * input_image, cl_mem input_image_buf, cl_sdk_image * output_image, cl_mem output_image_buf,
-    cl_mem temp_image_buf, cl_int size, const char * const filename, cl_uint * const step, bool verbose)
+cl_int dual_pass_box_blur(state * const s, cl_int size)
 {
     cl_int error = CL_SUCCESS, end_error = CL_SUCCESS;
     printf("Dual-pass blur\n");
-    ++(*step);
+    ++(s->step);
 
-    size_t image_size[3] = { input_image->width, input_image->height, 1 };
+    size_t image_size[3] = { s->input_image.width, s->input_image.height, 1 };
     size_t origin[3] = { 0, 0, 0 };
 
     // create kernels
     cl_kernel blur1, blur2;
-    OCLERROR_PAR(blur1 = clCreateKernel(program, "blur_box_horizontal", &error), error, end);
-    OCLERROR_PAR(blur2 = clCreateKernel(program, "blur_box_vertical", &error), error, blr1);
+    OCLERROR_PAR(blur1 = clCreateKernel(s->program, "blur_box_horizontal", &error), error, end);
+    OCLERROR_PAR(blur2 = clCreateKernel(s->program, "blur_box_vertical", &error), error, blr1);
 
     // set kernel parameters
-    OCLERROR_RET(clSetKernelArg(blur1, 0, sizeof(cl_mem), &input_image_buf), error, blr2);
-    OCLERROR_RET(clSetKernelArg(blur1, 1, sizeof(cl_mem), &temp_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur1, 0, sizeof(cl_mem), &s->input_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur1, 1, sizeof(cl_mem), &s->temp_image_buf), error, blr2);
     OCLERROR_RET(clSetKernelArg(blur1, 2, sizeof(cl_int), &size), error, blr2);
 
-    OCLERROR_RET(clSetKernelArg(blur2, 0, sizeof(cl_mem), &temp_image_buf), error, blr2);
-    OCLERROR_RET(clSetKernelArg(blur2, 1, sizeof(cl_mem), &output_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur2, 0, sizeof(cl_mem), &s->temp_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur2, 1, sizeof(cl_mem), &s->output_image_buf), error, blr2);
     OCLERROR_RET(clSetKernelArg(blur2, 2, sizeof(cl_int), &size), error, blr2);
 
     // blur
-    GET_CURRENT_TIMER(dual_start)
-    OCLERROR_RET(clEnqueueNDRangeKernel(queue, blur1, 2, origin, image_size, NULL, 0, NULL, pass + 1), error, blr2);
-    OCLERROR_RET(clEnqueueNDRangeKernel(queue, blur2, 2, origin, image_size, NULL, 0, NULL, pass + 2), error, blr2);
-    OCLERROR_RET(clWaitForEvents(2, pass + 1), error, blr2);
-    GET_CURRENT_TIMER(dual_end)
+    cl_event pass[2];
+    GET_CURRENT_TIMER(start)
+    OCLERROR_RET(clEnqueueNDRangeKernel(s->queue, blur1, 2, origin, image_size, NULL, 0, NULL, pass + 0), error, blr2);
+    OCLERROR_RET(clEnqueueNDRangeKernel(s->queue, blur2, 2, origin, image_size, NULL, 0, NULL, pass + 1), error, blr2);
+    OCLERROR_RET(clWaitForEvents(2, pass), error, blr2);
+    GET_CURRENT_TIMER(end)
 
-    OCLERROR_RET(clEnqueueReadImage(queue, output_image_buf, CL_BLOCKING, origin, image_size, 0, 0,
-        output_image->pixels, 0, NULL, NULL), error, blr2);
+    OCLERROR_RET(clEnqueueReadImage(s->queue, s->output_image_buf, CL_BLOCKING, origin, image_size, 0, 0,
+        s->output_image.pixels, 0, NULL, NULL), error, blr2);
 
-    if (verbose)
-        print_timings(dual_start, dual_end, pass + 1, 2);
+    if (s->verbose)
+        print_timings(start, end, pass, 2);
 
     // write output file
-    OCLERROR_RET(finalize_blur(input_image, output_image, filename, *step), error, blr2);
+    OCLERROR_RET(finalize_blur(s), error, blr2);
 
 blr2:   OCLERROR_RET(clReleaseKernel(blur2), end_error, blr1);
 blr1:   OCLERROR_RET(clReleaseKernel(blur1), end_error, end);
 end:    return error;
 }
 
-cl_int dual_pass_local_memory_exchange_box_blur(cl_command_queue queue, cl_device_id device,
-    cl_program program, cl_event * pass,
-    cl_sdk_image * input_image, cl_mem input_image_buf, cl_sdk_image * output_image, cl_mem output_image_buf,
-    cl_mem temp_image_buf, cl_int size, const char * const filename, cl_uint * step, bool verbose)
+cl_int dual_pass_local_memory_exchange_box_blur(state * const s, cl_int size)
 {
     cl_int error = CL_SUCCESS, end_error = CL_SUCCESS;
     printf("Dual-pass local memory exchange blur\n");
-    ++(*step);
+    ++(s->step);
 
-    size_t image_size[3] = { input_image->width, input_image->height, 1 };
+    size_t image_size[3] = { s->input_image.width, s->input_image.height, 1 };
     size_t origin[3] = { 0, 0, 0 };
 
     // create kernels
     cl_kernel blur1, blur2;
-    OCLERROR_PAR(blur1 = clCreateKernel(program, "blur_box_horizontal_exchange", &error), error, end);
-    OCLERROR_PAR(blur2 = clCreateKernel(program, "blur_box_vertical_exchange", &error), error, blr1);
+    OCLERROR_PAR(blur1 = clCreateKernel(s->program, "blur_box_horizontal_exchange", &error), error, end);
+    OCLERROR_PAR(blur2 = clCreateKernel(s->program, "blur_box_vertical_exchange", &error), error, blr1);
 
     // query maximum supported WGS of kernel on device based on private mem (register) constraints
     size_t wgs1, psm1, wgs2, psm2;
-    OCLERROR_RET(clGetKernelWorkGroupInfo(blur1, device,
+    OCLERROR_RET(clGetKernelWorkGroupInfo(blur1, s->device,
         CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &wgs1, NULL), error, blr2);
-    OCLERROR_RET(clGetKernelWorkGroupInfo(blur1, device,
+    OCLERROR_RET(clGetKernelWorkGroupInfo(blur1, s->device,
         CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(size_t), &psm1, NULL), error, blr2);
-    OCLERROR_RET(clGetKernelWorkGroupInfo(blur2, device,
+    OCLERROR_RET(clGetKernelWorkGroupInfo(blur2, s->device,
         CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &wgs2, NULL), error, blr2);
-    OCLERROR_RET(clGetKernelWorkGroupInfo(blur2, device,
+    OCLERROR_RET(clGetKernelWorkGroupInfo(blur2, s->device,
         CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(size_t), &psm2, NULL), error, blr2);
 
     // Further constrain (reduce) WGS based on shared mem size on device
     cl_ulong loc_mem;
-    OCLERROR_RET(clGetDeviceInfo(device, CL_DEVICE_LOCAL_MEM_SIZE, sizeof(cl_ulong), &loc_mem, NULL), error, blr2);
+    OCLERROR_RET(clGetDeviceInfo(s->device, CL_DEVICE_LOCAL_MEM_SIZE, sizeof(cl_ulong), &loc_mem, NULL), error, blr2);
 
     if (loc_mem >= ((psm1 > psm2 ? psm1 : psm2) + 2 * size) * sizeof(cl_uchar4)) {
         while (loc_mem < (wgs1 + 2 * size) * sizeof(cl_uchar4))
@@ -414,57 +425,55 @@ cl_int dual_pass_local_memory_exchange_box_blur(cl_command_queue queue, cl_devic
     }
 
     // set kernel parameters
-    OCLERROR_RET(clSetKernelArg(blur1, 0, sizeof(cl_mem), &input_image_buf), error, blr2);
-    OCLERROR_RET(clSetKernelArg(blur1, 1, sizeof(cl_mem), &temp_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur1, 0, sizeof(cl_mem), &s->input_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur1, 1, sizeof(cl_mem), &s->temp_image_buf), error, blr2);
     OCLERROR_RET(clSetKernelArg(blur1, 2, sizeof(cl_int), &size), error, blr2);
     OCLERROR_RET(clSetKernelArg(blur1, 3, sizeof(cl_uchar4) * (wgs1 + 2 * size), NULL), error, blr2);
 
-    OCLERROR_RET(clSetKernelArg(blur2, 0, sizeof(cl_mem), &temp_image_buf), error, blr2);
-    OCLERROR_RET(clSetKernelArg(blur2, 1, sizeof(cl_mem), &output_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur2, 0, sizeof(cl_mem), &s->temp_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur2, 1, sizeof(cl_mem), &s->output_image_buf), error, blr2);
     OCLERROR_RET(clSetKernelArg(blur2, 2, sizeof(cl_int), &size), error, blr2);
     OCLERROR_RET(clSetKernelArg(blur2, 3, sizeof(cl_uchar4) * (wgs2 + 2 * size), NULL), error, blr2);
 
     // blur
-    GET_CURRENT_TIMER(dual_start)
-    size_t work_size1[3] = { (input_image->width + wgs1 - 1) / wgs1 * wgs1, input_image->height, 1 };
+    cl_event pass[2];
+    GET_CURRENT_TIMER(start)
+    size_t work_size1[3] = { (s->input_image.width + wgs1 - 1) / wgs1 * wgs1, s->input_image.height, 1 };
     size_t wgsf[3] = { wgs1, 1, 1 };
-    OCLERROR_RET(clEnqueueNDRangeKernel(queue, blur1, 2, origin, work_size1, wgsf, 0, NULL, pass + 1), error, blr2);
-    size_t work_size2[3] = { input_image->width, (input_image->height + wgs2 - 1) / wgs2 * wgs2, 1 };
+    OCLERROR_RET(clEnqueueNDRangeKernel(s->queue, blur1, 2, origin, work_size1, wgsf, 0, NULL, pass + 0), error, blr2);
+    size_t work_size2[3] = { s->input_image.width, (s->input_image.height + wgs2 - 1) / wgs2 * wgs2, 1 };
     size_t wgss[3] = { 1, wgs2, 1 };
-    OCLERROR_RET(clEnqueueNDRangeKernel(queue, blur2, 2, origin, work_size2, wgss, 0, NULL, pass + 2), error, blr2);
-    OCLERROR_RET(clWaitForEvents(2, pass + 1), error, blr2);
-    GET_CURRENT_TIMER(dual_end)
+    OCLERROR_RET(clEnqueueNDRangeKernel(s->queue, blur2, 2, origin, work_size2, wgss, 0, NULL, pass + 1), error, blr2);
+    OCLERROR_RET(clWaitForEvents(2, pass), error, blr2);
+    GET_CURRENT_TIMER(end)
 
-    OCLERROR_RET(clEnqueueReadImage(queue, output_image_buf, CL_BLOCKING, origin, image_size, 0, 0,
-        output_image->pixels, 0, NULL, NULL), error, blr2);
+    OCLERROR_RET(clEnqueueReadImage(s->queue, s->output_image_buf, CL_BLOCKING, origin, image_size, 0, 0,
+        s->output_image.pixels, 0, NULL, NULL), error, blr2);
 
-    if (verbose)
-        print_timings(dual_start, dual_end, pass + 1, 2);
+    if (s->verbose)
+        print_timings(start, end, pass, 2);
 
     // write output file
-    OCLERROR_RET(finalize_blur(input_image, output_image, filename, *step), error, blr2);
+    OCLERROR_RET(finalize_blur(s), error, blr2);
 
 blr2:   OCLERROR_RET(clReleaseKernel(blur2), end_error, blr1);
 blr1:   OCLERROR_RET(clReleaseKernel(blur1), end_error, end);
 end:    return error;
 }
 
-cl_int dual_pass_subgroup_exchange_box_blur(cl_command_queue queue, cl_device_id device, cl_context context,
-    const char * const kernel, size_t program_size, const char * const options, cl_event * const pass,
-    cl_sdk_image * input_image, cl_mem input_image_buf, cl_sdk_image * output_image, cl_mem output_image_buf,
-    cl_mem temp_image_buf, cl_int size, const char * const filename, cl_uint * const step, bool verbose)
+cl_int dual_pass_subgroup_exchange_box_blur(state * const s, cl_int size)
 {
     cl_int error = CL_SUCCESS, end_error = CL_SUCCESS;
-    ++(*step);
+    ++(s->step);
 
-    size_t image_size[3] = { input_image->width, input_image->height, 1 };
+    size_t image_size[3] = { s->input_image.width, s->input_image.height, 1 };
     size_t origin[3] = { 0, 0, 0 };
 
     // build program with options
     cl_program program;
-    OCLERROR_PAR(program = clCreateProgramWithSource(context, 1,
-        (const char **)&kernel, &program_size, &error), error, end);
-    OCLERROR_RET(cl_util_build_program(program, device, options), error, prg);
+    OCLERROR_PAR(program = clCreateProgramWithSource(s->context, 1,
+        (const char **)&s->kernel, &s->program_size, &error), error, end);
+    OCLERROR_RET(cl_util_build_program(program, s->device, s->options), error, prg);
 
     // create kernels
     cl_kernel blur1, blur2;
@@ -472,40 +481,41 @@ cl_int dual_pass_subgroup_exchange_box_blur(cl_command_queue queue, cl_device_id
     OCLERROR_PAR(blur2 = clCreateKernel(program, "blur_box_vertical_subgroup_exchange", &error), error, blr1);
 
     // set kernel parameters
-    OCLERROR_RET(clSetKernelArg(blur1, 0, sizeof(cl_mem), &input_image_buf), error, blr2);
-    OCLERROR_RET(clSetKernelArg(blur1, 1, sizeof(cl_mem), &temp_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur1, 0, sizeof(cl_mem), &s->input_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur1, 1, sizeof(cl_mem), &s->temp_image_buf), error, blr2);
     OCLERROR_RET(clSetKernelArg(blur1, 2, sizeof(cl_int), &size), error, blr2);
 
-    OCLERROR_RET(clSetKernelArg(blur2, 0, sizeof(cl_mem), &temp_image_buf), error, blr2);
-    OCLERROR_RET(clSetKernelArg(blur2, 1, sizeof(cl_mem), &output_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur2, 0, sizeof(cl_mem), &s->temp_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur2, 1, sizeof(cl_mem), &s->output_image_buf), error, blr2);
     OCLERROR_RET(clSetKernelArg(blur2, 2, sizeof(cl_int), &size), error, blr2);
 
     // query preferred subgroup size of kernel on device
     size_t wgs1, wgs2;
-    OCLERROR_RET(clGetKernelWorkGroupInfo(blur1, device,
+    OCLERROR_RET(clGetKernelWorkGroupInfo(blur1, s->device,
         CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(size_t), &wgs1, NULL), error, blr2);
-    OCLERROR_RET(clGetKernelWorkGroupInfo(blur2, device,
+    OCLERROR_RET(clGetKernelWorkGroupInfo(blur2, s->device,
         CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(size_t), &wgs2, NULL), error, blr2);
 
     // blur
+    cl_event pass[2];
     GET_CURRENT_TIMER(start)
-    size_t work_size1[3] = { (input_image->width + wgs1 - 1) / wgs1 * wgs1, input_image->height, 1 };
+    size_t work_size1[3] = { (s->input_image.width + wgs1 - 1) / wgs1 * wgs1, s->input_image.height, 1 };
     size_t wgsf[3] = { wgs1, 1, 1 };
-    OCLERROR_RET(clEnqueueNDRangeKernel(queue, blur1, 2, origin, work_size1, wgsf, 0, NULL, pass + 1), error, blr2);
-    size_t work_size2[3] = { input_image->width, (input_image->height + wgs2 - 1) / wgs2 * wgs2, 1 };
+    OCLERROR_RET(clEnqueueNDRangeKernel(s->queue, blur1, 2, origin, work_size1, wgsf, 0, NULL, pass + 0), error, blr2);
+    size_t work_size2[3] = { s->input_image.width, (s->input_image.height + wgs2 - 1) / wgs2 * wgs2, 1 };
     size_t wgss[3] = { 1, wgs2, 1 };
-    OCLERROR_RET(clEnqueueNDRangeKernel(queue, blur2, 2, origin, work_size2, wgss, 0, NULL, pass + 2), error, blr2);
-    OCLERROR_RET(clWaitForEvents(2, pass + 1), error, blr2);
+    OCLERROR_RET(clEnqueueNDRangeKernel(s->queue, blur2, 2, origin, work_size2, wgss, 0, NULL, pass + 1), error, blr2);
+    OCLERROR_RET(clWaitForEvents(2, pass), error, blr2);
     GET_CURRENT_TIMER(end)
 
-    OCLERROR_RET(clEnqueueReadImage(queue, output_image_buf, CL_BLOCKING, origin, image_size, 0, 0,
-        output_image->pixels, 0, NULL, NULL), error, blr2);
+    OCLERROR_RET(clEnqueueReadImage(s->queue, s->output_image_buf, CL_BLOCKING, origin, image_size, 0, 0,
+        s->output_image.pixels, 0, NULL, NULL), error, blr2);
 
-    if (verbose)
-        print_timings(start, end, pass + 1, 2);
+    if (s->verbose)
+        print_timings(start, end, pass, 2);
 
     // write output file
-    OCLERROR_RET(finalize_blur(input_image, output_image, filename, *step), error, blr2);
+    OCLERROR_RET(finalize_blur(s), error, blr2);
 
     // cleanup for error handling
 blr2:   OCLERROR_RET(clReleaseKernel(blur2), end_error, blr1);
@@ -514,68 +524,143 @@ prg:    OCLERROR_RET(clReleaseProgram(program), end_error, end);;
 end:    return error;
 }
 
-cl_int dual_pass_kernel_blur(cl_command_queue queue, cl_program program, cl_event * const pass,
-    cl_sdk_image * input_image, cl_mem input_image_buf, cl_sdk_image * output_image, cl_mem output_image_buf,
-    cl_mem temp_image_buf, cl_int size, cl_mem kern, const char * const filename, cl_uint * const step, bool verbose)
+cl_int dual_pass_kernel_blur(state * const s, cl_int size, cl_mem kern)
 {
     cl_int error = CL_SUCCESS, end_error = CL_SUCCESS;
-    ++(*step);
+    ++(s->step);
 
-    size_t image_size[3] = { input_image->width, input_image->height, 1 };
+    size_t image_size[3] = { s->input_image.width, s->input_image.height, 1 };
     size_t origin[3] = { 0, 0, 0 };
 
     cl_kernel blur1, blur2;
-    OCLERROR_PAR(blur1 = clCreateKernel(program, "blur_kernel_horizontal", &error), error, end);
-    OCLERROR_PAR(blur2 = clCreateKernel(program, "blur_kernel_vertical", &error), error, blr1);
+    OCLERROR_PAR(blur1 = clCreateKernel(s->program, "blur_kernel_horizontal", &error), error, end);
+    OCLERROR_PAR(blur2 = clCreateKernel(s->program, "blur_kernel_vertical", &error), error, blr1);
 
     // set kernel parameters
-    OCLERROR_RET(clSetKernelArg(blur1, 0, sizeof(cl_mem), &input_image_buf), error, blr2);
-    OCLERROR_RET(clSetKernelArg(blur1, 1, sizeof(cl_mem), &temp_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur1, 0, sizeof(cl_mem), &s->input_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur1, 1, sizeof(cl_mem), &s->temp_image_buf), error, blr2);
     OCLERROR_RET(clSetKernelArg(blur1, 2, sizeof(cl_int), &size), error, blr2);
     OCLERROR_RET(clSetKernelArg(blur1, 3, sizeof(cl_mem), &kern), error, blr2);
 
-    OCLERROR_RET(clSetKernelArg(blur2, 0, sizeof(cl_mem), &temp_image_buf), error, blr2);
-    OCLERROR_RET(clSetKernelArg(blur2, 1, sizeof(cl_mem), &output_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur2, 0, sizeof(cl_mem), &s->temp_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur2, 1, sizeof(cl_mem), &s->output_image_buf), error, blr2);
     OCLERROR_RET(clSetKernelArg(blur2, 2, sizeof(cl_int), &size), error, blr2);
     OCLERROR_RET(clSetKernelArg(blur2, 3, sizeof(cl_mem), &kern), error, blr2);
 
     // blur
+    cl_event pass[2];
     GET_CURRENT_TIMER(start)
-    OCLERROR_RET(clEnqueueNDRangeKernel(queue, blur1, 2, origin, image_size, NULL, 0, NULL, pass + 1), error, blr2);
-    OCLERROR_RET(clEnqueueNDRangeKernel(queue, blur2, 2, origin, image_size, NULL, 0, NULL, pass + 2), error, blr2);
-    OCLERROR_RET(clWaitForEvents(2, pass + 1), error, blr2);
+    OCLERROR_RET(clEnqueueNDRangeKernel(s->queue, blur1, 2, origin, image_size, NULL, 0, NULL, pass + 0), error, blr2);
+    OCLERROR_RET(clEnqueueNDRangeKernel(s->queue, blur2, 2, origin, image_size, NULL, 0, NULL, pass + 1), error, blr2);
+    OCLERROR_RET(clWaitForEvents(2, pass), error, blr2);
     GET_CURRENT_TIMER(end)
 
-    OCLERROR_RET(clEnqueueReadImage(queue, output_image_buf, CL_BLOCKING, origin, image_size, 0, 0,
-        output_image->pixels, 0, NULL, NULL), error, blr2);
+    OCLERROR_RET(clEnqueueReadImage(s->queue, s->output_image_buf, CL_BLOCKING, origin, image_size, 0, 0,
+        s->output_image.pixels, 0, NULL, NULL), error, blr2);
 
-    if (verbose)
-        print_timings(start, end, pass + 1, 2);
+    if (s->verbose)
+        print_timings(start, end, pass, 2);
 
     // write output file
-    OCLERROR_RET(finalize_blur(input_image, output_image, filename, *step), error, blr2);
+    OCLERROR_RET(finalize_blur(s), error, blr2);
 
 blr2:   OCLERROR_RET(clReleaseKernel(blur2), end_error, blr1);
 blr1:   OCLERROR_RET(clReleaseKernel(blur1), end_error, end);
 end:    return error;
 }
 
-cl_int dual_pass_subgroup_exchange_kernel_blur(cl_command_queue queue, cl_device_id device, cl_context context,
-    const char * const kernel, size_t program_size, const char * const options, cl_event * const pass,
-    cl_sdk_image * input_image, cl_mem input_image_buf, cl_sdk_image * output_image, cl_mem output_image_buf,
-    cl_mem temp_image_buf, cl_int size, cl_mem kern, const char * const filename, cl_uint * const step, bool verbose)
+cl_int dual_pass_local_memory_exchange_kernel_blur(state * const s, cl_int size, cl_mem kern)
 {
     cl_int error = CL_SUCCESS, end_error = CL_SUCCESS;
-    ++(*step);
+    ++(s->step);
 
-    size_t image_size[3] = { input_image->width, input_image->height, 1 };
+    size_t image_size[3] = { s->input_image.width, s->input_image.height, 1 };
+    size_t origin[3] = { 0, 0, 0 };
+
+    // create kernels
+    cl_kernel blur1, blur2;
+    OCLERROR_PAR(blur1 = clCreateKernel(s->program, "blur_kernel_horizontal_exchange", &error), error, end);
+    OCLERROR_PAR(blur2 = clCreateKernel(s->program, "blur_kernel_vertical_exchange", &error), error, blr1);
+
+    // query maximum supported WGS of kernel on device based on private mem (register) constraints
+    size_t wgs1, psm1, wgs2, psm2;
+    OCLERROR_RET(clGetKernelWorkGroupInfo(blur1, s->device,
+        CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &wgs1, NULL), error, blr2);
+    OCLERROR_RET(clGetKernelWorkGroupInfo(blur1, s->device,
+        CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(size_t), &psm1, NULL), error, blr2);
+    OCLERROR_RET(clGetKernelWorkGroupInfo(blur2, s->device,
+        CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &wgs2, NULL), error, blr2);
+    OCLERROR_RET(clGetKernelWorkGroupInfo(blur2, s->device,
+        CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(size_t), &psm2, NULL), error, blr2);
+
+    // Further constrain (reduce) WGS based on shared mem size on device
+    cl_ulong loc_mem;
+    OCLERROR_RET(clGetDeviceInfo(s->device, CL_DEVICE_LOCAL_MEM_SIZE, sizeof(cl_ulong), &loc_mem, NULL), error, blr2);
+
+    if (loc_mem >= ((psm1 > psm2 ? psm1 : psm2) + 2 * size) * sizeof(cl_uchar4)) {
+        while (loc_mem < (wgs1 + 2 * size) * sizeof(cl_uchar4))
+            wgs1 -= psm1;
+        while (loc_mem < (wgs2 + 2 * size) * sizeof(cl_uchar4))
+            wgs2 -= psm2;
+    }
+    else {
+        printf("Not enough local memory to serve a single sub-group.\n");
+        error = CL_OUT_OF_RESOURCES;
+        goto blr2;
+    }
+
+    // set kernel parameters
+    OCLERROR_RET(clSetKernelArg(blur1, 0, sizeof(cl_mem), &s->input_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur1, 1, sizeof(cl_mem), &s->temp_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur1, 2, sizeof(cl_int), &size), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur1, 3, sizeof(cl_mem), &kern), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur1, 4, sizeof(cl_uchar4) * (wgs1 + 2 * size), NULL), error, blr2);
+
+    OCLERROR_RET(clSetKernelArg(blur2, 0, sizeof(cl_mem), &s->temp_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur2, 1, sizeof(cl_mem), &s->output_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur2, 2, sizeof(cl_int), &size), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur2, 3, sizeof(cl_mem), &kern), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur2, 4, sizeof(cl_uchar4) * (wgs2 + 2 * size), NULL), error, blr2);
+
+    // blur
+    cl_event pass[2];
+    GET_CURRENT_TIMER(start)
+    size_t work_size1[3] = { (s->input_image.width + wgs1 - 1) / wgs1 * wgs1, s->input_image.height, 1 };
+    size_t wgsf[3] = { wgs1, 1, 1 };
+    OCLERROR_RET(clEnqueueNDRangeKernel(s->queue, blur1, 2, origin, work_size1, wgsf, 0, NULL, pass + 0), error, blr2);
+    size_t work_size2[3] = { s->input_image.width, (s->input_image.height + wgs2 - 1) / wgs2 * wgs2, 1 };
+    size_t wgss[3] = { 1, wgs2, 1 };
+    OCLERROR_RET(clEnqueueNDRangeKernel(s->queue, blur2, 2, origin, work_size2, wgss, 0, NULL, pass + 1), error, blr2);
+    OCLERROR_RET(clWaitForEvents(2, pass), error, blr2);
+    GET_CURRENT_TIMER(end)
+
+    OCLERROR_RET(clEnqueueReadImage(s->queue, s->output_image_buf, CL_BLOCKING, origin, image_size, 0, 0,
+        s->output_image.pixels, 0, NULL, NULL), error, blr2);
+
+    if (s->verbose)
+        print_timings(start, end, pass, 2);
+
+    // write output file
+    OCLERROR_RET(finalize_blur(s), error, blr2);
+
+blr2:   OCLERROR_RET(clReleaseKernel(blur2), end_error, blr1);
+blr1:   OCLERROR_RET(clReleaseKernel(blur1), end_error, end);
+end:    return error;
+}
+
+cl_int dual_pass_subgroup_exchange_kernel_blur(state * const s, cl_int size, cl_mem kern)
+{
+    cl_int error = CL_SUCCESS, end_error = CL_SUCCESS;
+    ++(s->step);
+
+    size_t image_size[3] = { s->input_image.width, s->input_image.height, 1 };
     size_t origin[3] = { 0, 0, 0 };
 
     // build program with options
     cl_program program;
-    OCLERROR_PAR(program = clCreateProgramWithSource(context, 1,
-        (const char **)&kernel, &program_size, &error), error, end);
-    OCLERROR_RET(cl_util_build_program(program, device, options), error, prg);
+    OCLERROR_PAR(program = clCreateProgramWithSource(s->context, 1,
+        (const char **)&s->kernel, &s->program_size, &error), error, end);
+    OCLERROR_RET(cl_util_build_program(program, s->device, s->options), error, prg);
 
     // create kernels
     cl_kernel blur1, blur2;
@@ -583,42 +668,43 @@ cl_int dual_pass_subgroup_exchange_kernel_blur(cl_command_queue queue, cl_device
     OCLERROR_PAR(blur2 = clCreateKernel(program, "blur_kernel_vertical_subgroup_exchange", &error), error, blr1);
 
     // set kernel parameters
-    OCLERROR_RET(clSetKernelArg(blur1, 0, sizeof(cl_mem), &input_image_buf), error, blr2);
-    OCLERROR_RET(clSetKernelArg(blur1, 1, sizeof(cl_mem), &temp_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur1, 0, sizeof(cl_mem), &s->input_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur1, 1, sizeof(cl_mem), &s->temp_image_buf), error, blr2);
     OCLERROR_RET(clSetKernelArg(blur1, 2, sizeof(cl_int), &size), error, blr2);
     OCLERROR_RET(clSetKernelArg(blur1, 3, sizeof(cl_mem), &kern), error, blr2);
 
-    OCLERROR_RET(clSetKernelArg(blur2, 0, sizeof(cl_mem), &temp_image_buf), error, blr2);
-    OCLERROR_RET(clSetKernelArg(blur2, 1, sizeof(cl_mem), &output_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur2, 0, sizeof(cl_mem), &s->temp_image_buf), error, blr2);
+    OCLERROR_RET(clSetKernelArg(blur2, 1, sizeof(cl_mem), &s->output_image_buf), error, blr2);
     OCLERROR_RET(clSetKernelArg(blur2, 2, sizeof(cl_int), &size), error, blr2);
     OCLERROR_RET(clSetKernelArg(blur2, 3, sizeof(cl_mem), &kern), error, blr2);
 
     // query preferred subgroup size of kernel on device
     size_t wgs1, wgs2;
-    OCLERROR_RET(clGetKernelWorkGroupInfo(blur1, device,
+    OCLERROR_RET(clGetKernelWorkGroupInfo(blur1, s->device,
         CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(size_t), &wgs1, NULL), error, blr2);
-    OCLERROR_RET(clGetKernelWorkGroupInfo(blur2, device,
+    OCLERROR_RET(clGetKernelWorkGroupInfo(blur2, s->device,
         CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(size_t), &wgs2, NULL), error, blr2);
 
     // blur
+    cl_event pass[2];
     GET_CURRENT_TIMER(start)
-    size_t work_size1[3] = { (input_image->width + wgs1 - 1) / wgs1 * wgs1, input_image->height, 1 };
+    size_t work_size1[3] = { (s->input_image.width + wgs1 - 1) / wgs1 * wgs1, s->input_image.height, 1 };
     size_t wgsf[3] = { wgs1, 1, 1 };
-    OCLERROR_RET(clEnqueueNDRangeKernel(queue, blur1, 2, origin, work_size1, wgsf, 0, NULL, pass + 1), error, blr2);
-    size_t work_size2[3] = { input_image->width, (input_image->height + wgs2 - 1) / wgs2 * wgs2, 1 };
+    OCLERROR_RET(clEnqueueNDRangeKernel(s->queue, blur1, 2, origin, work_size1, wgsf, 0, NULL, pass + 0), error, blr2);
+    size_t work_size2[3] = { s->input_image.width, (s->input_image.height + wgs2 - 1) / wgs2 * wgs2, 1 };
     size_t wgss[3] = { 1, wgs2, 1 };
-    OCLERROR_RET(clEnqueueNDRangeKernel(queue, blur2, 2, origin, work_size2, wgss, 0, NULL, pass + 2), error, blr2);
-    OCLERROR_RET(clWaitForEvents(2, pass + 1), error, blr2);
+    OCLERROR_RET(clEnqueueNDRangeKernel(s->queue, blur2, 2, origin, work_size2, wgss, 0, NULL, pass + 1), error, blr2);
+    OCLERROR_RET(clWaitForEvents(2, pass), error, blr2);
     GET_CURRENT_TIMER(end)
 
-    OCLERROR_RET(clEnqueueReadImage(queue, output_image_buf, CL_BLOCKING, origin, image_size, 0, 0,
-        output_image->pixels, 0, NULL, NULL), error, blr2);
+    OCLERROR_RET(clEnqueueReadImage(s->queue, s->output_image_buf, CL_BLOCKING, origin, image_size, 0, 0,
+        s->output_image.pixels, 0, NULL, NULL), error, blr2);
 
-    if (verbose)
-        print_timings(start, end, pass + 1, 2);
+    if (s->verbose)
+        print_timings(start, end, pass, 2);
 
     // write output file
-    OCLERROR_RET(finalize_blur(input_image, output_image, filename, *step), error, blr2);
+    OCLERROR_RET(finalize_blur(s), error, blr2);
 
     // cleanup for error handling
 blr2:   OCLERROR_RET(clReleaseKernel(blur2), end_error, blr1);
@@ -628,16 +714,12 @@ end:    return error;
 }
 
 
-int main(int argc, char* argv[])
+int main(int argc, char * argv[])
 {
     cl_int error = CL_SUCCESS,
         end_error = CL_SUCCESS;
+    state s;
     cl_platform_id platform;
-    cl_device_id device;
-    cl_context context;
-    cl_command_queue queue;
-    cl_event pass[3]; // events to measure execution time
-    cl_uint im = 0;
 
     /// Parse command-line options
     struct cl_sdk_options_Diagnostic diag_opts = { .quiet = false, .verbose = false };
@@ -650,35 +732,37 @@ int main(int argc, char* argv[])
         fprintf(stderr, "No input image name!\n");
         goto end;
     }
+    s.verbose = diag_opts.verbose;
+    s.filename = blur_opts.out;
+    s.step = 0;
 
     /// Create runtime objects based on user preference or default
-    OCLERROR_PAR(device = cl_util_get_device(dev_opts.triplet.plat_index,
+    OCLERROR_PAR(s.device = cl_util_get_device(dev_opts.triplet.plat_index,
         dev_opts.triplet.dev_index, dev_opts.triplet.dev_type, &error), error, end);
-    OCLERROR_PAR(context = clCreateContext(NULL, 1, &device, NULL, NULL, &error), error, end);
-    OCLERROR_RET(clGetDeviceInfo(device, CL_DEVICE_PLATFORM, sizeof(cl_platform_id), &platform, NULL), error, cont);
+    OCLERROR_PAR(s.context = clCreateContext(NULL, 1, &s.device, NULL, NULL, &error), error, end);
+    OCLERROR_RET(clGetDeviceInfo(s.device, CL_DEVICE_PLATFORM, sizeof(cl_platform_id), &platform, NULL), error, cont);
 #if CL_HPP_TARGET_OPENCL_VERSION >= 200
     cl_command_queue_properties props[] = {CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE, 0};
-    OCLERROR_PAR(queue = clCreateCommandQueueWithProperties(context, device, props, &error), error, cont);
+    OCLERROR_PAR(s.queue = clCreateCommandQueueWithProperties(s.context, s.device, props, &error), error, cont);
 #else
-    OCLERROR_PAR(queue = clCreateCommandQueue(context, device, CL_QUEUE_PROFILING_ENABLE, &error), error, cont);
+    OCLERROR_PAR(s.queue = clCreateCommandQueue(s.context, s.device, CL_QUEUE_PROFILING_ENABLE, &error), error, cont);
 #endif
 
     if (!diag_opts.quiet)
-        cl_util_print_device_info(device);
+        cl_util_print_device_info(s.device);
 
     /// Read input image and prepare output image
-    cl_sdk_image input_image = { .width = 0, .height = 0, .pixel_size = 0, .pixels = NULL };
-    OCLERROR_PAR(input_image = cl_sdk_read_image(blur_opts.in, &error), error, que);
+    OCLERROR_PAR(s.input_image = cl_sdk_read_image(blur_opts.in, &error), error, que);
 
-    cl_sdk_image output_image = { .width = input_image.width, .height = input_image.height,
-        .pixel_size = input_image.pixel_size, .pixels = NULL };
-    MEM_CHECK(output_image.pixels = (unsigned char *)malloc(sizeof(unsigned char) *
-        output_image.width * output_image.height * output_image.pixel_size), error, inim);
+    s.output_image = s.input_image;
+    s.output_image.pixels = NULL;
+    MEM_CHECK(s.output_image.pixels = (unsigned char *)malloc(sizeof(unsigned char) *
+        s.output_image.width * s.output_image.height * s.output_image.pixel_size), error, inim);
 
     /// Query device and runtime capabilities
     // 1) query image support
     cl_bool image_support = false;
-    OCLERROR_RET(clGetDeviceInfo(device, CL_DEVICE_IMAGE_SUPPORT, sizeof(cl_bool), &image_support, NULL), error, outim);
+    OCLERROR_RET(clGetDeviceInfo(s.device, CL_DEVICE_IMAGE_SUPPORT, sizeof(cl_bool), &image_support, NULL), error, outim);
     if (!image_support) {
         fprintf(stderr, "No image support on device!\n");
         error = CL_INVALID_DEVICE;
@@ -687,12 +771,12 @@ int main(int argc, char* argv[])
 
     // 2) query if the image format is supported and change image if not
     cl_image_format format;
-    OCLERROR_PAR(format = set_image_format(&input_image, &output_image, context, diag_opts.verbose, &error), error, outim);
+    OCLERROR_PAR(format = set_image_format(&s, &error), error, outim);
 
     // 3) query if device have local memory and its size
     bool use_local_mem = false;
     cl_device_local_mem_type mt;
-    OCLERROR_RET(clGetDeviceInfo(device,
+    OCLERROR_RET(clGetDeviceInfo(s.device,
         CL_DEVICE_LOCAL_MEM_TYPE, sizeof(cl_device_local_mem_type), &mt, NULL), error, outim);
     if (mt == CL_LOCAL)
         use_local_mem = true;
@@ -701,7 +785,7 @@ int main(int argc, char* argv[])
     bool use_subgroup_exchange = false, use_subgroup_exchange_relative = false;
     {
         char * name = NULL, * tmp1 = NULL, * tmp2 = NULL;
-        OCLERROR_PAR(name = cl_util_get_device_info(device, CL_DEVICE_EXTENSIONS, &error), error, nam);
+        OCLERROR_PAR(name = cl_util_get_device_info(s.device, CL_DEVICE_EXTENSIONS, &error), error, nam);
         tmp1 = strstr(name, "cl_khr_subgroup_shuffle_relative");
         if (tmp1)
             use_subgroup_exchange_relative = true;
@@ -715,60 +799,53 @@ nam:    free(name);
     }
 
     /// Create image buffers
-    cl_mem input_image_buf, output_image_buf, temp_image_buf;
     const cl_image_desc desc = {
         .image_type      = CL_MEM_OBJECT_IMAGE2D,
-        .image_width     = input_image.width,
-        .image_height    = input_image.height,
+        .image_width     = s.input_image.width,
+        .image_height    = s.input_image.height,
         .image_row_pitch = 0,
         .num_mip_levels  = 0,
         .num_samples     = 0,
         .mem_object      = NULL
     };
-    OCLERROR_PAR(input_image_buf = clCreateImage(context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY,
+    OCLERROR_PAR(s.input_image_buf = clCreateImage(s.context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY,
         &format, &desc, NULL, &error), error, outim);
-    OCLERROR_PAR(output_image_buf = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY,
+    OCLERROR_PAR(s.output_image_buf = clCreateImage(s.context, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY,
         &format, &desc, NULL, &error), error, inbuf);
-    OCLERROR_PAR(temp_image_buf = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY,
+    OCLERROR_PAR(s.temp_image_buf = clCreateImage(s.context, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY,
         &format, &desc, NULL, &error), error, outbuf);
 
-    size_t image_size[3] = { input_image.width, input_image.height, 1 };
+    size_t image_size[3] = { s.input_image.width, s.input_image.height, 1 };
     size_t origin[3] = { 0, 0, 0 };
 
-    OCLERROR_RET(clEnqueueWriteImage(queue, input_image_buf, CL_NON_BLOCKING, origin, image_size, 0, 0,
-        input_image.pixels, 0, NULL, NULL), error, tmpbuf);
+    OCLERROR_RET(clEnqueueWriteImage(s.queue, s.input_image_buf, CL_NON_BLOCKING, origin, image_size, 0, 0,
+        s.input_image.pixels, 0, NULL, NULL), error, tmpbuf);
 
     /// Create OpenCL program
     const char * kernel_location = "./blur.cl";
-    char * kernel = NULL, * tmp = NULL;
-    size_t program_size = 0;
-    cl_program program = NULL;
+    s.kernel = NULL;
+    s.program_size = 0;
     char kernel_op[1024] = ""; // here we put some dynamic definitions
+    s.options = kernel_op;
 
-    OCLERROR_PAR(kernel = cl_util_read_text_file(kernel_location, &program_size, &error), error, tmpbuf);
+    OCLERROR_PAR(s.kernel = cl_util_read_text_file(kernel_location, &s.program_size, &error), error, tmpbuf);
 
-    OCLERROR_PAR(program = clCreateProgramWithSource(context, 1,
-        (const char **)&kernel, &program_size, &error), error, ker);
-    OCLERROR_RET(cl_util_build_program(program, device, kernel_op), error, prg);
+    OCLERROR_PAR(s.program = clCreateProgramWithSource(s.context, 1,
+        (const char **)&s.kernel, &s.program_size, &error), error, ker);
+    OCLERROR_RET(cl_util_build_program(s.program, s.device, kernel_op), error, prg);
     kernel_op[0] = '\0';
 
     /// Box blur
     if (strstr(blur_opts.op, "box")) {
         /// Single-pass blur
-        OCLERROR_RET(single_pass_box_blur(queue, program, pass,
-            &input_image, input_image_buf, &output_image, output_image_buf,
-            (cl_int)blur_opts.size, blur_opts.out, &im, diag_opts.verbose), error, prg);
+        OCLERROR_RET(single_pass_box_blur(&s, (cl_int)blur_opts.size), error, prg);
 
         /// Dual-pass blur
-        OCLERROR_RET(dual_pass_box_blur(queue, program, pass,
-            &input_image, input_image_buf, &output_image, output_image_buf, temp_image_buf,
-            (cl_int)blur_opts.size, blur_opts.out, &im, diag_opts.verbose), error, prg);
+        OCLERROR_RET(dual_pass_box_blur(&s, (cl_int)blur_opts.size), error, prg);
 
         /// Use local memory exchange in dual-pass blur
         if (use_local_mem)
-            OCLERROR_RET(dual_pass_local_memory_exchange_box_blur(queue, device, program, pass,
-                &input_image, input_image_buf, &output_image, output_image_buf, temp_image_buf,
-                (cl_int)blur_opts.size, blur_opts.out, &im, diag_opts.verbose), error, prg);
+            OCLERROR_RET(dual_pass_local_memory_exchange_box_blur(&s, (cl_int)blur_opts.size), error, prg);
 
         /// Subgroup exchange in dual-pass blur
         if (use_subgroup_exchange_relative) {
@@ -777,10 +854,7 @@ nam:    free(name);
             kernel_op[0] = '\0';
             strcat(kernel_op, "-D USE_SUBGROUP_EXCHANGE_RELATIVE ");
 
-            OCLERROR_RET(dual_pass_subgroup_exchange_box_blur(
-                queue, device, context, kernel, program_size, kernel_op, pass,
-                &input_image, input_image_buf, &output_image, output_image_buf, temp_image_buf,
-                (cl_int)blur_opts.size, blur_opts.out, &im, diag_opts.verbose), error, prg);
+            OCLERROR_RET(dual_pass_subgroup_exchange_box_blur(&s, (cl_int)blur_opts.size), error, prg);
         }
         if (use_subgroup_exchange) {
             printf("Dual-pass subgroup exchange blur\n");
@@ -788,10 +862,7 @@ nam:    free(name);
             kernel_op[0] = '\0';
             strcat(kernel_op, "-D USE_SUBGROUP_EXCHANGE ");
 
-            OCLERROR_RET(dual_pass_subgroup_exchange_box_blur(
-                queue, device, context, kernel, program_size, kernel_op, pass,
-                &input_image, input_image_buf, &output_image, output_image_buf, temp_image_buf,
-                (cl_int)blur_opts.size, blur_opts.out, &im, diag_opts.verbose), error, prg);
+            OCLERROR_RET(dual_pass_subgroup_exchange_box_blur(&s, (cl_int)blur_opts.size), error, prg);
         }
     } // Box blur
 
@@ -802,14 +873,18 @@ nam:    free(name);
         int gauss_size = 0;
         OCLERROR_RET(create_gaussian_kernel(blur_opts.size, &gauss, &gauss_size), error, gau);
         cl_mem gauss_kern;
-        OCLERROR_PAR(gauss_kern = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+        OCLERROR_PAR(gauss_kern = clCreateBuffer(s.context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
             sizeof(float) * (2 * gauss_size + 1), gauss, &error), error, gau);
 
         /// Dual-pass Gaussian blur
         printf("Dual-pass Gaussian blur\n");
-        OCLERROR_RET(dual_pass_kernel_blur(queue, program, pass,
-            &input_image, input_image_buf, &output_image, output_image_buf, temp_image_buf,
-            gauss_size, gauss_kern, blur_opts.out, &im, diag_opts.verbose), error, gkrn);
+        OCLERROR_RET(dual_pass_kernel_blur(&s, gauss_size, gauss_kern), error, gkrn);
+
+        /// Local memory exchange Gaussian blur
+        if (use_local_mem) {
+            printf("Dual-pass local memory exchange Gaussian blur\n");
+            OCLERROR_RET(dual_pass_local_memory_exchange_kernel_blur(&s, gauss_size, gauss_kern), error, gkrn);
+        }
 
         /// Subgroup exchange in dual-pass Gaussian blur
         if (use_subgroup_exchange_relative) {
@@ -818,10 +893,7 @@ nam:    free(name);
             kernel_op[0] = '\0';
             strcat(kernel_op, "-D USE_SUBGROUP_EXCHANGE_RELATIVE ");
 
-            OCLERROR_RET(dual_pass_subgroup_exchange_kernel_blur(
-                queue, device, context, kernel, program_size, kernel_op, pass,
-                &input_image, input_image_buf, &output_image, output_image_buf, temp_image_buf,
-                gauss_size, gauss_kern, blur_opts.out, &im, diag_opts.verbose), error, gkrn);
+            OCLERROR_RET(dual_pass_subgroup_exchange_kernel_blur(&s, gauss_size, gauss_kern), error, gkrn);
         }
         if (use_subgroup_exchange) {
             printf("Dual-pass subgroup exchange Gaussian blur\n");
@@ -829,10 +901,7 @@ nam:    free(name);
             kernel_op[0] = '\0';
             strcat(kernel_op, "-D USE_SUBGROUP_EXCHANGE ");
 
-            OCLERROR_RET(dual_pass_subgroup_exchange_kernel_blur(
-                queue, device, context, kernel, program_size, kernel_op, pass,
-                &input_image, input_image_buf, &output_image, output_image_buf, temp_image_buf,
-                gauss_size, gauss_kern, blur_opts.out, &im, diag_opts.verbose), error, gkrn);
+            OCLERROR_RET(dual_pass_subgroup_exchange_kernel_blur(&s, gauss_size, gauss_kern), error, gkrn);
         }
 
 gkrn:   OCLERROR_RET(clReleaseMemObject(gauss_kern), end_error, gau);
@@ -840,15 +909,15 @@ gau:    free(gauss);
     } // Gaussian blur
 
     /// Cleanup
-prg:    OCLERROR_RET(clReleaseProgram(program), end_error, ker);
-ker:    free(kernel);
-tmpbuf: OCLERROR_RET(clReleaseMemObject(temp_image_buf), end_error, outbuf);
-outbuf: OCLERROR_RET(clReleaseMemObject(output_image_buf), end_error, inbuf);
-inbuf:  OCLERROR_RET(clReleaseMemObject(input_image_buf), end_error, outim);
-outim:  free(output_image.pixels);
-inim:   free(input_image.pixels);
-que:    OCLERROR_RET(clReleaseCommandQueue(queue), end_error, cont);
-cont:   OCLERROR_RET(clReleaseContext(context), end_error, end);
+prg:    OCLERROR_RET(clReleaseProgram(s.program), end_error, ker);
+ker:    free(s.kernel);
+tmpbuf: OCLERROR_RET(clReleaseMemObject(s.temp_image_buf), end_error, outbuf);
+outbuf: OCLERROR_RET(clReleaseMemObject(s.output_image_buf), end_error, inbuf);
+inbuf:  OCLERROR_RET(clReleaseMemObject(s.input_image_buf), end_error, outim);
+outim:  free(s.output_image.pixels);
+inim:   free(s.input_image.pixels);
+que:    OCLERROR_RET(clReleaseCommandQueue(s.queue), end_error, cont);
+cont:   OCLERROR_RET(clReleaseContext(s.context), end_error, end);
 end:    if (error != CL_SUCCESS) cl_util_print_error(error);
     return error;
 }
