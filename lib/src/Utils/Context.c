@@ -7,7 +7,7 @@
 #include <stdio.h>      // printf
 
 UTILS_EXPORT
-cl_context cl_util_get_context(int plat_id, int dev_id, cl_device_type type, cl_int * error)
+cl_context cl_util_get_context(cl_uint plat_id, cl_uint dev_id, cl_device_type type, cl_int * error)
 {
     cl_context result = NULL;
     cl_platform_id * platforms;
@@ -19,7 +19,7 @@ cl_context cl_util_get_context(int plat_id, int dev_id, cl_device_type type, cl_
     MEM_CHECK(platforms = (cl_platform_id *)malloc(sizeof(cl_platform_id) * num_platforms), *error, end);
     OCLERROR_RET(clGetPlatformIDs(num_platforms, platforms, NULL), *error, plat);
 
-    if (plat_id < 0 || plat_id >= num_platforms) {
+    if (plat_id >= num_platforms) {
         *error = CL_UTIL_INDEX_OUT_OF_RANGE; // "Invalid platform index provided for cl_util_get_context()"
         goto plat;
     }
@@ -28,7 +28,7 @@ cl_context cl_util_get_context(int plat_id, int dev_id, cl_device_type type, cl_
     MEM_CHECK(devices = (cl_device_id *)malloc(sizeof(cl_device_id) * num_devices), *error, plat);
     OCLERROR_RET(clGetDeviceIDs(platforms[plat_id], type, num_devices, devices, NULL), *error, dev);
 
-    if (dev_id < 0 || dev_id >= num_devices) {
+    if (dev_id >= num_devices) {
         *error = CL_UTIL_INDEX_OUT_OF_RANGE; // "Invalid device index provided for cl_util_get_context()"
         goto dev;
     }
@@ -41,7 +41,7 @@ end:    return result;
 }
 
 UTILS_EXPORT
-cl_device_id cl_util_get_device(int plat_id, int dev_id, cl_device_type type, cl_int * error)
+cl_device_id cl_util_get_device(cl_uint plat_id, cl_uint dev_id, cl_device_type type, cl_int * error)
 {
     cl_device_id result = NULL;
     cl_platform_id * platforms;
@@ -53,7 +53,7 @@ cl_device_id cl_util_get_device(int plat_id, int dev_id, cl_device_type type, cl
     MEM_CHECK(platforms = (cl_platform_id *)malloc(sizeof(cl_platform_id) * num_platforms), *error, end);
     OCLERROR_RET(clGetPlatformIDs(num_platforms, platforms, NULL), *error, plat);
 
-    if (plat_id < 0 || plat_id >= num_platforms) {
+    if (plat_id >= num_platforms) {
         *error = CL_UTIL_INDEX_OUT_OF_RANGE; // "Invalid platform index provided for cl_util_get_context()"
         goto plat;
     }
@@ -62,7 +62,7 @@ cl_device_id cl_util_get_device(int plat_id, int dev_id, cl_device_type type, cl
     MEM_CHECK(devices = (cl_device_id *)malloc(sizeof(cl_device_id) * num_devices), *error, plat);
     OCLERROR_RET(clGetDeviceIDs(platforms[plat_id], type, num_devices, devices, NULL), *error, dev);
 
-    if (dev_id < 0 || dev_id >= num_devices) {
+    if (dev_id >= num_devices) {
         *error = CL_UTIL_INDEX_OUT_OF_RANGE; // "Invalid device index provided for cl_util_get_context()"
         goto dev;
     }

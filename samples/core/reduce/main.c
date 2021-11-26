@@ -341,12 +341,14 @@ int main(int argc, char* argv[])
     OCLERROR_PAR(back = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(cl_int) * new_size(length, factor), NULL, &error), error, buff);
 
     // Launch kernels
-    if (diag_opts.verbose)
-        { printf("Executing on device... "); fflush(stdout); }
+    if (diag_opts.verbose) {
+        printf("Executing on device... ");
+        fflush(stdout);
+    }
 
-    cl_ulong curr = length, steps = 0;
-    while ( curr > 1 )
-    {
+    cl_ulong curr = length;
+    cl_uint steps = 0;
+    while (curr > 1) {
         curr = new_size(curr, factor);
         ++steps;
     }
@@ -359,8 +361,7 @@ int main(int argc, char* argv[])
     GET_CURRENT_TIMER(dev_start)
     curr = length;
     pass = passes;
-    while ( curr > 1 )
-    {
+    while (curr > 1) {
         OCLERROR_RET(clSetKernelArg(reduce, 0, sizeof(cl_mem), &front), error, pas);
         OCLERROR_RET(clSetKernelArg(reduce, 1, sizeof(cl_mem), &back), error, pas);
         OCLERROR_RET(clSetKernelArg(reduce, 3, sizeof(cl_ulong), &curr), error, pas);
@@ -402,8 +403,7 @@ int main(int argc, char* argv[])
     else
         printf("Validation passed!\n\n");
 
-    if (!diag_opts.quiet)
-    {
+    if (!diag_opts.quiet) {
         printf("Total device execution as seen by host: %llu us.\n", (unsigned long long)(dev_time + 500) / 1000);
         printf("Reduction steps as measured by device :\n");
         for (size_t i = 0; i < steps; ++i)

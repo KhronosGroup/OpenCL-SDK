@@ -10,9 +10,9 @@
 #include <time.h>
 
 UTILS_EXPORT
-cl_context cl_util_get_context(int plat_id, int dev_id, cl_device_type type, cl_int* error);
+cl_context cl_util_get_context(cl_uint plat_id, cl_uint dev_id, cl_device_type type, cl_int* error);
 UTILS_EXPORT
-cl_device_id cl_util_get_device(int plat_id, int dev_id, cl_device_type type, cl_int * error);
+cl_device_id cl_util_get_device(cl_uint plat_id, cl_uint dev_id, cl_device_type type, cl_int * error);
 
 UTILS_EXPORT
 void cl_util_print_device_info(cl_device_id device);

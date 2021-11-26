@@ -44,14 +44,13 @@ foreach(UTIL_LIB_NAME IN ITEMS Utils UtilsCpp)
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
       $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
-  )
+    )
   target_link_libraries(${UTIL_LIB_TARGET}
     PUBLIC
       ${UTIL_LIB_DEPS}
       OpenCL::OpenCL
     PRIVATE
       cargs
-      stb
   )
   target_compile_definitions(${UTIL_LIB_TARGET}
     PRIVATE
@@ -158,6 +157,8 @@ foreach(SDK_LIB_NAME IN ITEMS SDK SDKCpp)
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
       $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+    PRIVATE
+      ${Stb_INCLUDE_DIR}
   )
   target_link_libraries(${SDK_LIB_TARGET}
     PUBLIC
@@ -165,7 +166,6 @@ foreach(SDK_LIB_NAME IN ITEMS SDK SDKCpp)
       OpenCL::OpenCL
     PRIVATE
       cargs
-      stb
   )
   target_compile_definitions(${SDK_LIB_TARGET}
     PRIVATE

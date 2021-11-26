@@ -12,3 +12,23 @@
 // based on https://stackoverflow.com/questions/14002954/ by Nominal Animal
 UTILS_EXPORT
 char * cl_util_read_text_file(const char * filename, size_t * length, cl_int * error);
+
+// read all the binary file contents securely in ANSI C89
+// return pointer to file contents
+// can handle streams with no known size and no support for fseek
+// based on https://stackoverflow.com/questions/14002954/ by Nominal Animal
+UTILS_EXPORT
+unsigned char * cl_util_read_binary_file(const char * filename, size_t * length, cl_int * error);
+
+// write binaries of OpenCL compiled program
+// binaries are written as separate files for each device
+// with file name "(program_file_name)_(name of device).bin"
+// based on variant of Logan http://logan.tw/posts/2014/11/22/pre-compile-the-opencl-kernel-program-part-2/
+UTILS_EXPORT
+cl_int cl_util_write_binaries(cl_program const program, const char * const program_file_name);
+
+// read binaries of OpenCL compiled program
+// from files of file names "(program_file_name)_(name of device).bin"
+UTILS_EXPORT
+cl_program cl_util_read_binaries(cl_context context, cl_device_id * devices, const cl_uint num_devices,
+    const char * const program_file_name, cl_int * error);

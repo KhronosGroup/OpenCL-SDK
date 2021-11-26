@@ -52,8 +52,8 @@ public:
         int width,
         int height,
         bool fullscreen,
-        int platform_id = 0,
-        int device_id = 0,
+        cl_uint platform_id = 0,
+        cl_uint device_id = 0,
         cl_bitfield device_type = CL_DEVICE_TYPE_DEFAULT
     ) : InteropWindow{
             sf::VideoMode(width,height),

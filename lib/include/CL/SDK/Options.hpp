@@ -11,8 +11,8 @@ namespace options
 {
     struct DeviceTriplet
     {
-        int plat_index;
-        int dev_index;
+        cl_uint plat_index;
+        cl_uint dev_index;
         cl_device_type dev_type;
     };
     struct Diagnostic

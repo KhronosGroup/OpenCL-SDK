@@ -43,9 +43,9 @@ add_subdirectory(external/OpenCL-ICD-Loader)
 add_subdirectory(external/OpenCL-CLHPP)
 
 add_subdirectory(third_party/cargs)
-add_subdirectory(third_party/stb)
 if(OPENCL_SDK_BUILD_OPENGL_SAMPLES)
   cmake_minimum_required(VERSION 3.10) # SFML 2 won't find Freetype::Freetype under 3.10
+  find_package(Stb REQUIRED)
   find_package(OpenGL REQUIRED)
   if(CMAKE_SYSTEM_NAME MATCHES Linux) # TODO: Add EGL support
     # OpenGL doesn't explicitly depend on X11 (as of CMake v3.2) but we'll need it

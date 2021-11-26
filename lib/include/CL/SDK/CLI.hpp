@@ -85,15 +85,15 @@ auto cl::sdk::parse<cl::sdk::options::SingleDevice>()
     TCLAP::ValuesConstraint<std::string> valid_dev_constraint{ valid_dev_strings };
 
     return std::make_tuple(
-        std::make_shared<TCLAP::ValueArg<int>>("p", "platform", "Index of platform to use", false, 0, "positive integral"),
-        std::make_shared<TCLAP::ValueArg<int>>("d", "device", "Index of device to use", false, 0, "positive integral"),
+        std::make_shared<TCLAP::ValueArg<unsigned int>>("p", "platform", "Index of platform to use", false, 0, "positive integral"),
+        std::make_shared<TCLAP::ValueArg<unsigned int>>("d", "device", "Index of device to use", false, 0, "positive integral"),
         std::make_shared<TCLAP::ValueArg<std::string>>( "t", "type","Type of device to use", false, "def", &valid_dev_constraint)
     );
 }
 template <>
 cl::sdk::options::SingleDevice cl::sdk::comprehend<cl::sdk::options::SingleDevice>(
-    std::shared_ptr<TCLAP::ValueArg<int>> platform_arg,
-    std::shared_ptr<TCLAP::ValueArg<int>> device_arg,
+    std::shared_ptr<TCLAP::ValueArg<unsigned int>> platform_arg,
+    std::shared_ptr<TCLAP::ValueArg<unsigned int>> device_arg,
     std::shared_ptr<TCLAP::ValueArg<std::string>> type_arg)
 {
     auto device_type = [](std::string in) -> cl_device_type
