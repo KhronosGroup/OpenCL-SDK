@@ -33,21 +33,21 @@ cl::vector<cl_context_properties> cl::sdk::get_interop_context_properties(const 
     };
 }
 
-cl::Context cl::sdk::get_interop_context(int plat_id, int dev_id, cl_device_type type, cl_int* error)
+cl::Context cl::sdk::get_interop_context(cl_uint plat_id, cl_uint dev_id, cl_device_type type, cl_int* error)
 {
     cl::vector<cl::Platform> platforms;
     cl_int plat_err = cl::Platform::get(&platforms);
 
     if (plat_err == CL_SUCCESS)
     {
-        if (plat_id >= 0 && plat_id < platforms.size())
+        if (plat_id < platforms.size())
         {
             cl::vector<cl::Device> devices;
             cl_int dev_err = platforms[plat_id].getDevices(type, &devices);
 
             if (dev_err == CL_SUCCESS)
             {
-                if (dev_id >= 0 && dev_id < devices.size())
+                if (dev_id < devices.size())
                 {
                     cl_int ctx_err = CL_SUCCESS;
                     auto props = get_interop_context_properties(devices[dev_id]);
