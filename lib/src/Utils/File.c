@@ -194,7 +194,7 @@ cl_int cl_util_write_binaries(cl_program const program, const char * const progr
         name_data[200] = '\0';
         // create output file name
         char filename[256];
-        sprintf_s(filename, sizeof(filename), "%s-%s.bin", program_file_name, name_data);
+        snprintf(filename, sizeof(filename), "%s-%s.bin", program_file_name, name_data);
 
         // write the binary to the output file
         FILE * f = fopen(filename, "wb");
@@ -251,7 +251,7 @@ cl_program cl_util_read_binaries(cl_context context, cl_device_id * devices, con
         name_data[200] = '\0';
         // create input file name
         char filename[256];
-        sprintf_s(filename, sizeof(filename), "%s-%s.bin", program_file_name, name_data);
+        snprintf(filename, sizeof(filename), "%s-%s.bin", program_file_name, name_data);
 
         binaries_ptr[i] = cl_util_read_binary_file(filename, binaries_size + i, error);
         if (*error == CL_INVALID_VALUE) {
