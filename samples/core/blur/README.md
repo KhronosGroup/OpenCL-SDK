@@ -31,7 +31,7 @@ queue = clCreateCommandQueueWithProperties(context, device, props, &error);
 ```
 We do not have to test for this capability, as it's mandatory for a device to provide profiling capabilities.
 
-To record the execution time of every reduction step, we save the associated events like this:
+To record the execution time of every blur step, we save the associated events like this:
 ```c
 cl_event pass[2];
 clEnqueueNDRangeKernel(queue, blur1, 2, origin, image_size, NULL, 0, NULL, pass + 0);
