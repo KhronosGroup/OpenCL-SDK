@@ -75,7 +75,7 @@ kernel void blur_kernel_horizontal(
     read_only image2d_t input_image,
     write_only image2d_t output_image,
     int size,
-    const float * kern
+    constant float * kern
 )
 {
     const int width = get_image_width(input_image);
@@ -90,17 +90,18 @@ kernel void blur_kernel_horizontal(
         if ((0 <= cur.x) && (cur.x < width)) {
             const float w = kern[size + shift.x];
             weight += w;
-            sum += read_imageui(input_image, cur) * w;
+            sum += convert_float4(read_imageui(input_image, cur)) * w;
         }
     }
-    write_imageui(output_image, coord, convert_uint4(round(sum / weight)));
+    uint4 res = convert_uint4(round(sum / weight));
+    write_imageui(output_image, coord, res);
 }
 
 kernel void blur_kernel_vertical(
     read_only image2d_t input_image,
     write_only image2d_t output_image,
     int size,
-    const float * kern
+    constant float * kern
 )
 {
     const int width = get_image_width(input_image);
@@ -115,7 +116,7 @@ kernel void blur_kernel_vertical(
         if ((0 <= cur.y) && (cur.y < height)) {
             const float w = kern[size + shift.y];
             weight += w;
-            sum += read_imageui(input_image, cur) * w;
+            sum += convert_float4(read_imageui(input_image, cur)) * w;
         }
     }
     write_imageui(output_image, coord, convert_uint4(round(sum / weight)));

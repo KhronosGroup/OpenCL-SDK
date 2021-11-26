@@ -21,10 +21,13 @@
 #include <CL/Utils/Event.h>
 
 // STL includes
-#include<stdlib.h>
-#include<stdio.h>
-#include<stdbool.h>
-#include<math.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdbool.h>
+#include <math.h>
+
+// Default image
+#include "image.c"
 
 // Sample-specific option
 struct options_Blur {
@@ -215,9 +218,8 @@ cl_image_format set_image_format(state * const s, cl_int * const error)
         if (s->verbose)
             printf("Converting picture into supported format... ");
 
-        const size_t
-            pixels = s->input_image.width * s->input_image.height,
-            new = sizeof(unsigned char) * pixels * 4;
+        const size_t pixels = s->input_image.width * s->input_image.height;
+        const size_t new = sizeof(unsigned char) * pixels * 4;
         unsigned char * tmp = NULL;
         MEM_CHECK(tmp = (unsigned char *)realloc(s->input_image.pixels, new), *error, end);
         s->input_image.pixels = tmp;
@@ -274,7 +276,7 @@ cl_int finalize_blur(state * const s)
     char name[1024];
     sprintf(name, "%u", (unsigned int)s->step);
     strncat(name, s->filename, sizeof(name) - 2);
-    cl_sdk_write_image(name, &s->output_image, &error);
+    error = cl_sdk_write_image(name, &s->output_image);
     if (error == CL_SUCCESS)
         printf("Image %s written.\n\n", name);
 
@@ -727,11 +729,6 @@ int main(int argc, char * argv[])
     struct options_Blur blur_opts = { .size = 1, .op = "box", .in = NULL, .out = "out.png" };
 
     OCLERROR_RET(parse_options(argc, argv, &diag_opts, &dev_opts, &blur_opts), error, end);
-    if (!blur_opts.in) {
-        error = CL_INVALID_IMAGE_DESCRIPTOR;
-        fprintf(stderr, "No input image name!\n");
-        goto end;
-    }
     s.verbose = diag_opts.verbose;
     s.filename = blur_opts.out;
     s.step = 0;
@@ -752,6 +749,23 @@ int main(int argc, char * argv[])
         cl_util_print_device_info(s.device);
 
     /// Read input image and prepare output image
+    const char fname[] = "andrew_svk_7oJ4D_ewB7c_unsplash.png";
+    if (!blur_opts.in) {
+        printf("No file given, use standard image %s\n", fname);
+        const unsigned char * fcont = andrew_svk_7oJ4D_ewB7c_unsplash_png;
+        const size_t fsize = andrew_svk_7oJ4D_ewB7c_unsplash_png_size;
+        FILE * f;
+        if ((f = fopen(fname, "wb")) != NULL) {
+            if (fwrite(fcont, 1, fsize, f) != fsize) {
+                fprintf(stderr, "File write error!\n");
+                error = CL_UTIL_FILE_OPERATION_ERROR;
+                fclose(f);
+                goto que;
+            }
+            fclose(f);
+        }
+        blur_opts.in = fname;
+    }
     OCLERROR_PAR(s.input_image = cl_sdk_read_image(blur_opts.in, &error), error, que);
 
     s.output_image = s.input_image;

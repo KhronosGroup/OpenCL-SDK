@@ -20,6 +20,6 @@ namespace sdk
     Image read_image(const char* file_name, cl_int* err);
 
     SDKCPP_EXPORT
-    void write_image(const char* file_name, const Image& image, cl_int* err);
+    cl_int write_image(const char* file_name, const Image& image);
 }
 }
