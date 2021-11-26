@@ -7,8 +7,8 @@ cl::sdk::InteropWindow::InteropWindow(
     const sf::String& title,
     sf::Uint32 style,
     const sf::ContextSettings& settings,
-    int platform_id,
-    int device_id,
+    cl_uint platform_id,
+    cl_uint device_id,
     cl_bitfield device_type
 )
     : sf::Window{mode, title, style, settings}

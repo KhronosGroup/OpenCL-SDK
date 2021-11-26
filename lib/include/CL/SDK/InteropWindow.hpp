@@ -25,8 +25,8 @@ namespace sdk
             const sf::String& title,
             sf::Uint32 style = sf::Style::Default,
             const sf::ContextSettings& settings = sf::ContextSettings{},
-            int platform_id = 0,
-            int device_id = 0,
+            cl_uint platform_id = 0,
+            cl_uint device_id = 0,
             cl_bitfield device_type = CL_DEVICE_TYPE_DEFAULT
         );
 
@@ -44,8 +44,8 @@ namespace sdk
         bool cl_khr_gl_event_supported;
 
     private:
-        int plat_id;
-        int dev_id;
+        cl_uint plat_id;
+        cl_uint dev_id;
         cl_bitfield dev_type;
     };
 }
