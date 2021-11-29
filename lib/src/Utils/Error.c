@@ -1,7 +1,7 @@
 // OpenCL Utils includes
 #include <CL/Utils/Error.h>
 
-void cl_util_print_error(cl_int error)
+void cl_util_print_error(const cl_int error)
 {
     switch (error) {
         case CL_SUCCESS:
@@ -207,6 +207,12 @@ void cl_util_print_error(cl_int error)
         // SDK errors
         case CL_UTIL_INDEX_OUT_OF_RANGE:
             fprintf(stderr, "\nError: CL_UTIL_INDEX_OUT_OF_RANGE\n");
+            break;
+        case CL_UTIL_DEVICE_NOT_INTEROPERABLE:
+            fprintf(stderr, "\nError: CL_UTIL_DEVICE_NOT_INTEROPERABLE\n");
+            break;
+        case CL_UTIL_FILE_OPERATION_ERROR:
+            fprintf(stderr, "\nError: CL_UTIL_FILE_OPERATION_ERROR\n");
             break;
         // end of SDK errors
         default:

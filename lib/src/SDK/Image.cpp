@@ -27,21 +27,20 @@ namespace cl
 {
 namespace sdk
 {
-    Image read_image(const char* file_name, cl_int * error)
+    Image read_image(const char* const file_name, cl_int * const error = nullptr)
     {
-        cl_int err;
-        if (error == NULL)
-            error = &err;
+        cl_int err = CL_SUCCESS;
 
         Image im;
         unsigned char *data = stbi_load(file_name, &im.width, &im.height, &im.pixel_size, 0);
         im.pixels.insert(im.pixels.end(), data, data + im.width * im.height * im.pixel_size);
 
         if (im.width && im.height && im.pixel_size && im.pixels.size() == im.width * im.height * im.pixel_size)
-            *error = CL_SUCCESS;
+            err = CL_SUCCESS;
         else
-            cl::util::detail::errHandler(CL_INVALID_ARG_VALUE, error, "File read error!");
+            cl::util::detail::errHandler(CL_INVALID_ARG_VALUE, &err, "File read error!");
 
+        if (error != NULL) *error = err;
         return im;
     }
 

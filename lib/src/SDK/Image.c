@@ -17,35 +17,32 @@
 // OpenCL includes
 #include <CL/cl.h>
 
-cl_sdk_image cl_sdk_read_image(const char * file_name, cl_int * error)
+cl_sdk_image cl_sdk_read_image(const char * const file_name, cl_int * const error)
 {
-    cl_int err;
-    if (error == NULL)
-        error = &err;
+    cl_int err = CL_SUCCESS;
 
     cl_sdk_image im = { .width = 0, .height = 0, .pixel_size = 1, .pixels = NULL };
     im.pixels = stbi_load(file_name, &im.width, &im.height, &im.pixel_size, 0);
 
     if (im.width && im.height && im.pixel_size && im.pixels)
-        *error = CL_SUCCESS;
+        err = CL_SUCCESS;
     else {
         fprintf(stderr, "File read error!");
-        *error = CL_INVALID_ARG_VALUE;
+        err = CL_INVALID_ARG_VALUE;
     }
 
+    if (error != NULL) *error = err;
     return im;
 }
 
-static char * to_lowercase(const char * s, char * d, size_t n)
+static char * to_lowercase(const char * const s, char * const d, const size_t n)
 {
-    while(n > 0) {
-        --n;
-        d[n] = tolower(s[n]);
-    }
+    for (size_t i = 0; i < n; ++i)
+        d[i] = tolower(s[i]);
     return d;
 }
 
-cl_int cl_sdk_write_image(const char * file_name, const cl_sdk_image * im)
+cl_int cl_sdk_write_image(const char * const file_name, const cl_sdk_image * const im)
 {
     cl_int error = CL_SUCCESS;
     char fext[5] = {0, 0, 0, 0, 0};

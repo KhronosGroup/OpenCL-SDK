@@ -15,7 +15,7 @@
  */
 
 kernel void Collatz(
-    global int * result
+    global int * const result
 ) {
     const size_t gli = get_global_id(0);
     const size_t ind = gli - get_global_offset(0);

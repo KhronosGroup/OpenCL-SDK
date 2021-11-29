@@ -27,7 +27,7 @@
 #include <math.h>
 
 // Default image
-#include "image.c"
+#include "default_image.h"
 
 // Sample-specific option
 struct options_Blur {
@@ -40,7 +40,7 @@ cag_option BlurOptions[] = {
   .access_letters = "i",
   .access_name = "in",
   .value_name = "(name)",
-  .description = "Input image file (obligatory)"},
+  .description = "Input image file"},
 
  {.identifier = 'o',
   .access_letters = "o",
@@ -756,6 +756,11 @@ int main(int argc, char * argv[])
                 goto que;
             }
             fclose(f);
+        }
+        else {
+            fprintf(stderr, "Cannot open the file to write!\n");
+            error = CL_INVALID_VALUE;
+            goto que;
         }
         blur_opts.in = fname;
     }

@@ -7,63 +7,70 @@
 #include <stdio.h>      // printf
 
 UTILS_EXPORT
-cl_context cl_util_get_context(cl_uint plat_id, cl_uint dev_id, cl_device_type type, cl_int * error)
+cl_context cl_util_get_context(const cl_uint plat_id, const cl_uint dev_id, const cl_device_type type, cl_int * const error)
 {
+    cl_int err = CL_SUCCESS;
     cl_context result = NULL;
     cl_platform_id * platforms;
     cl_uint num_platforms = 0;
     cl_device_id * devices;
     cl_uint num_devices = 0;
 
-    OCLERROR_RET(clGetPlatformIDs(0, NULL, &num_platforms), *error, end);
-    MEM_CHECK(platforms = (cl_platform_id *)malloc(sizeof(cl_platform_id) * num_platforms), *error, end);
-    OCLERROR_RET(clGetPlatformIDs(num_platforms, platforms, NULL), *error, plat);
+    OCLERROR_RET(clGetPlatformIDs(0, NULL, &num_platforms), err, end);
+    MEM_CHECK(platforms = (cl_platform_id *)malloc(sizeof(cl_platform_id) * num_platforms), err, end);
+    OCLERROR_RET(clGetPlatformIDs(num_platforms, platforms, NULL), err, plat);
 
     if (plat_id >= num_platforms) {
-        *error = CL_UTIL_INDEX_OUT_OF_RANGE; // "Invalid platform index provided for cl_util_get_context()"
+        fprintf(stderr, "Invalid platform index provided for cl_util_get_context()\n");
+        err = CL_UTIL_INDEX_OUT_OF_RANGE;
         goto plat;
     }
 
-    OCLERROR_RET(clGetDeviceIDs(platforms[plat_id], type, 0, NULL, &num_devices), *error, plat);
-    MEM_CHECK(devices = (cl_device_id *)malloc(sizeof(cl_device_id) * num_devices), *error, plat);
-    OCLERROR_RET(clGetDeviceIDs(platforms[plat_id], type, num_devices, devices, NULL), *error, dev);
+    OCLERROR_RET(clGetDeviceIDs(platforms[plat_id], type, 0, NULL, &num_devices), err, plat);
+    MEM_CHECK(devices = (cl_device_id *)malloc(sizeof(cl_device_id) * num_devices), err, plat);
+    OCLERROR_RET(clGetDeviceIDs(platforms[plat_id], type, num_devices, devices, NULL), err, dev);
 
     if (dev_id >= num_devices) {
-        *error = CL_UTIL_INDEX_OUT_OF_RANGE; // "Invalid device index provided for cl_util_get_context()"
+        fprintf(stderr, "Invalid device index provided for cl_util_get_context()\n");
+        err = CL_UTIL_INDEX_OUT_OF_RANGE;
         goto dev;
     }
 
-    OCLERROR_PAR(result = clCreateContext(NULL, 1, devices + dev_id, NULL, NULL, error), *error, dev);
+    OCLERROR_PAR(result = clCreateContext(NULL, 1, devices + dev_id, NULL, NULL, &err), err, dev);
 
 dev:    free(devices);
 plat:   free(platforms);
-end:    return result;
+end:    if (error != NULL) *error = err;
+    return result;
 }
 
 UTILS_EXPORT
-cl_device_id cl_util_get_device(cl_uint plat_id, cl_uint dev_id, cl_device_type type, cl_int * error)
+cl_device_id cl_util_get_device(const cl_uint plat_id, const cl_uint dev_id, const cl_device_type type, cl_int * const error)
 {
+    cl_int err = CL_SUCCESS;
     cl_device_id result = NULL;
     cl_platform_id * platforms;
     cl_uint num_platforms = 0;
     cl_device_id * devices;
     cl_uint num_devices = 0;
 
-    OCLERROR_RET(clGetPlatformIDs(0, NULL, &num_platforms), *error, end);
-    MEM_CHECK(platforms = (cl_platform_id *)malloc(sizeof(cl_platform_id) * num_platforms), *error, end);
-    OCLERROR_RET(clGetPlatformIDs(num_platforms, platforms, NULL), *error, plat);
+    OCLERROR_RET(clGetPlatformIDs(0, NULL, &num_platforms), err, end);
+    MEM_CHECK(platforms = (cl_platform_id *)malloc(sizeof(cl_platform_id) * num_platforms), err, end);
+    OCLERROR_RET(clGetPlatformIDs(num_platforms, platforms, NULL), err, plat);
 
     if (plat_id >= num_platforms) {
-        *error = CL_UTIL_INDEX_OUT_OF_RANGE; // "Invalid platform index provided for cl_util_get_context()"
+        fprintf(stderr, "Invalid platform index provided for cl_util_get_context()\n");
+        err = CL_UTIL_INDEX_OUT_OF_RANGE;
         goto plat;
     }
 
-    OCLERROR_RET(clGetDeviceIDs(platforms[plat_id], type, 0, NULL, &num_devices), *error, plat);
-    MEM_CHECK(devices = (cl_device_id *)malloc(sizeof(cl_device_id) * num_devices), *error, plat);
-    OCLERROR_RET(clGetDeviceIDs(platforms[plat_id], type, num_devices, devices, NULL), *error, dev);
+    OCLERROR_RET(clGetDeviceIDs(platforms[plat_id], type, 0, NULL, &num_devices), err, plat);
+    MEM_CHECK(devices = (cl_device_id *)malloc(sizeof(cl_device_id) * num_devices), err, plat);
+    OCLERROR_RET(clGetDeviceIDs(platforms[plat_id], type, num_devices, devices, NULL), err, dev);
 
     if (dev_id >= num_devices) {
-        *error = CL_UTIL_INDEX_OUT_OF_RANGE; // "Invalid device index provided for cl_util_get_context()"
+        fprintf(stderr, "Invalid device index provided for cl_util_get_context()\n");
+        err = CL_UTIL_INDEX_OUT_OF_RANGE;
         goto dev;
     }
 
@@ -71,11 +78,12 @@ cl_device_id cl_util_get_device(cl_uint plat_id, cl_uint dev_id, cl_device_type 
 
 dev:    free(devices);
 plat:   free(platforms);
-end:    return result;
+end:    if (error != NULL) *error = err;
+    return result;
 }
 
 UTILS_EXPORT
-void cl_util_print_device_info(cl_device_id device)
+cl_int cl_util_print_device_info(const cl_device_id device)
 {
     cl_int error = CL_SUCCESS;
     char * name = NULL;
@@ -95,11 +103,13 @@ ocl:    free(name);
     printf("%s\n\n", name);
 
 nam:    free(name);
+    return error;
 }
 
 UTILS_EXPORT
-char * cl_util_get_platform_info(cl_platform_id platform, cl_platform_info info, cl_int * error)
+char * cl_util_get_platform_info(const cl_platform_id platform, const cl_platform_info info, cl_int * const error)
 {
+    cl_int err = CL_SUCCESS;
     char * name = NULL;
     size_t n = 0;
 
@@ -109,20 +119,23 @@ char * cl_util_get_platform_info(cl_platform_id platform, cl_platform_info info,
         case CL_PLATFORM_NAME:
         case CL_PLATFORM_VENDOR:
         case CL_PLATFORM_EXTENSIONS:
-            OCLERROR_RET(clGetPlatformInfo(platform, info, 0, NULL, &n), *error, err);
-            MEM_CHECK(name = (char *)malloc(sizeof(char) * (n+1)), *error, err);
-            OCLERROR_RET(clGetPlatformInfo(platform, info, sizeof(char) * n, name, NULL), *error, err);
+            OCLERROR_RET(clGetPlatformInfo(platform, info, 0, NULL, &n), err, end);
+            MEM_CHECK(name = (char *)malloc(sizeof(char) * (n+1)), err, end);
+            OCLERROR_RET(clGetPlatformInfo(platform, info, sizeof(char) * n, name, NULL), err, end);
             name[n] = '\0';
+            if (error != NULL) *error = err;
             return name;
     }
 
-err:    free(name);
+end:    free(name);
+    if (error != NULL) *error = err;
     return NULL;
 }
 
 UTILS_EXPORT
-char * cl_util_get_device_info(cl_device_id device, cl_device_info info, cl_int * error)
+char * cl_util_get_device_info(const cl_device_id device, const cl_device_info info, cl_int * const error)
 {
+    cl_int err = CL_SUCCESS;
     char * name = NULL;
     size_t n = 0;
 
@@ -145,21 +158,23 @@ char * cl_util_get_device_info(cl_device_id device, cl_device_info info, cl_int 
         case CL_DEVICE_LATEST_CONFORMANCE_VERSION_PASSED:
 #endif
         case CL_DRIVER_VERSION:
-            OCLERROR_RET(clGetDeviceInfo(device, info, 0, NULL, &n), *error, err);
-            MEM_CHECK(name = (char *)malloc(sizeof(char) * (n+1)), *error, err);
-            OCLERROR_RET(clGetDeviceInfo(device, info, sizeof(char) * n, name, NULL), *error, err);
+            OCLERROR_RET(clGetDeviceInfo(device, info, 0, NULL, &n), err, end);
+            MEM_CHECK(name = (char *)malloc(sizeof(char) * (n+1)), err, end);
+            OCLERROR_RET(clGetDeviceInfo(device, info, sizeof(char) * n, name, NULL), err, end);
             name[n] = '\0';
+            if (error != NULL) *error = err;
             return name;
     }
 
-err:    free(name);
+end:    free(name);
+    if (error != NULL) *error = err;
     return NULL;
 }
 
 // build program and show log if build is not successful
 UTILS_EXPORT
-cl_int cl_util_build_program(cl_program pr, const cl_device_id dev, const char * opt) {
-    // if error
+cl_int cl_util_build_program(const cl_program pr, const cl_device_id dev, const char * const opt)
+{
     cl_int err = clBuildProgram(pr, 1, &dev, opt, NULL, NULL);
     if (err != CL_SUCCESS) { // no error handling here as error from build program is more valuable
         char * program_log;

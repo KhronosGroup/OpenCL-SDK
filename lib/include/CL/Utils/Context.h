@@ -10,21 +10,21 @@
 #include <time.h>
 
 UTILS_EXPORT
-cl_context cl_util_get_context(cl_uint plat_id, cl_uint dev_id, cl_device_type type, cl_int* error);
+cl_context cl_util_get_context(const cl_uint plat_id, const cl_uint dev_id, const cl_device_type type, cl_int * const error);
 UTILS_EXPORT
-cl_device_id cl_util_get_device(cl_uint plat_id, cl_uint dev_id, cl_device_type type, cl_int * error);
+cl_device_id cl_util_get_device(const cl_uint plat_id, const cl_uint dev_id, const cl_device_type type, cl_int * const error);
 
 UTILS_EXPORT
-void cl_util_print_device_info(cl_device_id device);
+cl_int cl_util_print_device_info(const cl_device_id device);
 
 UTILS_EXPORT
-char * cl_util_get_device_info(cl_device_id device, cl_device_info info, cl_int * error);
+char * cl_util_get_device_info(const cl_device_id device, const cl_device_info info, cl_int * const error);
 UTILS_EXPORT
-char * cl_util_get_platform_info(cl_platform_id platform, cl_platform_info info, cl_int * error);
+char * cl_util_get_platform_info(const cl_platform_id platform, const cl_platform_info info, cl_int * const error);
 
 // build program and show log if build is not successful
 UTILS_EXPORT
-cl_int cl_util_build_program(cl_program pr, const cl_device_id dev, const char * opt);
+cl_int cl_util_build_program(const cl_program pr, const cl_device_id dev, const char * const opt);
 
 #define GET_CURRENT_TIMER(time)                                         \
 struct timespec time;                                                   \

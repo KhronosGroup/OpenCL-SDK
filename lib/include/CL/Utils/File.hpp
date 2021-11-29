@@ -11,46 +11,39 @@ namespace cl
 {
 namespace util
 {
+    // Scott Meyers, Effective STL, Addison-Wesley Professional, 2001, Item 29
+    // with error handling
     UTILSCPP_EXPORT
-    std::string read_text_file(const char * filename, cl_int * error);
-}
-}
-
-// Scott Meyers, Effective STL, Addison-Wesley Professional, 2001, Item 29
-// with error handling
-UTILSCPP_EXPORT
-std::string cl::util::read_text_file(const char * filename, cl_int * error)
-{
-    cl_int err;
-    if (error == nullptr)
-        error = &err;
-
-    std::ifstream in(filename);
-    if (in.good())
+    std::string read_text_file(const char * const filename, cl_int * const error)
     {
-        try
+        std::ifstream in(filename);
+        if (in.good())
         {
-            std::string red((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-            if (in.good() && in.eof())
+            try
             {
-                *error = CL_SUCCESS;
-                return red;
+                std::string red((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+                if (in.good() && in.eof())
+                {
+                    if (error != nullptr) *error = CL_SUCCESS;
+                    return red;
+                }
+                else
+                {
+                    detail::errHandler(CL_UTIL_FILE_OPERATION_ERROR, error, "File read error!");
+                    return std::string();
+                }
             }
-            else
+            catch (std::bad_alloc& ex)
             {
-                *error = CL_INVALID_VALUE;
+                detail::errHandler(CL_OUT_OF_RESOURCES, error, "Bad allocation!");
                 return std::string();
             }
         }
-        catch (std::bad_alloc& ex)
+        else
         {
-            *error = CL_OUT_OF_RESOURCES;
+            detail::errHandler(CL_INVALID_VALUE, error, "No file!");
             return std::string();
         }
     }
-    else
-    {
-        *error = CL_INVALID_ARG_VALUE;
-        return std::string();
-    }
+}
 }

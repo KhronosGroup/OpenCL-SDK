@@ -56,13 +56,13 @@ _(Note: the main reason why net kernel execution time doesn't amount to the time
 ### Used API surface
 
 ```c
-cl_util_get_device(cl_uint plat_id, cl_uint dev_id, cl_device_type type, cl_int * error)
-cl_util_get_device_info(cl_device_id device, cl_device_info info, cl_int * error)
-cl_util_print_device_info(cl_device_id device)
-cl_util_read_text_file(const char * filename, size_t * length, cl_int * error)
-cl_util_build_program(cl_program pr, const cl_device_id dev, const char * opt)
-cl_sdk_read_image(const char * file_name, cl_int * error)
-cl_sdk_write_image(const char * file_name, const cl_sdk_image * im)
-cl_util_get_event_duration(cl_event event, cl_profiling_info start, cl_profiling_info end, cl_int * error)
-cl_util_print_error(cl_int error)
+cl_util_get_device(const cl_uint plat_id, const cl_uint dev_id, const cl_device_type type, cl_int * const error)
+cl_util_get_device_info(const cl_device_id device, const cl_device_info info, cl_int * const error)
+cl_util_print_device_info(const cl_device_id device)
+cl_util_read_text_file(const char * const filename, size_t * const length, cl_int * const error)
+cl_util_build_program(const cl_program pr, const cl_device_id dev, const char * const opt)
+cl_sdk_read_image(const char * const file_name, cl_int * const error)
+cl_sdk_write_image(const char * const file_name, const cl_sdk_image * const im)
+cl_util_get_event_duration(const cl_event event, const cl_profiling_info start, const cl_profiling_info end, cl_int * const error)
+cl_util_print_error(const cl_int error)
 ```
