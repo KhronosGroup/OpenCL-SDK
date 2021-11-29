@@ -101,9 +101,9 @@ ParseState parse_SingleDeviceOptions(const char identifier, cag_option_context *
 {
     const char * value;
 
-#define IF_ERR(op) \
-if ((value = cag_option_get_value(cag_context))) \
-    { op; return ParsedOK; } \
+#define IF_ERR(op)                                          \
+if ((value = cag_option_get_value(cag_context)))            \
+    { op; return ParsedOK; }                                \
 else return ParseError;
 
     switch (identifier) {
@@ -118,3 +118,14 @@ else return ParseError;
 
 #undef IF_ERR
 }
+
+#define PARS_OPTIONS(parser, state)                         \
+do {                                                        \
+if (state == NotParsed)                                     \
+    state = parser;                                         \
+if (state == ParseError) {                                  \
+    fprintf(stderr, "Parse error\n");                       \
+    identifier = 'h';                                       \
+    state = ParsedOK;                                       \
+}                                                           \
+} while (0)

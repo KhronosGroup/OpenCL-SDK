@@ -115,15 +115,9 @@ cl_int parse_options(int argc,
         ParseState state = NotParsed;
         identifier = cag_option_get(&cag_context);
 
-#define PARS_OPTIONS(parser)                        \
-if ((state = parser) == ParsedOK)                   \
-    continue;                                       \
-else if (state == ParseError)                       \
-    {printf("Parse error\n"); identifier = 'h';}
-
-        PARS_OPTIONS(parse_DiagnosticOptions(identifier, diag_opts))
-        PARS_OPTIONS(parse_SingleDeviceOptions(identifier, &cag_context, dev_opts))
-        PARS_OPTIONS(parse_BlurOptions(identifier, &cag_context, blur_opts))
+        PARS_OPTIONS(parse_DiagnosticOptions(identifier, diag_opts), state);
+        PARS_OPTIONS(parse_SingleDeviceOptions(identifier, &cag_context, dev_opts), state);
+        PARS_OPTIONS(parse_BlurOptions(identifier, &cag_context, blur_opts), state);
 
         if (identifier == 'h') {
             printf("Usage: blur [OPTION]...\n");
@@ -134,7 +128,6 @@ else if (state == ParseError)                       \
             cag_option_print(opts, n, stdout);
             exit((state == ParseError) ? CL_INVALID_ARG_VALUE : CL_SUCCESS);
         }
-#undef PARS_OPTIONS
     }
 
 end:    free(opts);

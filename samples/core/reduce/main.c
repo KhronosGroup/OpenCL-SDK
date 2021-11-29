@@ -93,15 +93,9 @@ cl_int parse_options(int argc,
         ParseState state = NotParsed;
         identifier = cag_option_get(&cag_context);
 
-#define PARS_OPTIONS(parser)                        \
-if ((state = parser) == ParsedOK)                   \
-    continue;                                       \
-else if (state == ParseError)                       \
-    {printf("Parse error\n"); identifier = 'h';}
-
-        PARS_OPTIONS(parse_DiagnosticOptions(identifier, diag_opts))
-        PARS_OPTIONS(parse_SingleDeviceOptions(identifier, &cag_context, dev_opts))
-        PARS_OPTIONS(parse_ReduceOptions(identifier, &cag_context, reduce_opts))
+        PARS_OPTIONS(parse_DiagnosticOptions(identifier, diag_opts), state);
+        PARS_OPTIONS(parse_SingleDeviceOptions(identifier, &cag_context, dev_opts), state);
+        PARS_OPTIONS(parse_ReduceOptions(identifier, &cag_context, reduce_opts), state);
 
         if (identifier == 'h') {
             printf("Usage: reduce [OPTION]...\n");
@@ -140,10 +134,10 @@ int check_use_work_group_reduce(cl_platform_id platform, cl_device_id device, cl
             size_t n = 0;
 
             OCLERROR_RET(clGetDeviceInfo(device, CL_DEVICE_OPENCL_C_FEATURES,
-                sizeof(size_t), NULL, &n), *error, nam);
+                0, NULL, &n), *error, nam);
             MEM_CHECK(c_features = (cl_name_version *)malloc(sizeof(char) * n), *error, nam);
             OCLERROR_RET(clGetDeviceInfo(device, CL_DEVICE_OPENCL_C_FEATURES,
-                sizeof(char) * n, name, NULL), *error, cf);
+                sizeof(char) * n, c_features, NULL), *error, cf);
 
             const size_t feat = sizeof(char) * n / sizeof(cl_name_version);
             for (size_t i = 0; i < feat; ++i)

@@ -76,14 +76,11 @@ cl_int parse_options(int argc,
         ParseState state = NotParsed;
         identifier = cag_option_get(&cag_context);
 
-        state = parse_DiagnosticOptions(identifier, diag_opts);
-        if (state == ParsedOK) continue;
-        state = parse_SingleDeviceOptions(identifier, &cag_context, dev_opts);
-        if (state == ParsedOK) continue;
-        state = parse_SaxpyOptions(identifier, &cag_context, saxpy_opts);
-        if (state == ParsedOK) continue;
+        PARS_OPTIONS(parse_DiagnosticOptions(identifier, diag_opts), state);
+        PARS_OPTIONS(parse_SingleDeviceOptions(identifier, &cag_context, dev_opts), state);
+        PARS_OPTIONS(parse_SaxpyOptions(identifier, &cag_context, saxpy_opts), state);
 
-        if ((identifier == 'h') || (state == ParseError)) {
+        if (identifier == 'h') {
             printf("Usage: saxpy [OPTION]...\n");
             printf("Demonstrates typical OpenCL application layout.\n\n");
             cag_option_print(opts, n, stdout);
