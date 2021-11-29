@@ -56,7 +56,7 @@ _(Note: the main reason why net kernel execution time doesn't amount to the time
 ### Used API surface
 
 ```c
-cl_util_get_device(int plat_id, int dev_id, cl_device_type type, cl_int * error)
+cl_util_get_device(cl_uint plat_id, cl_uint dev_id, cl_device_type type, cl_int * error)
 cl_util_get_device_info(cl_device_id device, cl_device_info info, cl_int * error)
 cl_util_print_device_info(cl_device_id device)
 cl_util_read_text_file(const char * filename, size_t * length, cl_int * error)
