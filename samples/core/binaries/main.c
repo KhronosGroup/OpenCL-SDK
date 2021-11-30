@@ -20,9 +20,10 @@
 #include <CL/Utils/Event.h>
 
 // STL includes
-#include<stdlib.h>
-#include<stdio.h>
-#include<stdbool.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdbool.h>
+#include <limits.h>
 
 // Sample-specific option
 struct options_Binaries {
