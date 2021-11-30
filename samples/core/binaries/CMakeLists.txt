@@ -17,10 +17,3 @@ add_sample(
     TARGET binaries
     VERSION 300
     SOURCES main.c)
-
-add_sample(
-    TEST
-    TARGET binariescpp
-    VERSION 300
-    SOURCES main.cpp
-    INCLUDES ${TCLAP_INCLUDE_DIR})

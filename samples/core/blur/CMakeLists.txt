@@ -17,10 +17,3 @@ add_sample(
     TARGET blur
     VERSION 300
     SOURCES main.c)
-
-add_sample(
-    TEST
-    TARGET blurcpp
-    VERSION 300
-    SOURCES main.cpp
-    INCLUDES ${TCLAP_INCLUDE_DIR})

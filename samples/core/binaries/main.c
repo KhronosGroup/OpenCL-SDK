@@ -26,15 +26,22 @@
 
 // Sample-specific option
 struct options_Binaries {
-    size_t size;
+    size_t start;
+    size_t length;
 };
 
 cag_option BinariesOptions[] = {
+ {.identifier = 'l',
+  .access_letters = "l",
+  .access_name = "length",
+  .value_name = "(positive integer)",
+  .description = "Length of range to test"},
+
  {.identifier = 's',
   .access_letters = "s",
-  .access_name = "size",
+  .access_name = "start",
   .value_name = "(positive integer)",
-  .description = "Size of reduction"}
+  .description = "Starting number"}
 };
 
 ParseState parse_BinariesOptions(const char identifier, cag_option_context * cag_context, struct options_Binaries * opts)
@@ -44,7 +51,13 @@ ParseState parse_BinariesOptions(const char identifier, cag_option_context * cag
     switch (identifier) {
     case 's':
         if ((value = cag_option_get_value(cag_context))) {
-            opts->size = strtoull(value, NULL, 0);
+            opts->start = strtoull(value, NULL, 0);
+            return ParsedOK;
+        }
+        else return ParseError;
+    case 'l':
+        if ((value = cag_option_get_value(cag_context))) {
+            opts->length = strtoull(value, NULL, 0);
             return ParsedOK;
         }
         else return ParseError;
@@ -128,7 +141,7 @@ int main(int argc, char * argv[])
     /// Parse command-line options
     struct cl_sdk_options_Diagnostic diag_opts = { .quiet = false, .verbose = false };
     struct cl_sdk_options_SingleDevice dev_opts = { .triplet = { 0, 0, CL_DEVICE_TYPE_ALL } };
-    struct options_Binaries binaries_opts = { .size = 100000 };
+    struct options_Binaries binaries_opts = { .start = 1, .length = 100000 };
 
     OCLERROR_RET(parse_options(argc, argv, &diag_opts, &dev_opts, &binaries_opts), error, end);
 
@@ -159,7 +172,8 @@ int main(int argc, char * argv[])
         cl_kernel Collatz;
         OCLERROR_PAR(Collatz = clCreateKernel(program, "Collatz", &error), error, que);
 
-        const size_t length = binaries_opts.size;
+        const size_t length = binaries_opts.length;
+        const size_t start = binaries_opts.start - 1;
         /// Prepare vector of values to extract results
         cl_int * v = NULL;
         MEM_CHECK(v = (cl_int *)malloc(sizeof(cl_int) * length), error, col);
@@ -172,13 +186,13 @@ int main(int argc, char * argv[])
         cl_event pass;
         OCLERROR_RET(clSetKernelArg(Collatz, 0, sizeof(cl_mem), &buf), error, buff);
 
-        GET_CURRENT_TIMER(start)
-        OCLERROR_RET(clEnqueueNDRangeKernel(queue, Collatz, 1, NULL, &length, NULL, 0, NULL, &pass), error, buff);
+        GET_CURRENT_TIMER(start_time)
+        OCLERROR_RET(clEnqueueNDRangeKernel(queue, Collatz, 1, &start, &length, NULL, 0, NULL, &pass), error, buff);
         OCLERROR_RET(clWaitForEvents(1, &pass), error, buff);
-        GET_CURRENT_TIMER(end)
+        GET_CURRENT_TIMER(end_time)
 
         if (diag_opts.verbose)
-            print_timings(start, end, &pass, 1);
+            print_timings(start_time, end_time, &pass, 1);
 
         OCLERROR_RET(clEnqueueReadBuffer(queue, buf, CL_BLOCKING, 0, sizeof(cl_int) * length, v,
             0, NULL, NULL), error, buff);
@@ -188,14 +202,17 @@ int main(int argc, char * argv[])
         size_t max_ind = -1;
         for (size_t i = 0; i < length; ++i)
             if (v[i] < 0) {
-                fprintf(stderr, "Number %zu gets out of 64 bits at step %i\n", i, -v[i]);
+                fprintf(stderr, "Number %zu gets out of 64 bits at step %i\n", start + 1 + i, -v[i]);
+            }
+            else if ((v[i] == 0) && (start + i != 0)) {
+                fprintf(stderr, "Number %zu did not converge to 1 at step %i\n", start + 1 + i, INT_MAX - 2);
             }
             else if (v[i] > max_steps) {
                 max_steps = v[i];
-                max_ind = i + 1;
+                max_ind = start + 1 + i;
             }
-        printf("From %zu numbers checked, maximum %i steps was needed to get to 1 for number %zu\n",
-            length, max_steps, max_ind);
+        printf("From %zu numbers checked starting from %zu, maximum %i steps was needed to get to 1 for number %zu\n",
+            length, start + 1, max_steps, max_ind);
 
 buff:   OCLERROR_RET(clReleaseMemObject(buf), end_error, vec);
 vec:    free(v);

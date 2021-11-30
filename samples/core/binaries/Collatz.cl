@@ -25,6 +25,10 @@ kernel void Collatz(
     ulong n = gli + 1;
 
     while (n != 1) {
+        if (steps > INT_MAX - 3) {
+            steps = 0;
+            break;
+        }
         if (n & 1) {
             ulong m = 3 * n + 1;
             if (m < n) {
