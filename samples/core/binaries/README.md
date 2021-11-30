@@ -10,7 +10,7 @@ The binary of a compiled program can be extracted from the program by invoking `
 
 ### Application flow
 
-The application once a platform and a device is selected tries to read corresponding binary file from the disk. In the case of success the program is built from the binary and executed. If the binary file is not present in the folder of the program then kernel file is loaded, built for the specified device, and saved as a binary.
+The application once a platform and a device is selected tries to read corresponding binary file from the disk. In the case of success the program is built from the binary and executed. If the binary file is not present in the folder of the program then kernel `.cl` file is loaded, built for the specified device, saved as a binary file, loaded and executed.
 
 #### Event profiling
 

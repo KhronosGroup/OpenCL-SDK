@@ -157,71 +157,7 @@ int main(int argc, char * argv[])
     /// Try to read binary
     program = cl_util_read_binaries(context, &device, 1, "Collatz", &error);
 
-    if (error == CL_SUCCESS) { // if the binary is already present - calculate
-        printf("Saved program found\n");
-        OCLERROR_RET(cl_util_build_program(program, device, NULL), error, prg);
-
-        /// Create all remaining runtime objects
-        OCLERROR_RET(clGetDeviceInfo(device, CL_DEVICE_PLATFORM, sizeof(cl_platform_id), &platform, NULL), error, prg);
-#if CL_HPP_TARGET_OPENCL_VERSION >= 200
-        cl_command_queue_properties props[] = { CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE, 0 };
-        OCLERROR_PAR(queue = clCreateCommandQueueWithProperties(context, device, props, &error), error, prg);
-#else
-        OCLERROR_PAR(queue = clCreateCommandQueue(context, device, CL_QUEUE_PROFILING_ENABLE, &error), error, prg);
-#endif
-
-        cl_kernel Collatz;
-        OCLERROR_PAR(Collatz = clCreateKernel(program, "Collatz", &error), error, que);
-
-        const size_t length = binaries_opts.length;
-        const size_t start = binaries_opts.start - 1;
-        /// Prepare vector of values to extract results
-        cl_int * v = NULL;
-        MEM_CHECK(v = (cl_int *)malloc(sizeof(cl_int) * length), error, col);
-
-        /// Initialize device-side storage
-        cl_mem buf;
-        OCLERROR_PAR(buf = clCreateBuffer(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY,
-            sizeof(cl_int) * length, NULL, &error), error, vec);
-
-        cl_event pass;
-        OCLERROR_RET(clSetKernelArg(Collatz, 0, sizeof(cl_mem), &buf), error, buff);
-
-        GET_CURRENT_TIMER(start_time)
-        OCLERROR_RET(clEnqueueNDRangeKernel(queue, Collatz, 1, &start, &length, NULL, 0, NULL, &pass), error, buff);
-        OCLERROR_RET(clWaitForEvents(1, &pass), error, buff);
-        GET_CURRENT_TIMER(end_time)
-
-        if (diag_opts.verbose)
-            print_timings(start_time, end_time, &pass, 1);
-
-        OCLERROR_RET(clEnqueueReadBuffer(queue, buf, CL_BLOCKING, 0, sizeof(cl_int) * length, v,
-            0, NULL, NULL), error, buff);
-
-        // show results
-        int max_steps = 0;
-        size_t max_ind = -1;
-        for (size_t i = 0; i < length; ++i)
-            if (v[i] < 0) {
-                fprintf(stderr, "Number %zu gets out of 64 bits at step %i\n", start + 1 + i, -v[i]);
-            }
-            else if ((v[i] == 0) && (start + i != 0)) {
-                fprintf(stderr, "Number %zu did not converge to 1 at step %i\n", start + 1 + i, INT_MAX - 2);
-            }
-            else if (v[i] > max_steps) {
-                max_steps = v[i];
-                max_ind = start + 1 + i;
-            }
-        printf("From %zu numbers checked starting from %zu, maximum %i steps was needed to get to 1 for number %zu\n",
-            length, start + 1, max_steps, max_ind);
-
-buff:   OCLERROR_RET(clReleaseMemObject(buf), end_error, vec);
-vec:    free(v);
-col:    OCLERROR_RET(clReleaseKernel(Collatz), end_error, que);
-que:    OCLERROR_RET(clReleaseCommandQueue(queue), end_error, prg);
-prg:    OCLERROR_RET(clReleaseProgram(program), end_error, cont);
-    }
-    else { // if binary not present, compile and save
+    if (error != CL_SUCCESS) { // if binary not present, compile and save
         const char * kernel_location = "./Collatz.cl";
         char * kernel = NULL;
         size_t program_size = 0;
@@ -234,13 +170,79 @@ prg:    OCLERROR_RET(clReleaseProgram(program), end_error, cont);
         OCLERROR_RET(cl_util_build_program(program, device, options), error, prgs);
 
         OCLERROR_RET(cl_util_write_binaries(program, "Collatz"), error, prgs);
-        printf("Binary file written.\n");
+        printf("Binary file written.\n\n");
 
 prgs:   OCLERROR_RET(clReleaseProgram(program), end_error, que);
 ker:    free(kernel);
+
+        OCLERROR_PAR(program = cl_util_read_binaries(context, &device, 1, "Collatz", &error), error, cont);
     }
 
+    // if the binary is already present - calculate
+    printf("Saved program found\n");
+    OCLERROR_RET(cl_util_build_program(program, device, NULL), error, prg);
+
+    /// Create all remaining runtime objects
+    OCLERROR_RET(clGetDeviceInfo(device, CL_DEVICE_PLATFORM, sizeof(cl_platform_id), &platform, NULL), error, prg);
+#if CL_HPP_TARGET_OPENCL_VERSION >= 200
+    cl_command_queue_properties props[] = { CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE, 0 };
+    OCLERROR_PAR(queue = clCreateCommandQueueWithProperties(context, device, props, &error), error, prg);
+#else
+    OCLERROR_PAR(queue = clCreateCommandQueue(context, device, CL_QUEUE_PROFILING_ENABLE, &error), error, prg);
+#endif
+
+    cl_kernel Collatz;
+    OCLERROR_PAR(Collatz = clCreateKernel(program, "Collatz", &error), error, que);
+
+    const size_t length = binaries_opts.length;
+    const size_t start = binaries_opts.start - 1;
+    /// Prepare vector of values to extract results
+    cl_int * v = NULL;
+    MEM_CHECK(v = (cl_int *)malloc(sizeof(cl_int) * length), error, col);
+
+    /// Initialize device-side storage
+    cl_mem buf;
+    OCLERROR_PAR(buf = clCreateBuffer(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY,
+        sizeof(cl_int) * length, NULL, &error), error, vec);
+
+    /// Run kernel
+    cl_event pass;
+    OCLERROR_RET(clSetKernelArg(Collatz, 0, sizeof(cl_mem), &buf), error, buff);
+
+    GET_CURRENT_TIMER(start_time)
+    OCLERROR_RET(clEnqueueNDRangeKernel(queue, Collatz, 1, &start, &length, NULL, 0, NULL, &pass), error, buff);
+    OCLERROR_RET(clWaitForEvents(1, &pass), error, buff);
+    GET_CURRENT_TIMER(end_time)
+
+    if (diag_opts.verbose)
+        print_timings(start_time, end_time, &pass, 1);
+
+    OCLERROR_RET(clEnqueueReadBuffer(queue, buf, CL_BLOCKING, 0, sizeof(cl_int) * length, v,
+        0, NULL, NULL), error, buff);
+
+    /// Show results
+    int max_steps = 0;
+    size_t max_ind = -1;
+    for (size_t i = 0; i < length; ++i)
+        if (v[i] < 0) {
+            fprintf(stderr, "Number %zu gets out of 64 bits at step %i\n", start + 1 + i, -v[i]);
+        }
+        else if ((v[i] == 0) && (start + i != 0)) {
+            fprintf(stderr, "Number %zu did not converge to 1 at step %i\n", start + 1 + i, INT_MAX - 2);
+        }
+        else if (v[i] > max_steps) {
+            max_steps = v[i];
+            max_ind = start + 1 + i;
+        }
+    printf("From %zu numbers checked starting from %zu, maximum %i steps was needed to get to 1 for number %zu\n",
+        length, start + 1, max_steps, max_ind);
+
     /// Cleanup
+buff:   OCLERROR_RET(clReleaseMemObject(buf), end_error, vec);
+vec:    free(v);
+col:    OCLERROR_RET(clReleaseKernel(Collatz), end_error, que);
+que:    OCLERROR_RET(clReleaseCommandQueue(queue), end_error, prg);
+prg:    OCLERROR_RET(clReleaseProgram(program), end_error, cont);
 cont:   OCLERROR_RET(clReleaseContext(context), end_error, end);
 end:    if (error != CL_SUCCESS) cl_util_print_error(error);
     return error;
