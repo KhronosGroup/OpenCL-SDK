@@ -16,4 +16,5 @@ add_sample(
     TEST
     TARGET binaries
     VERSION 300
-    SOURCES main.c)
+    SOURCES main.c
+    KERNELS Collatz.cl)

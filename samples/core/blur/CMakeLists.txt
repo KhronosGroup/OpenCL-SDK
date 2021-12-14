@@ -16,4 +16,5 @@ add_sample(
     TEST
     TARGET blur
     VERSION 300
-    SOURCES main.c)
+    SOURCES main.c
+    KERNELS blur.cl)

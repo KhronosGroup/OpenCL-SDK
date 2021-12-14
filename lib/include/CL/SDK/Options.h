@@ -26,6 +26,6 @@ struct cl_sdk_options_SingleDevice
 
 struct cl_sdk_options_MultiDevice
 {
-    struct cl_sdk_options_DeviceTriplet * triplets;
+    struct cl_sdk_options_DeviceTriplet* triplets;
     size_t number;
 };

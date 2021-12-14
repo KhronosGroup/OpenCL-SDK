@@ -5,12 +5,12 @@
 
 #include <CL/opencl.hpp>
 
-namespace cl
-{
-namespace util
-{
-    bool UTILSCPP_EXPORT supports_extension(const cl::Platform& platform, const cl::string& extension);
+namespace cl {
+namespace util {
+    bool UTILSCPP_EXPORT supports_extension(const cl::Platform& platform,
+                                            const cl::string& extension);
 
-    bool UTILSCPP_EXPORT platform_version_contains(const cl::Platform& platform, const cl::string& version_fragment);
+    bool UTILSCPP_EXPORT platform_version_contains(
+        const cl::Platform& platform, const cl::string& version_fragment);
 }
 }

@@ -3,9 +3,9 @@
 
 void cl_util_print_error(const cl_int error)
 {
-    switch (error) {
-        case CL_SUCCESS:
-            break;
+    switch (error)
+    {
+        case CL_SUCCESS: break;
         case CL_DEVICE_NOT_FOUND:
             fprintf(stderr, "\nError: CL_DEVICE_NOT_FOUND\n");
             break;
@@ -47,7 +47,8 @@ void cl_util_print_error(const cl_int error)
             fprintf(stderr, "\nError: CL_MISALIGNED_SUB_BUFFER_OFFSET\n");
             break;
         case CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST:
-            fprintf(stderr, "\nError: CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST\n");
+            fprintf(stderr,
+                    "\nError: CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST\n");
             break;
 #endif
 #ifdef CL_VERSION_1_2
@@ -215,8 +216,6 @@ void cl_util_print_error(const cl_int error)
             fprintf(stderr, "\nError: CL_UTIL_FILE_OPERATION_ERROR\n");
             break;
         // end of SDK errors
-        default:
-            fprintf(stderr, "\nUnknown error: %i\n", error);
-            break;
+        default: fprintf(stderr, "\nUnknown error: %i\n", error); break;
     }
 }

@@ -6,10 +6,8 @@
 // OpenCL includes
 #include <CL/opencl.hpp>
 
-namespace cl
-{
-namespace sdk
-{
+namespace cl {
+namespace sdk {
     struct Image
     {
         int width, height, pixel_size;

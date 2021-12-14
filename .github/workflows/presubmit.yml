@@ -28,8 +28,16 @@ jobs:
           submodules: recursive
       - name: Build
         run: |
-            mkdir build
-            cd build
+            if [[ "${{ matrix.os }}" == "ubuntu-20.04" ]]; then
+              sudo apt update
+              sudo apt install -y libtclap-dev libglm-dev libglew-dev libsfml-dev libstb-dev libidn11 libx11-dev libxrandr-dev libxi-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libudev-dev
+            elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+              brew install tclap glm glew sfml mesa-glu
+              git clone https://github.com/Microsoft/vcpkg.git
+              ./vcpkg/bootstrap-vcpkg.sh
+              ./vcpkg/vcpkg install stb
+              TOOLCHAIN_ARG="-D CMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake"
+            fi
             if [[ "${{ matrix.compiler }}" == "gcc" ]]; then
               CC=gcc
               CXX=g++
@@ -37,8 +45,8 @@ jobs:
               CC=clang
               CXX=clang++
             fi
-            cmake -DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX ../
-            make -j2 VERBOSE=1
+            cmake -D CMAKE_C_COMPILER=$CC -D CMAKE_CXX_COMPILER=$CXX $TOOLCHAIN_ARG -S . -B build
+            cmake --build ./build --verbose --parallel 2
   buildwin:
     needs: format
     name: Build Windows
@@ -50,10 +58,11 @@ jobs:
           submodules: recursive
       - name: Build
         run: |
-          mkdir build
-          cd build
-          cmake ../
-          cmake --build .
+          git clone https://github.com/Microsoft/vcpkg.git
+          .\vcpkg\bootstrap-vcpkg.bat
+          .\vcpkg\vcpkg.exe --triplet=x64-windows install sfml tclap glm glew stb
+          cmake -D CMAKE_TOOLCHAIN_FILE=.\vcpkg\scripts\buildsystems\vcpkg.cmake -S . -B build
+          cmake --build ./build -- /verbosity:minimal /maxCpuCount /noLogo
 
   python:
     name: Exercise Python examples on ${{matrix.os}}

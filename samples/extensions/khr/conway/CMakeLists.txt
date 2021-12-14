@@ -16,6 +16,8 @@ add_sample(
     TARGET conwaycpp
     VERSION 120
     SOURCES main.cpp
-    INCLUDES ${TCLAP_INCLUDE_DIR}
-    LIBS sfml-window GLEW::GLEW
+    KERNELS conway.cl
+    SHADERS
+        conway.vert.glsl
+        conway.frag.glsl
     )

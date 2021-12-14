@@ -23,17 +23,37 @@ variables:
   image: streamhpc/opencl-sdk-base:ubuntu-18.04-20211119
   parallel:
     matrix:
-  # NOTE: Old CMake versions will likely not use cutting-edge compilers
+    # NOTE 1: Old CMake versions will likely not use cutting-edge compilers
+    # NOTE 2: To reduce CI time, we test a complete matrix only with the
+    #         oldest supported GCC and LLVM compilers. Rest use defaults
       - C_COMPILER: gcc-7
         CXX_COMPILER: g++-7
+        BUILD_SAMPLES: ["ON", "OFF"]
+        BUILD_OPENGL: "ON"
+      - C_COMPILER: gcc-7
+        CXX_COMPILER: g++-7
+        BUILD_SAMPLES: "ON"
+        BUILD_OPENGL: "OFF"
       - C_COMPILER: gcc-8
         CXX_COMPILER: g++-8
+        BUILD_SAMPLES: "ON"
+        BUILD_OPENGL: "ON"
       - C_COMPILER: clang-8
         CXX_COMPILER: clang++-8
+        BUILD_SAMPLES: ["ON", "OFF"]
+        BUILD_OPENGL: "ON"
+      - C_COMPILER: clang-8
+        CXX_COMPILER: clang++-8
+        BUILD_SAMPLES: "ON"
+        BUILD_OPENGL: "OFF"
       - C_COMPILER: clang-9
         CXX_COMPILER: clang++-9
+        BUILD_SAMPLES: "ON"
+        BUILD_OPENGL: "ON"
       - C_COMPILER: clang-10
         CXX_COMPILER: clang++-10
+        BUILD_SAMPLES: "ON"
+        BUILD_OPENGL: "ON"
   before_script:
     - export PATH=/opt/Kitware/CMake/$CMAKE_MINIMUM/bin:$PATH
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@projects.streamhpc.com/".insteadOf "git@projects.streamhpc.com:"
@@ -46,14 +66,32 @@ variables:
   # NOTE: Cutting edge CMake versions will likely not use old compilers
       - C_COMPILER: gcc-9
         CXX_COMPILER: g++-9
+        BUILD_SAMPLES: "ON"
+        BUILD_OPENGL: "ON"
       - C_COMPILER: gcc-10
         CXX_COMPILER: g++-10
+        BUILD_SAMPLES: ["ON", "OFF"]
+        BUILD_OPENGL: "ON"
+      - C_COMPILER: gcc-10
+        CXX_COMPILER: g++-10
+        BUILD_SAMPLES: "ON"
+        BUILD_OPENGL: "OFF"
       - C_COMPILER: clang-11
         CXX_COMPILER: clang++-11
+        BUILD_SAMPLES: "ON"
+        BUILD_OPENGL: "ON"
       - C_COMPILER: clang-12
         CXX_COMPILER: clang++-12
+        BUILD_SAMPLES: "ON"
+        BUILD_OPENGL: "ON"
       - C_COMPILER: clang-13
         CXX_COMPILER: clang++-13
+        BUILD_SAMPLES: ["ON", "OFF"]
+        BUILD_OPENGL: "ON"
+      - C_COMPILER: clang-13
+        CXX_COMPILER: clang++-13
+        BUILD_SAMPLES: "ON"
+        BUILD_OPENGL: "OFF"
   before_script:
     - export PATH=/opt/Kitware/CMake/$CMAKE_LATEST/bin:$PATH
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@projects.streamhpc.com/".insteadOf "git@projects.streamhpc.com:"
@@ -65,14 +103,32 @@ variables:
   # NOTE: Old CMake versions will likely not use cutting-edge compilers
       - C_COMPILER: gcc-7
         CXX_COMPILER: g++-7
+        BUILD_SAMPLES: ["ON", "OFF"]
+        BUILD_OPENGL: "ON"
+      - C_COMPILER: gcc-7
+        CXX_COMPILER: g++-7
+        BUILD_SAMPLES: "ON"
+        BUILD_OPENGL: "OFF"
       - C_COMPILER: gcc-8
         CXX_COMPILER: g++-8
+        BUILD_SAMPLES: "ON"
+        BUILD_OPENGL: "ON"
       - C_COMPILER: clang-8
         CXX_COMPILER: clang++-8
+        BUILD_SAMPLES: ["ON", "OFF"]
+        BUILD_OPENGL: "ON"
+      - C_COMPILER: clang-8
+        CXX_COMPILER: clang++-8
+        BUILD_SAMPLES: "ON"
+        BUILD_OPENGL: "OFF"
       - C_COMPILER: clang-9
         CXX_COMPILER: clang++-9
+        BUILD_SAMPLES: "ON"
+        BUILD_OPENGL: "ON"
       - C_COMPILER: clang-10
         CXX_COMPILER: clang++-10
+        BUILD_SAMPLES: "ON"
+        BUILD_OPENGL: "ON"
   before_script:
     - export PATH=/opt/Kitware/CMake/$CMAKE_MINIMUM/bin:$PATH
 
@@ -82,14 +138,32 @@ variables:
   # NOTE: Cutting edge CMake versions will likely not use old compilers
       - C_COMPILER: gcc-9
         CXX_COMPILER: g++-9
+        BUILD_SAMPLES: "ON"
+        BUILD_OPENGL: "ON"
       - C_COMPILER: gcc-10
         CXX_COMPILER: g++-10
+        BUILD_SAMPLES: ["ON", "OFF"]
+        BUILD_OPENGL: "ON"
+      - C_COMPILER: gcc-10
+        CXX_COMPILER: g++-10
+        BUILD_SAMPLES: "ON"
+        BUILD_OPENGL: "OFF"
       - C_COMPILER: clang-11
         CXX_COMPILER: clang++-11
+        BUILD_SAMPLES: "ON"
+        BUILD_OPENGL: "ON"
       - C_COMPILER: clang-12
         CXX_COMPILER: clang++-12
+        BUILD_SAMPLES: "ON"
+        BUILD_OPENGL: "ON"
       - C_COMPILER: clang-13
         CXX_COMPILER: clang++-13
+        BUILD_SAMPLES: ["ON", "OFF"]
+        BUILD_OPENGL: "ON"
+      - C_COMPILER: clang-13
+        CXX_COMPILER: clang++-13
+        BUILD_SAMPLES: "ON"
+        BUILD_OPENGL: "OFF"
   before_script:
     - export PATH=/opt/Kitware/CMake/$CMAKE_LATEST/bin:$PATH
 
@@ -106,6 +180,9 @@ build:cmake-minimum:
   # NOTE 2: Lack of space in -H<folder> -B<folder> is important!
   #         https://stackoverflow.com/a/20611964/1476661
   script:
+    # When not building OpenGL samples, delete OpenGL-related deps from image to make sure we
+    # don't accidentally include a header that otherwise need not be installed
+    - if [[ "$BUILD_OPENGL" == "OFF" ]]; then /opt/Microsoft/vcpkg/vcpkg remove sfml glm; fi;
     # Clone, configure, build, install OpenCL-SDK
     - cmake
       -G Ninja
@@ -119,7 +196,8 @@ build:cmake-minimum:
       -D BUILD_DOCS=OFF
       -D BUILD_EXAMPLES=OFF
       -D BUILD_TESTS=ON
-      -D OPENCL_SDK_BUILD_SAMPLES=ON
+      -D OPENCL_SDK_BUILD_SAMPLES=$BUILD_SAMPLES
+      -D OPENCL_SDK_BUILD_OPENGL_SAMPLES=$BUILD_OPENGL
       -D OPENCL_SDK_TEST_SAMPLES=ON
       -D CMAKE_INSTALL_PREFIX=$INSTALL_DIR
       -B$BUILD_DIR
@@ -139,6 +217,9 @@ build:cmake-latest:
   extends: .toolchain-matrix-latest
   stage: build
   script:
+    # When not building OpenGL samples, delete OpenGL-related deps from image to make sure we
+    # don't accidentally include a header that otherwise need not be installed
+    - if [[ "$BUILD_OPENGL" == "OFF" ]]; then /opt/Microsoft/vcpkg/vcpkg remove sfml glm; fi;
     # Clone, configure, build, install OpenCL-SDK
     - cmake
       -G "Ninja Multi-Config"
@@ -151,8 +232,10 @@ build:cmake-latest:
       -D BUILD_DOCS=OFF
       -D BUILD_EXAMPLES=OFF
       -D BUILD_TESTS=ON
-      -D OPENCL_SDK_BUILD_SAMPLES=ON
-      -D OPENCL_SDK_TEST_SAMPLES=ONINSTALL_DIR
+      -D OPENCL_SDK_BUILD_SAMPLES=$BUILD_SAMPLES
+      -D OPENCL_SDK_BUILD_OPENGL_SAMPLES=$BUILD_OPENGL
+      -D OPENCL_SDK_TEST_SAMPLES=ON
+      -D CMAKE_INSTALL_PREFIX=$INSTALL_DIR
       -B $BUILD_DIR
       -S $CI_PROJECT_DIR
     - cmake

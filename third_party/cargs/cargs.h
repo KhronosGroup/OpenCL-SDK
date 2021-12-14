@@ -7,17 +7,23 @@
  *
  * Copyright (c) 2020 Leonard Iklé
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files
- * (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge,
- * publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
- * subject to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
- * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
- * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  *
  * This is a simple alternative cross-platform implementation of getopt, which
  * is used to parse argument strings submitted to the executable (argc and argv
@@ -31,8 +37,7 @@
 #include <stdio.h>
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 /**
@@ -41,11 +46,11 @@ extern "C"
  */
 typedef struct cag_option
 {
-  const char identifier;
-  const char *access_letters;
-  const char *access_name;
-  const char *value_name;
-  const char *description;
+    const char identifier;
+    const char *access_letters;
+    const char *access_name;
+    const char *value_name;
+    const char *description;
 } cag_option;
 
 /**
@@ -54,15 +59,15 @@ typedef struct cag_option
  */
 typedef struct cag_option_context
 {
-  const struct cag_option *options;
-  size_t option_count;
-  int argc;
-  char **argv;
-  int index;
-  int inner_index;
-  bool forced_end;
-  char identifier;
-  char *value;
+    const struct cag_option *options;
+    size_t option_count;
+    int argc;
+    char **argv;
+    int index;
+    int inner_index;
+    bool forced_end;
+    char identifier;
+    char *value;
 } cag_option_context;
 
 /**
@@ -82,7 +87,7 @@ typedef struct cag_option_context
  * @param destination The destination where the output will be printed.
  */
 void cag_option_print(const cag_option *options, size_t option_count,
-  FILE *destination);
+                      FILE *destination);
 
 /**
  * @brief Prepare argument options context for parsing.
@@ -99,7 +104,7 @@ void cag_option_print(const cag_option *options, size_t option_count,
  * @param argv A pointer to the arguments of the main function.
  */
 void cag_option_prepare(cag_option_context *context, const cag_option *options,
-  size_t option_count, int argc, char **argv);
+                        size_t option_count, int argc, char **argv);
 
 /**
  * @brief Fetches an option from the argument list.
@@ -138,7 +143,7 @@ char cag_option_get(const cag_option_context *context);
  * @param context The context from which the option was fetched.
  * @return Returns a pointer to the value or NULL if there is no value.
  */
-const char * cag_option_get_value(const cag_option_context *context);
+const char *cag_option_get_value(const cag_option_context *context);
 
 /**
  * @brief Gets the current index of the context.

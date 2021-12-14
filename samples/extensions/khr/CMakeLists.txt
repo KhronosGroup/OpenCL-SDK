@@ -13,3 +13,7 @@
 # limitations under the License.
 
 add_subdirectory(histogram)
+if(OPENCL_SDK_BUILD_OPENGL_SAMPLES)
+  add_subdirectory(conway)
+  add_subdirectory(nbody)
+endif()

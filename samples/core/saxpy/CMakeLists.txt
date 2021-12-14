@@ -16,11 +16,12 @@ add_sample(
     TEST
     TARGET saxpy
     VERSION 120
-    SOURCES main.c)
+    SOURCES main.c
+    KERNELS saxpy.cl)
 
 add_sample(
     TEST
-    TARGET cppsaxpy
+    TARGET saxpycpp
     VERSION 120
     SOURCES main.cpp
-    INCLUDES ${TCLAP_INCLUDE_DIR})
+    KERNELS saxpy.cl)

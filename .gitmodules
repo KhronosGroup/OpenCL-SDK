@@ -1,12 +1,12 @@
 [submodule "loader"]
 	path = external/OpenCL-ICD-Loader
-	url = git@projects.streamhpc.com:Khronos/OpenCL-ICD-Loader.git
+	url = https://github.com/StreamHPC/OpenCL-ICD-Loader.git
 	branch = develop_stream
 [submodule "headers"]
 	path = external/OpenCL-Headers
-	url = git@projects.streamhpc.com:Khronos/OpenCL-Headers.git
+	url = https://github.com/StreamHPC/OpenCL-Headers.git
 	branch = develop_stream
 [submodule "headers-cpp"]
 	path = external/OpenCL-CLHPP
-	url = git@projects.streamhpc.com:Khronos/OpenCL-CLHPP.git
+	url = https://github.com/StreamHPC/OpenCL-CLHPP.git
 	branch = develop_stream

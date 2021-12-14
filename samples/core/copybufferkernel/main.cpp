@@ -88,9 +88,7 @@ static void checkResults(Sample& sample)
         printf("Success.\n");
     }
 
-    sample.commandQueue.enqueueUnmapMemObject(
-        sample.deviceMemDst,
-        (void*)pDst);
+    sample.commandQueue.enqueueUnmapMemObject(sample.deviceMemDst, (void*)pDst);
 
     // Ensure that the unmap operation is complete.
     sample.commandQueue.finish();

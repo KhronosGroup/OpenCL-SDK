@@ -42,35 +42,36 @@ add_subdirectory(external/OpenCL-Headers)
 add_subdirectory(external/OpenCL-ICD-Loader)
 add_subdirectory(external/OpenCL-CLHPP)
 
-add_subdirectory(third_party/cargs)
-if(OPENCL_SDK_BUILD_OPENGL_SAMPLES)
-  cmake_minimum_required(VERSION 3.10) # SFML 2 won't find Freetype::Freetype under 3.10
+if(OPENCL_SDK_BUILD_SAMPLES)
+  list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/Modules)
+  add_subdirectory(third_party/cargs)
+  find_package(TCLAP REQUIRED)
   find_package(Stb REQUIRED)
-  find_package(OpenGL REQUIRED)
-  if(CMAKE_SYSTEM_NAME MATCHES Linux) # TODO: Add EGL support
-    # OpenGL doesn't explicitly depend on X11 (as of CMake v3.2) but we'll need it
-    find_package(X11 REQUIRED)
-  endif()
-  find_package(GLEW REQUIRED)
-  if(NOT TARGET OpenGL::GLU)
-    # GLU is a dependency of GLEW but it's not advertized as an OpenGL COMPONENT
-    message(FATAL_ERROR "GLEW depends on GLU but was not found.")
-  endif()
-  find_package(SFML 2
-    REQUIRED
-    COMPONENTS window graphics
-  )
-endif()
+  if(OPENCL_SDK_BUILD_OPENGL_SAMPLES)
+    cmake_minimum_required(VERSION 3.10) # SFML 2 won't find Freetype::Freetype under 3.10
+    find_package(OpenGL REQUIRED)
+    if(CMAKE_SYSTEM_NAME MATCHES Linux) # TODO: Add EGL support
+      # OpenGL doesn't explicitly depend on X11 (as of CMake v3.2) but we'll need it
+      find_package(X11 REQUIRED)
+    endif()
+    find_package(GLEW REQUIRED)
+    if(NOT TARGET OpenGL::GLU)
+      # GLU is a dependency of GLEW but it's not advertized as an OpenGL COMPONENT
+      message(FATAL_ERROR "GLEW depends on GLU but was not found.")
+    endif()
+    find_package(SFML 2
+      REQUIRED
+      COMPONENTS window graphics
+    )
+    find_package(GLEW REQUIRED)
+    find_package(glm CONFIG REQUIRED)
+  endif(OPENCL_SDK_BUILD_OPENGL_SAMPLES)
+endif(OPENCL_SDK_BUILD_SAMPLES)
 
 add_subdirectory(lib)
-add_subdirectory(samples)
-
-include (GNUInstallDirs)
-set_target_properties(OpenCL OpenCLUtils OpenCLUtilsCpp
-  PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}
-    RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}
-)
+if(OPENCL_SDK_BUILD_SAMPLES)
+  add_subdirectory(samples)
+endif()
 
 include(GNUInstallDirs)
 file(

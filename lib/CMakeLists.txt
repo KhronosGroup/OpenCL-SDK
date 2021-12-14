@@ -14,18 +14,7 @@ foreach(UTIL_LIB_NAME IN ITEMS Utils UtilsCpp)
     set(UTIL_LIB_DEPS
       OpenCL::HeadersCpp
       OpenCL::Utils
-      OpenGL::GL
-      GLEW::GLEW
-      $<$<PLATFORM_ID:Linux>:OpenGL::GLU>
-      sfml-window
-      sfml-graphics
     )
-    if(CMAKE_VERSION VERSION_LESS 3.4)
-      list(APPEND UTIL_LIB_DEPS ${OPENGL_LIBRARIES})
-    else()
-      list(APPEND UTIL_LIB_DEPS OpenGL::GL)
-    endif()
-    set(UTIL_CL_VERSION_MACRO_NAME CL_HPP_TARGET_OPENCL_VERSION)
   else()
     message(FATAL_ERROR "Unkown Util flavor")
   endif()
@@ -49,8 +38,6 @@ foreach(UTIL_LIB_NAME IN ITEMS Utils UtilsCpp)
     PUBLIC
       ${UTIL_LIB_DEPS}
       OpenCL::OpenCL
-    PRIVATE
-      cargs
   )
   target_compile_definitions(${UTIL_LIB_TARGET}
     PRIVATE
@@ -61,7 +48,8 @@ foreach(UTIL_LIB_NAME IN ITEMS Utils UtilsCpp)
 
   set_target_properties(${UTIL_LIB_TARGET}
     PROPERTIES
-      LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
+      LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}
+      RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}
       FOLDER "Libraries/${UTIL_LIB_NAME}"
   )
 
@@ -73,8 +61,8 @@ foreach(UTIL_LIB_NAME IN ITEMS Utils UtilsCpp)
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   )
   install(
-    DIRECTORY include/CL
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    DIRECTORY include/CL/Utils
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/CL
   )
   export(
     EXPORT OpenCL${UTIL_LIB_NAME}Targets
@@ -111,72 +99,111 @@ foreach(UTIL_LIB_NAME IN ITEMS Utils UtilsCpp)
   )
 endforeach()
 
-foreach(SDK_LIB_NAME IN ITEMS SDK SDKCpp)
-  if(SDK_LIB_NAME STREQUAL SDK)
-    set(SDK_LIB_SOURCES src/SDK/SDK.c)
-    set(SDK_LIB_DEPS
-      OpenCL::Headers
-      OpenCL::Utils
-    )
-    set(SDK_CL_VERSION_MACRO_NAME CL_TARGET_OPENCL_VERSION)
-  elseif(SDK_LIB_NAME STREQUAL SDKCpp)
-    set(SDK_LIB_SOURCES
-      src/SDK/Image.cpp
-      src/SDK/InteropContext.cpp
-      src/SDK/InteropWindow.cpp
-    )
-    set(SDK_LIB_DEPS
-      OpenCL::HeadersCpp
-      OpenCL::UtilsCpp
-      GLEW::GLEW
-      $<$<PLATFORM_ID:Linux>:OpenGL::GLU>
-      sfml-window
-      sfml-graphics
-    )
-    if(CMAKE_VERSION VERSION_LESS 3.4)
-      list(APPEND SDK_LIB_DEPS ${OPENGL_LIBRARIES})
+if(OPENCL_SDK_BUILD_SAMPLES)
+  foreach(SDK_LIB_NAME IN ITEMS SDK SDKCpp)
+    if(SDK_LIB_NAME STREQUAL SDK)
+      set(SDK_LIB_SOURCES src/SDK/SDK.c)
+      set(SDK_LIB_DEPS
+        OpenCL::Headers
+        OpenCL::Utils
+        cargs
+      )
+      set(SDK_LIB_INCLUDES
+        ${Stb_INCLUDE_DIR}
+      )
+      set(SDK_CL_VERSION_MACRO_NAME CL_TARGET_OPENCL_VERSION)
+    elseif(SDK_LIB_NAME STREQUAL SDKCpp)
+      set(SDK_LIB_SOURCES
+        src/SDK/CLI.cpp
+        src/SDK/Image.cpp
+        $<$<BOOL:${OPENCL_SDK_BUILD_OPENGL_SAMPLES}>:src/SDK/InteropContext.cpp>
+        $<$<BOOL:${OPENCL_SDK_BUILD_OPENGL_SAMPLES}>:src/SDK/InteropWindow.cpp>
+      )
+      set(SDK_LIB_DEPS
+        OpenCL::HeadersCpp
+        OpenCL::UtilsCpp
+        $<$<BOOL:${OPENCL_SDK_BUILD_OPENGL_SAMPLES}>:OpenGL::GL>
+        $<$<BOOL:${OPENCL_SDK_BUILD_OPENGL_SAMPLES}>:GLEW::GLEW>
+        $<$<AND:$<BOOL:${OPENCL_SDK_BUILD_OPENGL_SAMPLES}>,$<PLATFORM_ID:Linux>>:OpenGL::GLU>
+        $<$<BOOL:${OPENCL_SDK_BUILD_OPENGL_SAMPLES}>:sfml-system>
+        $<$<BOOL:${OPENCL_SDK_BUILD_OPENGL_SAMPLES}>:sfml-window>
+        $<$<BOOL:${OPENCL_SDK_BUILD_OPENGL_SAMPLES}>:sfml-graphics>
+      )
+      set(SDK_LIB_INCLUDES
+        ${TCLAP_INCLUDE_DIR}
+        ${Stb_INCLUDE_DIR}
+      )
+      set(SDK_CL_VERSION_MACRO_NAME CL_HPP_TARGET_OPENCL_VERSION)
     else()
-      list(APPEND SDK_LIB_DEPS OpenGL::GL)
+      message(FATAL_ERROR "Unkown SDK flavor")
     endif()
-    set(SDK_CL_VERSION_MACRO_NAME CL_HPP_TARGET_OPENCL_VERSION)
-  else()
-    message(FATAL_ERROR "Unkown SDK flavor")
-  endif()
-  set(SDK_LIB_TARGET OpenCL${SDK_LIB_NAME})
-  add_library(${SDK_LIB_TARGET} ${SDK_LIB_SOURCES})
-  add_library(OpenCL::${SDK_LIB_NAME} ALIAS ${SDK_LIB_TARGET})
 
-  string(TOUPPER ${SDK_LIB_NAME} UPPER_SDK_LIB_NAME)
-  generate_export_header(${SDK_LIB_TARGET}
-    EXPORT_MACRO_NAME ${UPPER_SDK_LIB_NAME}_EXPORT
-    EXPORT_FILE_NAME OpenCL${SDK_LIB_NAME}_Export.h
-  )
+    set(SDK_LIB_TARGET OpenCL${SDK_LIB_NAME})
+    add_library(${SDK_LIB_TARGET} ${SDK_LIB_SOURCES})
+    add_library(OpenCL::${SDK_LIB_NAME} ALIAS ${SDK_LIB_TARGET})
 
-  target_include_directories(${SDK_LIB_TARGET}
-    PUBLIC
-      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-      $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-      $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
-    PRIVATE
-      ${Stb_INCLUDE_DIR}
-  )
-  target_link_libraries(${SDK_LIB_TARGET}
-    PUBLIC
-      ${SDK_LIB_DEPS}
-      OpenCL::OpenCL
-    PRIVATE
-      cargs
-  )
-  target_compile_definitions(${SDK_LIB_TARGET}
-    PRIVATE
-      ${SDK_CL_VERSION_MACRO_NAME}=300
-    PUBLIC
-      CL_HPP_ENABLE_EXCEPTIONS
-  )
+    string(TOUPPER ${SDK_LIB_NAME} UPPER_SDK_LIB_NAME)
+    generate_export_header(${SDK_LIB_TARGET}
+      EXPORT_MACRO_NAME ${UPPER_SDK_LIB_NAME}_EXPORT
+      EXPORT_FILE_NAME OpenCL${SDK_LIB_NAME}_Export.h
+    )
+    configure_file(
+      include/CL/SDK/OpenCLSDK_Config.in.h
+      ${CMAKE_CURRENT_BINARY_DIR}/OpenCLSDK_Config.h
+    )
 
-  set_target_properties(${SDK_LIB_TARGET}
-    PROPERTIES
-      LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
-      FOLDER "Libraries/${SDK_LIB_NAME}"
-  )
-endforeach()
+    target_include_directories(${SDK_LIB_TARGET}
+      PUBLIC
+        ${SDK_LIB_INCLUDES}
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+    )
+    target_link_libraries(${SDK_LIB_TARGET}
+      PUBLIC
+        ${SDK_LIB_DEPS}
+        OpenCL::OpenCL
+    )
+    target_compile_definitions(${SDK_LIB_TARGET}
+      PRIVATE
+        ${SDK_CL_VERSION_MACRO_NAME}=300
+      PUBLIC
+        CL_HPP_ENABLE_EXCEPTIONS
+    )
+
+    set_target_properties(${SDK_LIB_TARGET}
+      PROPERTIES
+        LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}
+        RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}
+        FOLDER "Libraries/${SDK_LIB_NAME}"
+    )
+    install(
+      TARGETS ${SDK_LIB_TARGET}
+      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    )
+    # Copying DLLs the samples depend on only makes sense on Wnidows. On *nix
+    # OSes we rely on RPATH. We can only do this with sufficiently new CMake.
+    if(
+      OPENCL_SDK_BUILD_OPENGL_SAMPLES AND
+      CMAKE_VERSION VERSION_GREATER_EQUAL 3.21 AND
+      CMAKE_SYSTEM_NAME MATCHES Windows
+    )
+      foreach(DEP IN ITEMS
+        GLEW::GLEW
+        sfml-window
+        sfml-graphics
+        sfml-system
+      )
+        get_target_property(DEP_TYPE ${DEP} TYPE)
+        if(${DEP_TYPE} STREQUAL SHARED_LIBRARY)
+          install(
+            IMPORTED_RUNTIME_ARTIFACTS
+              ${DEP}
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+          )
+        endif()
+      endforeach()
+    endif()
+  endforeach()
+endif(OPENCL_SDK_BUILD_SAMPLES)

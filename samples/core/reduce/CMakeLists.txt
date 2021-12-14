@@ -16,11 +16,12 @@ add_sample(
     TEST
     TARGET reduce
     VERSION 300
-    SOURCES main.c)
+    SOURCES main.c
+    KERNELS reduce.cl)
 
 add_sample(
     TEST
     TARGET reducecpp
     VERSION 300
     SOURCES main.cpp
-    INCLUDES ${TCLAP_INCLUDE_DIR})
+    KERNELS reduce.cl)
