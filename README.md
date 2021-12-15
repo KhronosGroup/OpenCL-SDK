@@ -55,4 +55,4 @@ If CMake is not provided by your build system or OS package manager, please cons
 1. Build and install SDK with samples and no downstream unit tests
 
        cmake -D BUILD_TESTING=OFF -D BUILD_DOCS=OFF -D BUILD_EXAMPLES=OFF -D BUILD_TESTS=OFF -D OPENCL_SDK_BUILD_SAMPLES=ON -D OPENCL_SDK_TEST_SAMPLES=OFF -D CMAKE_TOOLCHAIN_FILE=/vcpkg/install/root/scripts/buildsystems/vcpkg.cmake -B ./OpenCL-SDK/build -S ./OpenCL-SDK
-       C:\Kellekek\Kitware\CMake\3.21.4\bin\cmake.exe --build ./OpenCL-SDK/build --target install
+       cmake --build ./OpenCL-SDK/build --target install
