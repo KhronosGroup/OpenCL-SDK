@@ -17,7 +17,6 @@ if(CMAKE_CONFIGURATION_TYPES)
 else()
     set(OPENCL_SAMPLE_CONFIGS ${CMAKE_BUILD_TYPE})
 endif()
-list(APPEND CMAKE_INSTALL_RPATH "${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}")
 
 # add math library to link if needed
 # method by Michael Ambrus, https://stackoverflow.com/questions/34625627
@@ -84,6 +83,51 @@ macro(add_sample)
         BUILD_RPATH "${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}/$<$<BOOL:${CMAKE_CONFIGURATION_TYPES}>:$<CONFIG>>"
         INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}"
         FOLDER "Samples/${OPENCL_SAMPLE_CATEGORY}/${OPENCL_SAMPLE_TARGET}"
+    )
+
+    # We register utility targets that copy kernel/shader code to build tree so that samples can be run from there.
+    # We can't use OPENCL_SAMPLE_TARGET-device-code as a target name, because we often have two samples (C and CXX)
+    # refering to the same device source code. Instead we use CURRENT_FOLDER_NAME and check for the utility target
+    # already existing. If it does, we don't register redundant custom_commands and targets. (They would only cause
+    # conflicting jobs in parallel MSBuild builds. Ninja is smart enough.) Either way, we add a convenience dependence
+    # of OPENCL_SAMPLE_TARGET on the utility to make sure building the host code copies kernels too.
+    get_filename_component(CURRENT_FOLDER_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+    if(NOT TARGET ${CURRENT_FOLDER_NAME}-device-code)
+      set(DEVICE_CODE_OUTPUTS)
+      foreach(DEVICE_CODE_SOURCE IN LISTS OPENCL_SAMPLE_KERNELS OPENCL_SAMPLE_SHADERS)
+        # NOTE: if() and foreach() could be omitted if CMake ver > 3.20 (COMMAND and OUTPUT needs genexpr)
+        if(CMAKE_CONFIGURATION_TYPES)
+          foreach(CONFIG_TYPE IN LISTS CMAKE_CONFIGURATION_TYPES)
+            add_custom_command(
+              OUTPUT "${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}/${CONFIG_TYPE}/${DEVICE_CODE_SOURCE}"
+              COMMAND ${CMAKE_COMMAND}
+              ARGS -E copy_if_different
+                   "${CMAKE_CURRENT_LIST_DIR}/${DEVICE_CODE_SOURCE}"
+                   "${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}/${CONFIG_TYPE}/${DEVICE_CODE_SOURCE}"
+              DEPENDS ${DEVICE_CODE_SOURCE}
+              COMMENT "Copying ${DEVICE_CODE_SOURCE}"
+            )
+            list(APPEND DEVICE_CODE_OUTPUTS "${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}/${CONFIG_TYPE}/${DEVICE_CODE_SOURCE}")
+          endforeach()
+        else()
+          add_custom_command(
+            OUTPUT "${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}/${DEVICE_CODE_SOURCE}"
+            COMMAND ${CMAKE_COMMAND}
+            ARGS -E copy_if_different
+                 "${CMAKE_CURRENT_LIST_DIR}/${DEVICE_CODE_SOURCE}"
+                 "${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}/${DEVICE_CODE_SOURCE}"
+            DEPENDS ${DEVICE_CODE_SOURCE}
+            COMMENT "Copying ${DEVICE_CODE_SOURCE}"
+          )
+          list(APPEND DEVICE_CODE_OUTPUTS "${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}/${DEVICE_CODE_SOURCE}")
+        endif()
+      endforeach()
+      add_custom_target(${CURRENT_FOLDER_NAME}-device-code
+        DEPENDS ${DEVICE_CODE_OUTPUTS}
+      )
+    endif()
+    add_dependencies(${OPENCL_SAMPLE_TARGET}
+      ${CURRENT_FOLDER_NAME}-device-code
     )
 
     foreach(CONFIG ${OPENCL_SAMPLE_CONFIGS})
