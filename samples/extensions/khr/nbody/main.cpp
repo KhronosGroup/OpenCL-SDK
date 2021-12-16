@@ -257,9 +257,9 @@ void NBody::initializeGL()
         checkError("glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, "
                    "sizeof(cl_float4), (GLvoid *)(NULL))");
         glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, sizeof(cl_float4),
-                              (GLvoid*)(NULL + 3 * sizeof(float)));
+                              (GLvoid*)(0 + 3 * sizeof(float)));
         checkError("glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, "
-                   "sizeof(cl_float4), (GLvoid *)(NULL + 3 * sizeof(float)))");
+                   "sizeof(cl_float4), (GLvoid *)(0 + 3 * sizeof(float)))");
         glEnableVertexAttribArray(0);
         checkError("glEnableVertexAttribArray(0)");
         glEnableVertexAttribArray(1);

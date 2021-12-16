@@ -315,7 +315,7 @@ cl_program cl_util_read_binaries(const cl_context context,
 
     OCLERROR_PAR(program = clCreateProgramWithBinary(context, num_devices,
                                                      devices, binaries_size,
-                                                     binaries_ptr, &err, NULL),
+                                                     (const unsigned char**)binaries_ptr, &err, NULL),
                  err, end);
 
 end: // cleanup

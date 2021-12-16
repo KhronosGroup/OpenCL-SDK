@@ -213,9 +213,9 @@ void Conway::initializeGL()
     checkError("glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, "
                "4*sizeof(float), (GLvoid *)(NULL))");
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
-                          (GLvoid*)(NULL + 2 * sizeof(float)));
+                          (GLvoid*)(0 + 2 * sizeof(float)));
     checkError("glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, "
-               "4*sizeof(float), (GLvoid *)(NULL + 2 * sizeof(float)))");
+               "4*sizeof(float), (GLvoid *)(0 + 2 * sizeof(float)))");
     glEnableVertexAttribArray(0);
     checkError("glEnableVertexAttribArray(0)");
     glEnableVertexAttribArray(1);

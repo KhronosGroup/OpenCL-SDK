@@ -15,6 +15,7 @@ foreach(UTIL_LIB_NAME IN ITEMS Utils UtilsCpp)
       OpenCL::HeadersCpp
       OpenCL::Utils
     )
+    set(UTIL_CL_VERSION_MACRO_NAME CL_HPP_TARGET_OPENCL_VERSION)
   else()
     message(FATAL_ERROR "Unkown Util flavor")
   endif()
