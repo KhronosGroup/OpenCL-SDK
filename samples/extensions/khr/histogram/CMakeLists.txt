@@ -16,4 +16,5 @@ add_sample(
     TEST
     TARGET histogramcpp
     VERSION 120
-    SOURCES main.cpp)
+    SOURCES main.cpp
+    KERNELS histogram.cl)
