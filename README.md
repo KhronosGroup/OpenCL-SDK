@@ -40,7 +40,7 @@ If CMake is not provided by your build system or OS package manager, please cons
 
 ### Example Build
 
-> The example build guide uses [Vcpkg](https://vcpkg.io/en/index.html) to fetch all dependencies. Note that Vcpkg is _not_ a requirement and is only used for convenience. One may provide dependencies through any other CMake mechanism. For details on how to install Vcpkg, refer to it's [Getting Started Guide](https://vcpkg.io/en/getting-started.html)
+> The example build guide uses [Vcpkg](https://vcpkg.io/en/index.html) to fetch all dependencies. Note that Vcpkg is _not_ a requirement and is only used for convenience. One may provide dependencies through any other CMake mechanism. For details on how to install Vcpkg, refer to it's [Getting Started Guide](https://vcpkg.io/en/getting-started.html). The example build assumes targeting 64-bit Windows.
 
 1. Clone this repo with the rest of the OpenCL SDK components:
 
@@ -50,16 +50,18 @@ If CMake is not provided by your build system or OS package manager, please cons
 
 1. Install dependencies
 
-       vcpkg install sfml tclap glm
+       vcpkg --triplet x64-windows install sfml tclap glm
 
 1. Build and install SDK with samples and no downstream unit tests
 
-       cmake -D BUILD_TESTING=OFF \
-               -D BUILD_DOCS=OFF \
-               -D BUILD_EXAMPLES=OFF \
-               -D BUILD_TESTS=OFF \
-               -D OPENCL_SDK_BUILD_SAMPLES=ON \
-               -D OPENCL_SDK_TEST_SAMPLES=OFF \
-               -D CMAKE_TOOLCHAIN_FILE=/vcpkg/install/root/scripts/buildsystems/vcpkg.cmake \
-               -B ./OpenCL-SDK/build -S ./OpenCL-SDK
+       cmake -A x64 `
+             -D BUILD_TESTING=OFF `
+             -D BUILD_DOCS=OFF `
+             -D BUILD_EXAMPLES=OFF `
+             -D BUILD_TESTS=OFF `
+             -D OPENCL_SDK_BUILD_SAMPLES=ON `
+             -D OPENCL_SDK_TEST_SAMPLES=OFF `
+             -D CMAKE_TOOLCHAIN_FILE=/vcpkg/install/root/scripts/buildsystems/vcpkg.cmake `
+             -D VCPKG_TARGET_TRIPLET=x64-windows
+             -B ./OpenCL-SDK/build -S ./OpenCL-SDK
        cmake --build ./OpenCL-SDK/build --target install
