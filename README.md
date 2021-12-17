@@ -65,3 +65,5 @@ If CMake is not provided by your build system or OS package manager, please cons
              -D VCPKG_TARGET_TRIPLET=x64-windows
              -B ./OpenCL-SDK/build -S ./OpenCL-SDK
        cmake --build ./OpenCL-SDK/build --target install
+
+_(Note: on Linux paths to dependent libraries are automatically handled by RPATH in both the build and install tree. On Windows all DLLs have to be on the `PATH`. Vcpkg copies dependent DLLs to the build tree, but in order to do the same in the install tree, sufficiently new CMake version is required. CMake 3.21 instroduces `install(IMPORTED_RUNTIME_ARTIFACTS)`.)_
