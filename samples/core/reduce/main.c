@@ -512,7 +512,7 @@ int main(int argc, char *argv[])
                                          CL_PROFILING_COMMAND_END, &error)
                                      + 500)
                     / 1000);
-        printf("Reference execution as seen by host: %llu us.",
+        printf("Reference execution as seen by host: %llu us.\n",
                (unsigned long long)(host_time + 500) / 1000);
     }
 
