@@ -4,3 +4,24 @@ install/
 # vim
 *~
 .*.sw[op]
+
+# MacOS
+.DS_Store
+*.xcodeproj/
+
+# Visual Studio
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+
+# CMake
+CMakeFiles/
+CMakeScripts/
+CMakeCache.txt
+cmake_install.cmake
+
+# Build
+[Dd]ebug/
+[Rr]elease/
+*.dir
