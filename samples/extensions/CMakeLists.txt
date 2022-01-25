@@ -12,10 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(enumopencl)
-add_subdirectory(copybuffer)
-add_subdirectory(copybufferkernel)
-add_subdirectory(saxpy)
-add_subdirectory(reduce)
-add_subdirectory(blur)
-add_subdirectory(binaries)
+add_subdirectory(khr)

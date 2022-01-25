@@ -1,4 +1,4 @@
-# Copyright (c) 2020 The Khronos Group Inc.
+# Copyright (c) 2021 The Khronos Group Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,10 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(enumopencl)
-add_subdirectory(copybuffer)
-add_subdirectory(copybufferkernel)
-add_subdirectory(saxpy)
-add_subdirectory(reduce)
-add_subdirectory(blur)
-add_subdirectory(binaries)
+add_sample(
+    TEST
+    TARGET saxpy
+    VERSION 120
+    SOURCES main.c
+    KERNELS saxpy.cl)
+
+add_sample(
+    TEST
+    TARGET saxpycpp
+    VERSION 120
+    SOURCES main.cpp
+    KERNELS saxpy.cl)

@@ -77,9 +77,7 @@ static void checkResults(Sample& sample)
         printf("Success.\n");
     }
 
-    sample.commandQueue.enqueueUnmapMemObject(
-        sample.deviceMemDst,
-        (void*)pDst);
+    sample.commandQueue.enqueueUnmapMemObject(sample.deviceMemDst, (void*)pDst);
 
     // Ensure that the unmap operation is complete.
     sample.commandQueue.finish();
@@ -88,8 +86,8 @@ static void checkResults(Sample& sample)
 int main(int argc, char** argv)
 {
     bool printUsage = false;
-    int platformIndex = 0;
-    int deviceIndex = 0;
+    cl_uint platformIndex = 0;
+    cl_uint deviceIndex = 0;
 
     if (argc < 1)
     {
@@ -104,7 +102,7 @@ int main(int argc, char** argv)
                 ++i;
                 if (i < argc)
                 {
-                    deviceIndex = strtol(argv[i], NULL, 10);
+                    deviceIndex = strtoul(argv[i], NULL, 10);
                 }
             }
             else if (!strcmp(argv[i], "-p"))
@@ -112,7 +110,7 @@ int main(int argc, char** argv)
                 ++i;
                 if (i < argc)
                 {
-                    platformIndex = strtol(argv[i], NULL, 10);
+                    platformIndex = strtoul(argv[i], NULL, 10);
                 }
             }
             else

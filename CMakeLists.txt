@@ -14,29 +14,91 @@
 
 cmake_minimum_required(VERSION 3.0)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 
-project(OpenCL-SDK)
+project(OpenCL-SDK
+  VERSION 1.0
+  LANGUAGES
+    C CXX
+)
+
+include(CMakeDependentOption)
+option(OPENCL_SDK_BUILD_SAMPLES "Build sample code" ON)
+cmake_dependent_option(OPENCL_SDK_BUILD_OPENGL_SAMPLES "Build OpenCL-OpenGL interop sample code" ON OPENCL_SDK_BUILD_SAMPLES OFF)
+cmake_dependent_option(OPENCL_SDK_TEST_SAMPLES "Add CTest to samples (where applicable)" ON OPENCL_SDK_BUILD_SAMPLES OFF)
+
+include(CTest)
 
 if (NOT CMAKE_BUILD_TYPE)
     message(STATUS "No build type selected, default to Release")
     set(CMAKE_BUILD_TYPE "Release" CACHE PATH "Build Type" FORCE)
 endif()
 
-set(OPENCL_ICD_LOADER_HEADERS_DIR
-    "${PROJECT_SOURCE_DIR}/external/OpenCL-Headers" CACHE PATH "Path to OpenCL
-    Headers")
-
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}/install" CACHE PATH "Install Path" FORCE)
 endif()
 
-set(OPENCL_SDK_INCLUDE_DIRS
-    "${PROJECT_SOURCE_DIR}/external/OpenCL-Headers"
-    "${PROJECT_SOURCE_DIR}/external/OpenCL-CLHPP/include")
+add_subdirectory(external/OpenCL-Headers)
+add_subdirectory(external/OpenCL-ICD-Loader)
+add_subdirectory(external/OpenCL-CLHPP)
 
-add_subdirectory(${PROJECT_SOURCE_DIR}/external/OpenCL-ICD-Loader)
-add_subdirectory(${PROJECT_SOURCE_DIR}/samples)
+if(OPENCL_SDK_BUILD_SAMPLES)
+  list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/Modules)
+  add_subdirectory(third_party/cargs)
+  find_package(TCLAP REQUIRED)
+  find_package(Stb REQUIRED)
+  if(OPENCL_SDK_BUILD_OPENGL_SAMPLES)
+    cmake_minimum_required(VERSION 3.10) # SFML 2 won't find Freetype::Freetype under 3.10
+    find_package(OpenGL REQUIRED)
+    if(CMAKE_SYSTEM_NAME MATCHES Linux) # TODO: Add EGL support
+      # OpenGL doesn't explicitly depend on X11 (as of CMake v3.2) but we'll need it
+      find_package(X11 REQUIRED)
+    endif()
+    find_package(GLEW REQUIRED)
+    if(NOT TARGET OpenGL::GLU)
+      # GLU is a dependency of GLEW but it's not advertized as an OpenGL COMPONENT
+      message(FATAL_ERROR "GLEW depends on GLU but was not found.")
+    endif()
+    find_package(SFML 2
+      REQUIRED
+      COMPONENTS window graphics
+    )
+    find_package(GLEW REQUIRED)
+    find_package(glm CONFIG REQUIRED)
+  endif(OPENCL_SDK_BUILD_OPENGL_SAMPLES)
+endif(OPENCL_SDK_BUILD_SAMPLES)
 
-set_target_properties(OpenCL PROPERTIES LIBRARY_OUTPUT_DIRECTORY
-    ${CMAKE_CURRENT_BINARY_DIR})
+add_subdirectory(lib)
+if(OPENCL_SDK_BUILD_SAMPLES)
+  add_subdirectory(samples)
+endif()
+
+include(GNUInstallDirs)
+file(
+  WRITE ${PROJECT_BINARY_DIR}/OpenCL/OpenCLConfig.cmake
+  [[
+get_filename_component(PARENT_DIR ${CMAKE_CURRENT_LIST_DIR} PATH)
+include("${PARENT_DIR}/OpenCLHeaders/OpenCLHeadersConfig.cmake")
+include("${PARENT_DIR}/OpenCLICDLoader/OpenCLICDLoaderConfig.cmake")
+include("${PARENT_DIR}/OpenCLHeadersCpp/OpenCLHeadersCppConfig.cmake")
+include("${PARENT_DIR}/OpenCLUtils/OpenCLUtilsConfig.cmake")
+include("${PARENT_DIR}/OpenCLUtilsCpp/OpenCLUtilsCppConfig.cmake")
+  ]]
+)
+set(config_package_location ${CMAKE_INSTALL_DATADIR}/cmake/OpenCL)
+install(
+  FILES ${PROJECT_BINARY_DIR}/OpenCL/OpenCLConfig.cmake
+  DESTINATION ${config_package_location}
+)
+
+unset(CMAKE_SIZEOF_VOID_P)
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/OpenCL/OpenCLConfigVersion.cmake
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY AnyNewerVersion
+)
+install(
+  FILES ${CMAKE_CURRENT_BINARY_DIR}/OpenCL/OpenCLConfigVersion.cmake
+  DESTINATION ${config_package_location}
+)
