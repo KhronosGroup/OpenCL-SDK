@@ -1,9 +1,9 @@
 if(OPENCL_SDK_BUILD_SAMPLES)
-  list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/Dependencies/cargs")
-  include(cargs)
+  foreach(DEP IN ITEMS cargs TCLAP)
+    list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/Dependencies/${DEP}")
+    include(${DEP})
+  endforeach()
 
-  #add_subdirectory(third_party/cargs)
-  find_package(TCLAP REQUIRED)
   find_package(Stb REQUIRED)
   if(OPENCL_SDK_BUILD_OPENGL_SAMPLES)
     cmake_minimum_required(VERSION 3.10) # SFML 2 won't find Freetype::Freetype under 3.10
