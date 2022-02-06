@@ -1,11 +1,15 @@
 if(NOT DEPENDENCIES_FORCE_DOWNLOAD)
-  find_package(TCLAP QUIET)
+  find_package(TCLAP)
 endif()
 
-if(NOT TCLAP_FOUND OR NOT DEPENDENCIES_FORCE_DOWNLOAD)
-  message(STATUS
-    "TCLAP not found or DEPENDENCIES_FORCE_DOWNLOAD is ON. Fetching TCLAP."
-  )
+if(NOT TCLAP_FOUND)
+  if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/_deps/tclap-external-src")
+    if(DEPENDENCIES_FORCE_DOWNLOAD)
+      message(STATUS "DEPENDENCIES_FORCE_DOWNLOAD is ON. Fetching TCLAP.")
+    else()
+      message(STATUS "Fetching TCLAP.")
+    endif()
+  endif()
   include(FetchContent)
   FetchContent_Declare(
     tclap-external

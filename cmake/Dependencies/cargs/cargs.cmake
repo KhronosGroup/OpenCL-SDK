@@ -1,28 +1,16 @@
 if(NOT DEPENDENCIES_FORCE_DOWNLOAD)
-  find_path(
-    cargs_INCLUDE_PATH cargs.h
-    PATHS ${cargs_DIR}
-    PATH_SUFFIXES
-      inc
-      include
-  )
-  find_library(
-    cargs_LIBRARY cargs
-    PATHS ${cargs_DIR}
-    PATH_SUFFIXES
-      lib
-  )
+  find_package(cargs)
 endif()
 
-if(cargs_INCLUDE_PATH AND cargs_LIBRARY AND NOT DEPENDENCIES_FORCE_DOWNLOAD)
-  message(STATUS "Found cargs: ${cargs_LIBRARY}")
-  add_library(cargs INTERFACE)
-  target_include_directories(cargs INTERFACE "${cargs_INCLUDE_PATH}")
-  target_link_libraries(cargs INTERFACE "${cargs_LIBRARY}")
-else()
-  message(STATUS
-    "cargs not found or DEPENDENCIES_FORCE_DOWNLOAD is ON. Fetching cargs."
-  )
+if(NOT cargs_FOUND)
+  if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/_deps/cargs-external-src")
+    if(DEPENDENCIES_FORCE_DOWNLOAD)
+      message(STATUS "DEPENDENCIES_FORCE_DOWNLOAD is ON. Fetching TCLAP.")
+    else()
+      message(STATUS "Fetching cargs.")
+    endif()
+    message(STATUS "Adding cargs subproject: ${CMAKE_CURRENT_BINARY_DIR}/_deps/cargs-external-src")
+  endif()
   include(FetchContent)
   FetchContent_Declare(
     cargs-external

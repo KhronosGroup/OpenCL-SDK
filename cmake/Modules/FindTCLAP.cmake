@@ -20,7 +20,7 @@ find_path (TCLAP_INCLUDE_PATH tclap/CmdLine.h
 # TRUE if all listed variables are TRUE
 include (FindPackageHandleStandardArgs)
 find_package_handle_standard_args (TCLAP
-  "TCLAP (http://tclap.sourceforge.net/) could not be found. Set TCLAP_INCLUDE_PATH to point to the headers adding '-DTCLAP_INCLUDE_PATH=/path/to/tclap' to the cmake command."
+  "TCLAP (http://tclap.sourceforge.net/) not found. To self-host, set TCLAP_INCLUDE_PATH to point to the headers adding '-DTCLAP_INCLUDE_PATH=/path/to/tclap' to the cmake command."
   TCLAP_INCLUDE_PATH
 )
 
