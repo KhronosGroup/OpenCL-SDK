@@ -10,6 +10,7 @@ if(NOT TCLAP_FOUND)
       message(STATUS "Fetching TCLAP.")
     endif()
   endif()
+  cmake_minimum_required(VERSION 3.11)
   include(FetchContent)
   FetchContent_Declare(
     tclap-external

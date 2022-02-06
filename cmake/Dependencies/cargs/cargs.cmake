@@ -11,6 +11,7 @@ if(NOT cargs_FOUND)
     endif()
     message(STATUS "Adding cargs subproject: ${CMAKE_CURRENT_BINARY_DIR}/_deps/cargs-external-src")
   endif()
+  cmake_minimum_required(VERSION 3.11)
   include(FetchContent)
   FetchContent_Declare(
     cargs-external
