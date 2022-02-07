@@ -29,7 +29,7 @@ find_library(
 # TRUE if all listed variables are TRUE
 include (FindPackageHandleStandardArgs)
 find_package_handle_standard_args (cargs
-  "cargs (https://github.com/likle/cargs) not found. To self-host, set ${cargs_INCLUDE_PATH} and ${cargs_LIBRARY} to point to the headers and library respectively adding '-D cargs_INCLUDE_PATH=/path/to/cargs/include/dir -D cargs_LIBRARY/path/to/cargs/libcargs' to the cmake command."
+  "cargs (https://github.com/likle/cargs) not found. To self-host, set cargs_INCLUDE_PATH and cargs_LIBRARY to point to the headers and library respectively adding '-D cargs_INCLUDE_PATH=/path/to/cargs/include/dir -D cargs_LIBRARY/path/to/cargs/libcargs' to the cmake command."
   cargs_INCLUDE_PATH
   cargs_LIBRARY
 )
