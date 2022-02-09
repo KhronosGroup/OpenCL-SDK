@@ -1,8 +1,8 @@
-if(NOT DEPENDENCIES_FORCE_DOWNLOAD)
+if(NOT DEPENDENCIES_FORCE_DOWNLOAD AND NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/_deps/cargs-external-src")
   find_package(cargs)
 endif()
 
-if(NOT cargs_FOUND)
+if(NOT (cargs_FOUND OR TARGET cargs))
   if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/_deps/cargs-external-src")
     if(DEPENDENCIES_FORCE_DOWNLOAD)
       message(STATUS "DEPENDENCIES_FORCE_DOWNLOAD is ON. Fetching TCLAP.")
