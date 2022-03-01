@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
 
 // Sample-specific option
 struct options_Reduce
