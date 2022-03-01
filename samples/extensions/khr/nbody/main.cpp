@@ -437,7 +437,9 @@ void NBody::setMatrices()
     glm::vec3 vecEye = vecTarget + glm::vec3{ 0, 0, dist };
 
     glm::mat4 matWorld = glm::rotate(
-        glm::rotate(glm::identity<glm::mat4>(), theta,
+        // glm::identity<glm::mat4>() is GLM 0.9.9.1 feature and Ubuntu 18.04
+        // ships 0.9.9.0
+        glm::rotate(glm::mat4(1), theta,
                     glm::vec3{ 1, 0, 0 }), // theta rotates around z-axis
         phi, glm::vec3{ 0, 0, 1 } // theta rotates around z-axis
     );
