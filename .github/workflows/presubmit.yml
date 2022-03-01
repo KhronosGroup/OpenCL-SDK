@@ -112,7 +112,7 @@ jobs:
           fetch-depth: 0
           submodules: recursive
       - name: Install Ruby and POCL
-        run: sudo apt install pocl-opencl-icd
+        run: sudo apt update; sudo apt install pocl-opencl-icd
         if: ${{ matrix.os == 'ubuntu-latest' }}
       - name: Install OpenCL Ruby Bindings and RuboCop
         run: gem install --user-install opencl_ruby_ffi rubocop
