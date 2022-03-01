@@ -1,7 +1,7 @@
 #pragma once
 
 // OpenCL Utils includes
-#include "OpenCLUtils_Export.h"
+#include "OpenCLUtilsCpp_Export.h"
 
 // OpenCL Utils includes
 #include <CL/Utils/ErrorCodes.h>
@@ -62,8 +62,8 @@ namespace util {
 #endif
 
     namespace detail {
-        UTILS_EXPORT cl_int errHandler(cl_int err, cl_int* errPtr,
-                                       const char* errStr = nullptr);
+        UTILSCPP_EXPORT cl_int errHandler(cl_int err, cl_int* errPtr,
+                                          const char* errStr = nullptr);
     }
 
 }

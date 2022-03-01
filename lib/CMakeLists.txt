@@ -105,7 +105,12 @@ endforeach()
 if(OPENCL_SDK_BUILD_SAMPLES)
   foreach(SDK_LIB_NAME IN ITEMS SDK SDKCpp)
     if(SDK_LIB_NAME STREQUAL SDK)
-      set(SDK_LIB_SOURCES src/SDK/SDK.c)
+      set(SDK_LIB_SOURCES
+        src/SDK/CLI.c
+        src/SDK/Context.c
+        src/SDK/Image.c
+        src/SDK/Random.c
+      )
       set(SDK_LIB_DEPS
         OpenCL::Headers
         OpenCL::Utils
@@ -200,13 +205,15 @@ if(OPENCL_SDK_BUILD_SAMPLES)
         sfml-graphics
         sfml-system
       )
-        get_target_property(DEP_TYPE ${DEP} TYPE)
-        if(${DEP_TYPE} STREQUAL SHARED_LIBRARY)
-          install(
-            IMPORTED_RUNTIME_ARTIFACTS
-              ${DEP}
-            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-          )
+        if(TARGET ${DEP})
+          get_target_property(DEP_TYPE ${DEP} TYPE)
+          if(${DEP_TYPE} STREQUAL SHARED_LIBRARY)
+            install(
+              IMPORTED_RUNTIME_ARTIFACTS
+                ${DEP}
+              RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+            )
+          endif()
         endif()
       endforeach()
     endif()
