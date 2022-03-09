@@ -17,7 +17,7 @@ cmake_minimum_required(VERSION 3.0)
 set(CMAKE_CXX_STANDARD 14)
 
 project(OpenCL-SDK
-  VERSION 1.0
+  VERSION 2022.03.09
   LANGUAGES
     C CXX
 )
@@ -102,3 +102,5 @@ install(
   FILES ${CMAKE_CURRENT_BINARY_DIR}/OpenCL/OpenCLConfigVersion.cmake
   DESTINATION ${config_package_location}
 )
+
+include(CPack)
