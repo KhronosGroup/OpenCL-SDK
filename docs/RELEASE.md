@@ -50,7 +50,19 @@ Submodules may have moved to a different commit hash due to the previous step. T
 
 ```
 git commit -a -m "Bump submodules hashes"
-git push origin main
+```
+
+## Update project version
+
+Update the project version in CMake
+
+```cmake
+project(OpenCL-SDK
+  VERSION YYYY.MM.DD
+```
+
+```
+git commit -a -m "Update project version"
 ```
 
 ## Tag SDK
