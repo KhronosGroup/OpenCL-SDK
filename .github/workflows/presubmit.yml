@@ -15,12 +15,13 @@ jobs:
         run: ./scripts/check-format.sh
   build:
     needs: format
-    name: Build ${{ matrix.os }} ${{ matrix.compiler }}
+    name: Build ${{ matrix.os }} ${{ matrix.compiler }} ${{ matrix.deps }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-20.04, macos-latest]
         compiler: [gcc, clang]
+        deps: [os, fetch, vcpkg]
     steps:
       - uses: actions/checkout@v2
         with:
@@ -30,7 +31,19 @@ jobs:
         run: |
             if [[ "${{ matrix.os }}" == "ubuntu-20.04" ]]; then
               sudo apt update
-              sudo apt install -y libtclap-dev libglm-dev libglew-dev libsfml-dev libstb-dev libidn11 libx11-dev libxrandr-dev libxi-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libudev-dev
+              sudo apt install -y libidn11 libx11-dev libxrandr-dev libxi-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libudev-dev \
+              `if [[ "${{matrix.deps}}" == "os" ]]; then echo libtclap-dev libglm-dev libglew-dev libsfml-dev libstb-dev; fi;`
+              if [[ "${{matrix.deps}}" == "vcpkg" ]]; then
+                git clone https://github.com/Microsoft/vcpkg.git
+                ./vcpkg/bootstrap-vcpkg.sh
+                ./vcpkg/vcpkg install sfml tclap glm glew stb
+                TOOLCHAIN_ARG="-D CMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake"
+              else
+                TOOLCHAIN_ARG=""
+              fi
+              if [[ "${{matrix.deps}}" == "fetch" ]]; then
+                sudo apt remove -y libtclap-dev libglm-dev libglew-dev libsfml-dev libstb-dev libfreetype6-dev
+              fi
             elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
               brew install tclap glm glew sfml mesa-glu
               git clone https://github.com/Microsoft/vcpkg.git
@@ -45,24 +58,47 @@ jobs:
               CC=clang
               CXX=clang++
             fi
-            cmake -D CMAKE_C_COMPILER=$CC -D CMAKE_CXX_COMPILER=$CXX $TOOLCHAIN_ARG -S . -B build
-            cmake --build ./build --verbose --parallel 2
+            cmake \
+              -D CMAKE_C_COMPILER=$CC \
+              -D CMAKE_CXX_COMPILER=$CXX \
+              $TOOLCHAIN_ARG \
+              -S . -B build
+            cmake \
+              --build ./build \
+              --verbose \
+              --parallel `numproc`
   buildwin:
     needs: format
-    name: Build Windows
+    name: Build Windows ${{ matrix.deps }}
     runs-on: windows-latest
+    strategy:
+      matrix:
+        deps: [fetch, vcpkg]
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
           submodules: recursive
       - name: Build
+        shell: pwsh
         run: |
-          git clone https://github.com/Microsoft/vcpkg.git
-          .\vcpkg\bootstrap-vcpkg.bat
-          .\vcpkg\vcpkg.exe --triplet=x64-windows install sfml tclap glm glew stb
-          cmake -D CMAKE_TOOLCHAIN_FILE=.\vcpkg\scripts\buildsystems\vcpkg.cmake -S . -B build
-          cmake --build ./build -- /verbosity:minimal /maxCpuCount /noLogo
+          if ('${{ matrix.deps }}' -eq 'vcpkg') {
+            git clone https://github.com/Microsoft/vcpkg.git
+            .\vcpkg\bootstrap-vcpkg.bat
+            .\vcpkg\vcpkg.exe --triplet=x64-windows install sfml tclap glm glew stb
+            $TOOLCHAIN_ARG='-D CMAKE_TOOLCHAIN_FILE=.\vcpkg\scripts\buildsystems\vcpkg.cmake'
+          } else {
+            $TOOLCHAIN_ARG=''
+          }
+          cmake `
+            $TOOLCHAIN_ARG `
+             -S . -B build
+          cmake `
+            --build ./build `
+            -- `
+            /verbosity:minimal `
+            /maxCpuCount `
+            /noLogo
 
   python:
     name: Exercise Python examples on ${{matrix.os}}
@@ -112,7 +148,7 @@ jobs:
           fetch-depth: 0
           submodules: recursive
       - name: Install Ruby and POCL
-        run: sudo apt install pocl-opencl-icd
+        run: sudo apt update; sudo apt install pocl-opencl-icd
         if: ${{ matrix.os == 'ubuntu-latest' }}
       - name: Install OpenCL Ruby Bindings and RuboCop
         run: gem install --user-install opencl_ruby_ffi rubocop

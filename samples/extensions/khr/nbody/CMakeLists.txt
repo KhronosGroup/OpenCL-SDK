@@ -20,4 +20,6 @@ add_sample(
     SHADERS
         nbody.vert.glsl
         nbody.frag.glsl
+    LIBS
+        glm::glm
     )

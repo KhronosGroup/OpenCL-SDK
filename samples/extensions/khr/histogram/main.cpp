@@ -149,15 +149,15 @@ int main(int argc, char* argv[])
             size_t grid_size =
                 (length + items_per_thread - 1) / items_per_thread;
             histogram_shared(cl::EnqueueArgs{ queue, cl::NDRange{ grid_size } },
-                             length, bins, items_per_thread, buf_input,
-                             buf_levels, cl::Local(bins * sizeof(cl_uint)),
-                             buf_histogram);
+                             (cl_uint)length, (cl_uint)bins,
+                             (cl_uint)items_per_thread, buf_input, buf_levels,
+                             cl::Local(bins * sizeof(cl_uint)), buf_histogram);
         }
         else
         {
             histogram_global(cl::EnqueueArgs{ queue, cl::NDRange{ length } },
-                             length, bins, buf_input, buf_levels,
-                             buf_histogram);
+                             (cl_uint)length, (cl_uint)bins, buf_input,
+                             buf_levels, buf_histogram);
         }
 
         // Concurrently calculate reference dataset

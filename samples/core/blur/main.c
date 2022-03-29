@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <math.h>
+#include <string.h>
 
 // Default image
 #include "default_image.h"
