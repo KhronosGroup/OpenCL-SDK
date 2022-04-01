@@ -73,8 +73,8 @@ jobs:
           --config "${env:GITHUB_WORKSPACE}\build\CPackConfig.cmake" `
           -G ZIP `
           -C Release `
-          -B "${env:GITHUB_WORKSPACE}\package" `
-        Rename-Item "${env:GITHUB_WORKSPACE}\package\OpenCL-SDK-${{github.ref_name}}-${BIN}.zip" "OpenCL-SDK-${{github.ref_name}}-Win-${{matrix.BIN}}.zip"
+          -B "${env:GITHUB_WORKSPACE}\package"
+        Rename-Item "${env:GITHUB_WORKSPACE}\package\OpenCL-SDK-*.zip" "OpenCL-SDK-${{github.ref_name}}-Win-${{matrix.BIN}}.zip"
 
     - name: Release Binary
       uses: softprops/action-gh-release@v1
@@ -106,7 +106,7 @@ jobs:
       run: |
         & cmake `
           -S "${env:GITHUB_WORKSPACE}" `
-          -B "${env:GITHUB_WORKSPACE}\build" `
+          -B "${env:GITHUB_WORKSPACE}/build" `
           -D BUILD_DOCS=OFF `
           -D BUILD_TESTING=OFF `
           -D BUILD_TESTS=OFF `
@@ -118,11 +118,13 @@ jobs:
       shell: pwsh
       run: |
         $Generator = if('${{matrix.OS}}' -match 'windows') {'ZIP'} else {'TGZ'}
+        $Extension = if('${{matrix.OS}}' -match 'windows') {'zip'} else {'tar.gz'}
         & cpack `
-          --config "${env:GITHUB_WORKSPACE}\build\CPackSourceConfig.cmake" `
+          --config "${env:GITHUB_WORKSPACE}/build/CPackSourceConfig.cmake" `
           -G $Generator `
           -C Release `
-          -B "${env:GITHUB_WORKSPACE}\package"
+          -B "${env:GITHUB_WORKSPACE}/package"
+        Rename-Item "${env:GITHUB_WORKSPACE}/package/OpenCL-SDK-*.${Extension}" "OpenCL-SDK-${{github.ref_name}}-Source.${Extension}"
 
     - name: Release Source
       uses: softprops/action-gh-release@v1
