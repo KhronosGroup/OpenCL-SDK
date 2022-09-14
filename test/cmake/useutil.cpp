@@ -11,10 +11,9 @@ int main(int argc, char* argv[])
 {
     try
     {
-        cl::Context context =
-            cl::util::get_context(argc > 1 ? std::atoi(argv[1]) : 0,
-
-            );
+        cl::Context context = cl::util::get_context(
+            argc > 1 ? std::atoi(argv[1]) : 0,
+            argc > 2 ? std::atoi(argv[2]) : 0, CL_DEVICE_TYPE_ALL);
     } catch (cl::Error& error) // If any OpenCL error occurs
     {
         if (error.err() == CL_PLATFORM_NOT_FOUND_KHR)
