@@ -83,10 +83,9 @@ jobs:
         shell: pwsh
         run: |
           if ('${{ matrix.deps }}' -eq 'vcpkg') {
-            git clone https://github.com/Microsoft/vcpkg.git
-            .\vcpkg\bootstrap-vcpkg.bat
-            .\vcpkg\vcpkg.exe --triplet=x64-windows install sfml tclap glm glew stb
-            $TOOLCHAIN_ARG='-D CMAKE_TOOLCHAIN_FILE=.\vcpkg\scripts\buildsystems\vcpkg.cmake'
+            Get-ChildItem Env:\
+            & ${env:VCPKG_ROOT}\vcpkg.exe --triplet=x64-windows install sfml tclap glm glew stb
+            $TOOLCHAIN_ARG="-D CMAKE_TOOLCHAIN_FILE=${env:VCPKG_ROOT}\scripts\buildsystems\vcpkg.cmake"
           } else {
             $TOOLCHAIN_ARG=''
           }
