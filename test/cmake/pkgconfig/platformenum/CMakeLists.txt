@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 
-project(PkgConfigTest)
+project(PkgConfigTest-PlatformEnum)
 
 find_package(OpenCL
   REQUIRED
@@ -14,7 +14,7 @@ find_package(OpenCL
 # Test consuming from C++ source files
 
 add_executable(${PROJECT_NAME}_cpp
-  ../platformenum.cpp
+  ../../platformenum.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}_cpp
@@ -38,7 +38,7 @@ add_test(
 # Test consuming from C source files
 
 add_executable(${PROJECT_NAME}_c
-  ../platformenum.c
+  ../../platformenum.c
 )
 
 target_link_libraries(${PROJECT_NAME}_c

@@ -55,6 +55,7 @@ foreach(UTIL_LIB_NAME IN ITEMS Utils UtilsCpp)
       INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}"
       FOLDER "Libraries/${UTIL_LIB_NAME}"
       EXPORT_NAME ${UTIL_LIB_NAME}
+      DEBUG_POSTFIX d
   )
 
   install(
