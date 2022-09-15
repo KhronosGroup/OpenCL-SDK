@@ -46,17 +46,18 @@ public:
     explicit Conway(int width, int height, bool fullscreen,
                     cl_uint platform_id = 0, cl_uint device_id = 0,
                     cl_bitfield device_type = CL_DEVICE_TYPE_DEFAULT)
-        : InteropWindow{
-              sf::VideoMode(width, height),
-              "Conway's Game of Life",
-              fullscreen ? sf::Style::Fullscreen : sf::Style::Default,
-              sf::ContextSettings{ 0, 0, 0, // Depth, Stencil, AA
-                                   3, 3, // OpenGL version
-                                   sf::ContextSettings::Attribute::Core },
-              platform_id,
-              device_id,
-              device_type
-          }
+        : InteropWindow{ sf::VideoMode(width, height),
+                         "Conway's Game of Life",
+                         fullscreen ? sf::Style::Fullscreen
+                                    : sf::Style::Default,
+                         sf::ContextSettings{
+                             0, 0, 0, // Depth, Stencil, AA
+                             3, 3, // OpenGL version
+                             sf::ContextSettings::Attribute::Core },
+                         platform_id,
+                         device_id,
+                         device_type },
+          animating(true)
     {}
 
 protected:
@@ -88,6 +89,7 @@ private:
 
     DoubleBuffer<cl::ImageGL> cl_images;
     cl::vector<cl::Memory> interop_resources;
+    bool animating;
 };
 
 inline bool checkError(const char* Title)
@@ -301,28 +303,32 @@ void Conway::initializeCL()
 
 void Conway::updateScene()
 {
-    auto conway =
-        cl::KernelFunctor<cl::ImageGL, cl::ImageGL, cl_float2>{ cl_program,
-                                                                "conway" };
-    cl::Event acquire, release;
+    if (animating)
+    {
+        auto conway =
+            cl::KernelFunctor<cl::ImageGL, cl::ImageGL, cl_float2>{ cl_program,
+                                                                    "conway" };
+        cl::Event acquire, release;
 
-    queue.enqueueAcquireGLObjects(&interop_resources, nullptr, &acquire);
+        queue.enqueueAcquireGLObjects(&interop_resources, nullptr, &acquire);
 
-    conway(cl::EnqueueArgs{ queue, cl::NDRange{ getSize().x, getSize().y } },
-           cl_images.front, cl_images.back,
-           cl_float2{ 1.f / getSize().x, 1.f / getSize().y });
+        conway(
+            cl::EnqueueArgs{ queue, cl::NDRange{ getSize().x, getSize().y } },
+            cl_images.front, cl_images.back,
+            cl_float2{ 1.f / getSize().x, 1.f / getSize().y });
 
-    queue.enqueueReleaseGLObjects(&interop_resources, nullptr, &release);
+        queue.enqueueReleaseGLObjects(&interop_resources, nullptr, &release);
 
-    // Wait for all OpenCL commands to finish
-    if (!cl_khr_gl_event_supported)
-        cl::finish();
-    else
-        release.wait();
+        // Wait for all OpenCL commands to finish
+        if (!cl_khr_gl_event_supported)
+            cl::finish();
+        else
+            release.wait();
 
-    // Swap front and back buffer handles
-    std::swap(cl_images.front, cl_images.back);
-    std::swap(gl_images.front, gl_images.back);
+        // Swap front and back buffer handles
+        std::swap(cl_images.front, cl_images.back);
+        std::swap(gl_images.front, gl_images.back);
+    }
 }
 
 void Conway::render()
@@ -351,6 +357,12 @@ void Conway::event(const sf::Event& event)
     switch (event.type)
     {
         case sf::Event::Closed: close(); break;
+        case sf::Event::KeyPressed:
+            if (event.key.code == sf::Keyboard::Key::Space)
+            {
+                animating = !animating;
+            }
+            break;
     }
 }
 

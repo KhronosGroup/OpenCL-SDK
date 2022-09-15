@@ -64,7 +64,7 @@ public:
           z_abs_range(32.f), mass_min(100.f), mass_max(500.f),
           RMB_pressed(false),
           dist(std::max({ x_abs_range, y_abs_range, z_abs_range }) * 3), phi(0),
-          theta(0), needMatrixReset(true)
+          theta(0), needMatrixReset(true), animating(true)
     {}
 
 protected:
@@ -115,6 +115,7 @@ private:
     sf::Vector2<int> mousePos; // Variables to enable dragging
     float dist, phi, theta; // Mouse polar coordinates
     bool needMatrixReset; // Whether matrices need to be reset in shaders
+    bool animating;
 
     void
     mouseDrag(const sf::Event::MouseMoveEvent& event); // Handle mouse dragging
@@ -324,27 +325,31 @@ void NBody::initializeCL()
 
 void NBody::updateScene()
 {
-    auto nbody = cl::KernelFunctor<cl::BufferGL, cl::BufferGL, cl::Buffer,
-                                   cl_uint, cl_float>{ cl_program, "nbody" };
-    cl::Event acquire, release;
+    if (animating)
+    {
+        auto nbody =
+            cl::KernelFunctor<cl::BufferGL, cl::BufferGL, cl::Buffer, cl_uint,
+                              cl_float>{ cl_program, "nbody" };
+        cl::Event acquire, release;
 
-    queue.enqueueAcquireGLObjects(&interop_resources, nullptr, &acquire);
+        queue.enqueueAcquireGLObjects(&interop_resources, nullptr, &acquire);
 
-    nbody(cl::EnqueueArgs{ queue, cl::NDRange{ particle_count } },
-          cl_pos_mass.front, cl_pos_mass.back, velocity_buffer,
-          static_cast<cl_uint>(particle_count), 0.0001f);
+        nbody(cl::EnqueueArgs{ queue, cl::NDRange{ particle_count } },
+              cl_pos_mass.front, cl_pos_mass.back, velocity_buffer,
+              static_cast<cl_uint>(particle_count), 0.0001f);
 
-    queue.enqueueReleaseGLObjects(&interop_resources, nullptr, &release);
+        queue.enqueueReleaseGLObjects(&interop_resources, nullptr, &release);
 
-    // Wait for all OpenCL commands to finish
-    if (!cl_khr_gl_event_supported)
-        cl::finish();
-    else
-        release.wait();
+        // Wait for all OpenCL commands to finish
+        if (!cl_khr_gl_event_supported)
+            cl::finish();
+        else
+            release.wait();
 
-    // Swap front and back buffer handles
-    cl_pos_mass.swap();
-    gl_pos_mass.swap();
+        // Swap front and back buffer handles
+        cl_pos_mass.swap();
+        gl_pos_mass.swap();
+    }
 }
 
 void NBody::render()
@@ -387,6 +392,12 @@ void NBody::event(const sf::Event& event)
             glViewport(0, 0, getSize().x, getSize().y);
             checkError("glViewport(0, 0, getSize().x, getSize().y)");
             needMatrixReset = true; // projection matrix need to be recalculated
+            break;
+        case sf::Event::KeyPressed:
+            if (event.key.code == sf::Keyboard::Key::Space)
+            {
+                animating = !animating;
+            }
             break;
         case sf::Event::MouseButtonPressed:
             if (event.mouseButton.button == sf::Mouse::Button::Right)
