@@ -29,6 +29,8 @@ jobs:
       run: |
         # Parallelize MSBuild across projects
         [Environment]::SetEnvironmentVariable('UseMultiToolTask', 'true', [EnvironmentVariableTarget]::User)
+        [Environment]::SetEnvironmentVariable('EnforceProcessCountAcrossBuilds', 'true', [EnvironmentVariableTarget]::User)
+        [Environment]::SetEnvironmentVariable('MultiProcMaxCount', "$env:NUMBER_OF_PROCESSORS", [EnvironmentVariableTarget]::User)
 
     - name: Configure
       shell: pwsh
