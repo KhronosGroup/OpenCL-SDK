@@ -48,24 +48,14 @@ jobs:
           -D OPENCL_SDK_BUILD_SAMPLES=OFF `
           -D OPENCL_ICD_LOADER_BUILD_TESTING=OFF
 
-    - name: Build
+    - name: Check version number
       shell: pwsh
       run: |
-        & cmake `
-          --build "${env:GITHUB_WORKSPACE}\build" `
-          --config Release `
-          -- `
-          /verbosity:minimal `
-          /maxCpuCount `
-          /noLogo
-
-    - name: Install
-      shell: pwsh
-      run: |
-        & cmake `
-          --install "${env:GITHUB_WORKSPACE}\build" `
-          --prefix "${env:GITHUB_WORKSPACE}\install" `
-          --config Release
+        if ( -not (`
+          Get-Content ${env:GITHUB_WORKSPACE}\CMakeCache.txt | `
+          Select-String -Pattern ('CMAKE_PROJECT_VERSION:STATIC=' + '${{github.ref_name}}'.Replace('v','')) `
+        )) `
+        { throw 'CMake project version mismatches Git tag name (without leading "v")'}
 
     - name: Package Binary
       shell: pwsh
@@ -113,14 +103,21 @@ jobs:
           -D BUILD_TESTING=OFF `
           -D BUILD_TESTS=OFF `
           -D OPENCL_SDK_BUILD_SAMPLES=OFF `
-          -D OPENCL_ICD_LOADER_BUILD_TESTING=OFF `
-          -D CPACK_SOURCE_IGNORE_FILES="/\\.git/;/\\.gitignore;/\\.gitmodules;/\\.gitlab/;/\\.github/;/\\.reuse/;/\\.appveyor.yml;/build/;/install/;/package/"
+          -D OPENCL_ICD_LOADER_BUILD_TESTING=OFF
+
+    - name: Check version number
+      shell: pwsh
+      run: |
+        if ( -not (`
+          Get-Content ${env:GITHUB_WORKSPACE}/CMakeCache.txt | `
+          Select-String -Pattern ('CMAKE_PROJECT_VERSION:STATIC=' + '${{github.ref_name}}'.Replace('v','')) `
+        )) `
+        { throw 'CMake project version mismatches Git tag name (without leading "v")'}
 
     - name: Package Source
       shell: pwsh
       run: |
         $Generator = if('${{matrix.OS}}' -match 'windows') {'ZIP'} else {'TGZ'}
-        $Extension = if('${{matrix.OS}}' -match 'windows') {'zip'} else {'tar.gz'}
         & cpack `
           --config "${env:GITHUB_WORKSPACE}/build/CPackSourceConfig.cmake" `
           -G $Generator `
