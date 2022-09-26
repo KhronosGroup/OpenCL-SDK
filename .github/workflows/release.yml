@@ -35,10 +35,10 @@ jobs:
     - name: Configure
       shell: pwsh
       run: |
-        $BIN = if('${{matrix.BIN}}' -eq 'x86') {'Win32'} else {'x64'}
+        $Bin = if('${{matrix.BIN}}' -eq 'x86') {'Win32'} else {'x64'}
         & cmake `
           -G '${{matrix.GEN}}' `
-          -A ${BIN} `
+          -A ${Bin} `
           -T ${{matrix.VER}} `
           -S "${env:GITHUB_WORKSPACE}" `
           -B "${env:GITHUB_WORKSPACE}\build" `
