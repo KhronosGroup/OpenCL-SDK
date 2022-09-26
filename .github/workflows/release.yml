@@ -53,7 +53,7 @@ jobs:
       shell: pwsh
       run: |
         if ( -not (`
-          Get-Content ${env:GITHUB_WORKSPACE}\CMakeCache.txt | `
+          Get-Content ${env:GITHUB_WORKSPACE}\build\CMakeCache.txt | `
           Select-String -Pattern ('CMAKE_PROJECT_VERSION:STATIC=' + '${{github.ref_name}}'.Replace('v','')) `
         )) `
         { throw 'CMake project version mismatches Git tag name (without leading "v")'}
@@ -110,7 +110,7 @@ jobs:
       shell: pwsh
       run: |
         if ( -not (`
-          Get-Content ${env:GITHUB_WORKSPACE}/CMakeCache.txt | `
+          Get-Content ${env:GITHUB_WORKSPACE}/build/CMakeCache.txt | `
           Select-String -Pattern ('CMAKE_PROJECT_VERSION:STATIC=' + '${{github.ref_name}}'.Replace('v','')) `
         )) `
         { throw 'CMake project version mismatches Git tag name (without leading "v")'}
