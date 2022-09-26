@@ -60,15 +60,14 @@ jobs:
     - name: Package Binary
       shell: pwsh
       run: |
-        $BIN = if('${{matrix.BIN}}' -eq 'x86') {'win32'} else {'win64'}
         & cpack `
           --config "${env:GITHUB_WORKSPACE}\build\CPackConfig.cmake" `
           -G ZIP `
-          -C Release `
+          -C 'Debug;Release' `
+          -D CPACK_PACKAGE_FILE_NAME='OpenCL-SDK-${{github.ref_name}}-Win-${{matrix.BIN}}' `
           -B "${env:GITHUB_WORKSPACE}\package"
-        Rename-Item "${env:GITHUB_WORKSPACE}\package\OpenCL-SDK-*.zip" "OpenCL-SDK-${{github.ref_name}}-Win-${{matrix.BIN}}.zip"
 
-    - name: Release Binary
+    - name: Upload Package
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
@@ -122,8 +121,9 @@ jobs:
           --config "${env:GITHUB_WORKSPACE}/build/CPackSourceConfig.cmake" `
           -G $Generator `
           -C Release `
+          -D CPACK_SOURCE_IGNORE_FILES="/\\.git/;/\\.gitignore;/\\.gitmodules;/\\.gitlab/;/\\.github/;/\\.reuse/;/\\.appveyor.yml;/build/;/install/;/package/" `
+          -D CPACK_PACKAGE_FILE_NAME='OpenCL-SDK-${{github.ref_name}}-Source' `
           -B "${env:GITHUB_WORKSPACE}/package"
-        Rename-Item "${env:GITHUB_WORKSPACE}/package/OpenCL-SDK-*.${Extension}" "OpenCL-SDK-${{github.ref_name}}-Source.${Extension}"
 
     - name: Release Source
       uses: softprops/action-gh-release@v1
