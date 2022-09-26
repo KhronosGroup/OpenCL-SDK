@@ -46,7 +46,8 @@ jobs:
           -D BUILD_TESTING=OFF `
           -D BUILD_TESTS=OFF `
           -D OPENCL_SDK_BUILD_SAMPLES=OFF `
-          -D OPENCL_ICD_LOADER_BUILD_TESTING=OFF
+          -D OPENCL_ICD_LOADER_BUILD_TESTING=OFF `
+          -D CMAKE_POLICY_DEFAULT_CMP0096=NEW
 
     - name: Check version number
       shell: pwsh
@@ -102,7 +103,8 @@ jobs:
           -D BUILD_TESTING=OFF `
           -D BUILD_TESTS=OFF `
           -D OPENCL_SDK_BUILD_SAMPLES=OFF `
-          -D OPENCL_ICD_LOADER_BUILD_TESTING=OFF
+          -D OPENCL_ICD_LOADER_BUILD_TESTING=OFF `
+          -D CMAKE_POLICY_DEFAULT_CMP0096=NEW
 
     - name: Check version number
       shell: pwsh
