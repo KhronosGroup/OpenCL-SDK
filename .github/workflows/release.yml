@@ -29,54 +29,58 @@ jobs:
       run: |
         # Parallelize MSBuild across projects
         [Environment]::SetEnvironmentVariable('UseMultiToolTask', 'true', [EnvironmentVariableTarget]::User)
+        [Environment]::SetEnvironmentVariable('EnforceProcessCountAcrossBuilds', 'true', [EnvironmentVariableTarget]::User)
+        [Environment]::SetEnvironmentVariable('MultiProcMaxCount', "$env:NUMBER_OF_PROCESSORS", [EnvironmentVariableTarget]::User)
 
     - name: Configure
       shell: pwsh
       run: |
-        $BIN = if('${{matrix.BIN}}' -eq 'x86') {'Win32'} else {'x64'}
+        $Bin = if('${{matrix.BIN}}' -eq 'x86') {'Win32'} else {'x64'}
         & cmake `
           -G '${{matrix.GEN}}' `
-          -A ${BIN} `
+          -A ${Bin} `
           -T ${{matrix.VER}} `
           -S "${env:GITHUB_WORKSPACE}" `
           -B "${env:GITHUB_WORKSPACE}\build" `
           -D BUILD_DOCS=OFF `
           -D BUILD_TESTING=OFF `
-          -D BUILD_TESTS=OFF `
+          -D BUILD_EXAMPLES=OFF `
           -D OPENCL_SDK_BUILD_SAMPLES=OFF `
-          -D OPENCL_ICD_LOADER_BUILD_TESTING=OFF
+          -D OPENCL_ICD_LOADER_BUILD_TESTING=OFF `
+          -D CMAKE_POLICY_DEFAULT_CMP0096=NEW
+
+    - name: Check version number
+      shell: pwsh
+      run: |
+        if ( -not (`
+          Get-Content ${env:GITHUB_WORKSPACE}\build\CMakeCache.txt | `
+          Select-String -Pattern ('CMAKE_PROJECT_VERSION:STATIC=' + '${{github.ref_name}}'.Replace('v','')) `
+        )) `
+        { throw 'CMake project version mismatches Git tag name (without leading "v")'}
 
     - name: Build
       shell: pwsh
       run: |
-        & cmake `
-          --build "${env:GITHUB_WORKSPACE}\build" `
-          --config Release `
-          -- `
-          /verbosity:minimal `
-          /maxCpuCount `
-          /noLogo
-
-    - name: Install
-      shell: pwsh
-      run: |
-        & cmake `
-          --install "${env:GITHUB_WORKSPACE}\build" `
-          --prefix "${env:GITHUB_WORKSPACE}\install" `
-          --config Release
-
+        foreach ($Config in "Debug","Release") { `
+          & cmake `
+            --build "${env:GITHUB_WORKSPACE}\build" `
+            --config $Config `
+            -- `
+            /verbosity:minimal `
+            /noLogo `
+        }
+    
     - name: Package Binary
       shell: pwsh
       run: |
-        $BIN = if('${{matrix.BIN}}' -eq 'x86') {'win32'} else {'win64'}
         & cpack `
           --config "${env:GITHUB_WORKSPACE}\build\CPackConfig.cmake" `
           -G ZIP `
-          -C Release `
+          -C 'Debug;Release' `
+          -D CPACK_PACKAGE_FILE_NAME='OpenCL-SDK-${{github.ref_name}}-Win-${{matrix.BIN}}' `
           -B "${env:GITHUB_WORKSPACE}\package"
-        Rename-Item "${env:GITHUB_WORKSPACE}\package\OpenCL-SDK-*.zip" "OpenCL-SDK-${{github.ref_name}}-Win-${{matrix.BIN}}.zip"
 
-    - name: Release Binary
+    - name: Upload Package
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
@@ -109,22 +113,31 @@ jobs:
           -B "${env:GITHUB_WORKSPACE}/build" `
           -D BUILD_DOCS=OFF `
           -D BUILD_TESTING=OFF `
-          -D BUILD_TESTS=OFF `
+          -D BUILD_EXAMPLES=OFF `
           -D OPENCL_SDK_BUILD_SAMPLES=OFF `
           -D OPENCL_ICD_LOADER_BUILD_TESTING=OFF `
-          -D CPACK_SOURCE_IGNORE_FILES="/\\.git/;/\\.gitignore;/\\.gitmodules;/\\.gitlab/;/\\.github/;/\\.reuse/;/\\.appveyor.yml;/build/;/install/;/package/"
+          -D CMAKE_POLICY_DEFAULT_CMP0096=NEW
+
+    - name: Check version number
+      shell: pwsh
+      run: |
+        if ( -not (`
+          Get-Content ${env:GITHUB_WORKSPACE}/build/CMakeCache.txt | `
+          Select-String -Pattern ('CMAKE_PROJECT_VERSION:STATIC=' + '${{github.ref_name}}'.Replace('v','')) `
+        )) `
+        { throw 'CMake project version mismatches Git tag name (without leading "v")'}
 
     - name: Package Source
       shell: pwsh
       run: |
         $Generator = if('${{matrix.OS}}' -match 'windows') {'ZIP'} else {'TGZ'}
-        $Extension = if('${{matrix.OS}}' -match 'windows') {'zip'} else {'tar.gz'}
         & cpack `
           --config "${env:GITHUB_WORKSPACE}/build/CPackSourceConfig.cmake" `
           -G $Generator `
           -C Release `
+          -D CPACK_SOURCE_IGNORE_FILES="/\\.git/;/\\.gitignore;/\\.gitmodules;/\\.gitlab/;/\\.github/;/\\.reuse/;/\\.appveyor.yml;/build/;/install/;/package/" `
+          -D CPACK_PACKAGE_FILE_NAME='OpenCL-SDK-${{github.ref_name}}-Source' `
           -B "${env:GITHUB_WORKSPACE}/package"
-        Rename-Item "${env:GITHUB_WORKSPACE}/package/OpenCL-SDK-*.${Extension}" "OpenCL-SDK-${{github.ref_name}}-Source.${Extension}"
 
     - name: Release Source
       uses: softprops/action-gh-release@v1
