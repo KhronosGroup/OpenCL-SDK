@@ -84,8 +84,8 @@ jobs:
         run: |
           if ('${{ matrix.deps }}' -eq 'vcpkg') {
             Get-ChildItem Env:\
-            & ${env:VCPKG_ROOT}\vcpkg.exe --triplet=x64-windows install sfml tclap glm glew stb
-            $TOOLCHAIN_ARG="-D CMAKE_TOOLCHAIN_FILE=${env:VCPKG_ROOT}\scripts\buildsystems\vcpkg.cmake"
+            & ${env:VCPKG_INSTALLATION_ROOT}\vcpkg.exe --triplet=x64-windows install sfml tclap glm glew stb
+            $TOOLCHAIN_ARG="-D CMAKE_TOOLCHAIN_FILE=${env:VCPKG_INSTALLATION_ROOT}\scripts\buildsystems\vcpkg.cmake"
           } else {
             $TOOLCHAIN_ARG=''
           }
