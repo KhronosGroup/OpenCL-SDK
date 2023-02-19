@@ -225,3 +225,8 @@ if(OPENCL_SDK_BUILD_SAMPLES)
     endif()
   endforeach()
 endif(OPENCL_SDK_BUILD_SAMPLES)
+
+# Override the default install behavior for the extension loader.  We always want to
+# build the install target for the OpenCL SDK.
+option (OPENCL_EXTENSION_LOADER_INSTALL         "Generate Installation Target" ON)
+add_subdirectory(src/Extensions)
