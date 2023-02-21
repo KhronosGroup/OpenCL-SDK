@@ -116,7 +116,19 @@ def getCallArgs(params):
             callstr += '???'
     return callstr
 
-%>#define CL_USE_DEPRECATED_OPENCL_1_0_APIS
+%>/*******************************************************************************
+// Copyright (c) 2021-2023 Ben Ashbaugh
+//
+// SPDX-License-Identifier: MIT or Apache-2.0
+*/
+
+/*
+// This file is generated from the Khronos OpenCL XML API Registry.
+*/
+
+// clang-format off
+
+#define CL_USE_DEPRECATED_OPENCL_1_0_APIS
 #define CL_USE_DEPRECATED_OPENCL_1_1_APIS
 #define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 #define CL_USE_DEPRECATED_OPENCL_2_0_APIS
