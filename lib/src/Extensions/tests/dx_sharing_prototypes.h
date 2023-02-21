@@ -1,3 +1,11 @@
+/*******************************************************************************
+// Copyright (c) 2021-2023 Ben Ashbaugh
+//
+// SPDX-License-Identifier: MIT or Apache-2.0
+*/
+
+// clang-format off
+
 #ifndef DX_SHARING_PROTOTYPES_H_
 #define DX_SHARING_PROTOTYPES_H_
 
