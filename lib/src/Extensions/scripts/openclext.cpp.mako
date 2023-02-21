@@ -113,6 +113,13 @@ def getCParameterStrings(params):
 // SPDX-License-Identifier: MIT or Apache-2.0
 */
 
+/*
+// This file is generated from the Khronos OpenCL XML API Registry.
+*/
+
+// clang-format off
+
+
 #if defined _WIN32 || defined __CYGWIN__
     #ifdef __GNUC__
         #define CL_API_ENTRY __attribute__((dllexport))
