@@ -21,6 +21,7 @@
 #include <CL/SDK/CLI.hpp>
 
 // STL includes
+#include <climits>
 #include <iostream>
 #include <fstream>
 
