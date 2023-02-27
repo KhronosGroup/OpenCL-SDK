@@ -23,4 +23,3 @@ add_sample(
     TARGET enumopenclcpp
     VERSION 120
     SOURCES main.cpp)
-    
