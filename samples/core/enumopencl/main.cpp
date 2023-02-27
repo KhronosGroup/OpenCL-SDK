@@ -14,52 +14,52 @@
  * limitations under the License.
  */
 
-#include <stdio.h>
+#include <iostream>
+#include <string>
 #include <vector>
 
 #include <CL/opencl.hpp>
 
 static cl_int PrintPlatformInfoSummary(cl::Platform platform)
 {
-    printf("\tName:           %s\n",
-           platform.getInfo<CL_PLATFORM_NAME>().c_str());
-    printf("\tVendor:         %s\n",
-           platform.getInfo<CL_PLATFORM_VENDOR>().c_str());
-    printf("\tDriver Version: %s\n",
-           platform.getInfo<CL_PLATFORM_VERSION>().c_str());
+    std::cout << "\tName:           " << platform.getInfo<CL_PLATFORM_NAME>()
+              << "\n";
+    std::cout << "\tVendor:         "
+              << platform.getInfo<CL_PLATFORM_VENDOR>() << "\n";
+    std::cout << "\tDriver Version: "
+              << platform.getInfo<CL_PLATFORM_VERSION>() << "\n";
 
     return CL_SUCCESS;
 }
 
-static void PrintDeviceType(const char* label, cl_device_type type)
+static void PrintDeviceType(const std::string& label, cl_device_type type)
 {
-    printf("%s%s%s%s%s%s\n", label,
-           (type & CL_DEVICE_TYPE_DEFAULT) ? "DEFAULT " : "",
-           (type & CL_DEVICE_TYPE_CPU) ? "CPU " : "",
-           (type & CL_DEVICE_TYPE_GPU) ? "GPU " : "",
-           (type & CL_DEVICE_TYPE_ACCELERATOR) ? "ACCELERATOR " : "",
-           (type & CL_DEVICE_TYPE_CUSTOM) ? "CUSTOM " : "");
+    std::cout << label << ((type & CL_DEVICE_TYPE_DEFAULT) ? "DEFAULT " : "")
+              << ((type & CL_DEVICE_TYPE_CPU) ? "CPU " : "")
+              << ((type & CL_DEVICE_TYPE_GPU) ? "GPU " : "")
+              << ((type & CL_DEVICE_TYPE_ACCELERATOR) ? "ACCELERATOR " : "")
+              << ((type & CL_DEVICE_TYPE_CUSTOM) ? "CUSTOM " : "") << "\n";
 }
 
 static cl_int PrintDeviceInfoSummary(const std::vector<cl::Device> devices)
 {
     for (size_t i = 0; i < devices.size(); i++)
     {
-        printf("Device[%zu]:\n", i);
+        std::cout << "Device[" << i << "]:\n";
 
         cl_device_type deviceType = devices[i].getInfo<CL_DEVICE_TYPE>();
         PrintDeviceType("\tType:           ", deviceType);
 
-        printf("\tName:           %s\n",
-               devices[i].getInfo<CL_DEVICE_NAME>().c_str());
-        printf("\tVendor:         %s\n",
-               devices[i].getInfo<CL_DEVICE_VENDOR>().c_str());
-        printf("\tDevice Version: %s\n",
-               devices[i].getInfo<CL_DEVICE_VERSION>().c_str());
-        printf("\tDevice Profile: %s\n",
-               devices[i].getInfo<CL_DEVICE_PROFILE>().c_str());
-        printf("\tDriver Version: %s\n",
-               devices[i].getInfo<CL_DRIVER_VERSION>().c_str());
+        std::cout << "\tName:           "
+                  << devices[i].getInfo<CL_DEVICE_NAME>() << "\n";
+        std::cout << "\tVendor:         "
+                  << devices[i].getInfo<CL_DEVICE_VENDOR>() << "\n";
+        std::cout << "\tDevice Version: "
+                  << devices[i].getInfo<CL_DEVICE_VERSION>() << "\n";
+        std::cout << "\tDevice Profile: "
+                  << devices[i].getInfo<CL_DEVICE_PROFILE>() << "\n";
+        std::cout << "\tDriver Version: "
+                  << devices[i].getInfo<CL_DRIVER_VERSION>() << "\n";
     }
 
     return CL_SUCCESS;
@@ -69,20 +69,21 @@ int main(int argc, char** argv)
 {
     std::vector<cl::Platform> platforms;
     cl::Platform::get(&platforms);
+    std::cout << "Enumerated " << platforms.size() << " platforms.\n\n";
 
     for (size_t i = 0; i < platforms.size(); i++)
     {
-        printf("Platform[%zu]:\n", i);
+        std::cout << "Platform[" << i << "]:\n";
         PrintPlatformInfoSummary(platforms[i]);
 
         std::vector<cl::Device> devices;
         platforms[i].getDevices(CL_DEVICE_TYPE_ALL, &devices);
 
         PrintDeviceInfoSummary(devices);
-        printf("\n");
+        std::cout << "\n";
     }
 
-    printf("Done.\n");
+    std::cout << "Done.\n";
 
     return 0;
 }
