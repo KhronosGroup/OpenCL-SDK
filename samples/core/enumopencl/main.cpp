@@ -24,10 +24,10 @@ static cl_int PrintPlatformInfoSummary(cl::Platform platform)
 {
     std::cout << "\tName:           " << platform.getInfo<CL_PLATFORM_NAME>()
               << "\n";
-    std::cout << "\tVendor:         "
-              << platform.getInfo<CL_PLATFORM_VENDOR>() << "\n";
-    std::cout << "\tDriver Version: "
-              << platform.getInfo<CL_PLATFORM_VERSION>() << "\n";
+    std::cout << "\tVendor:         " << platform.getInfo<CL_PLATFORM_VENDOR>()
+              << "\n";
+    std::cout << "\tDriver Version: " << platform.getInfo<CL_PLATFORM_VERSION>()
+              << "\n";
 
     return CL_SUCCESS;
 }
