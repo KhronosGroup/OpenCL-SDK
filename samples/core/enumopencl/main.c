@@ -85,10 +85,6 @@ static cl_int PrintPlatformInfoSummary(cl_platform_id platformId)
     free(platformVendor);
     free(platformVersion);
 
-    platformName = NULL;
-    platformVendor = NULL;
-    platformVersion = NULL;
-
     return errorCode;
 }
 
@@ -194,12 +190,6 @@ static cl_int PrintDeviceInfoSummary(cl_device_id* devices, cl_uint numDevices)
         free(deviceVersion);
         free(deviceProfile);
         free(driverVersion);
-
-        deviceName = NULL;
-        deviceVendor = NULL;
-        deviceVersion = NULL;
-        deviceProfile = NULL;
-        driverVersion = NULL;
     }
 
     return errorCode;
