@@ -89,14 +89,15 @@ int main(int argc, char* argv[])
                       << std::endl;
         }
 
-        /// Try to read binary
-        cl::Program::Binaries binaries =
-            cl::util::read_binary_files(devices, "Collatz", &error);
-
-        if (error != CL_SUCCESS)
-        { // if binary not present, compile and save
-            std::cout << "File not found"
-                      << "\n";
+        cl::Program::Binaries binaries;
+        try
+        {
+            /// Try to read binary
+            binaries = cl::util::read_binary_files(devices, "Collatz", &error);
+        } catch (cl::util::Error& e)
+        {
+            // if binary not present, compile and save
+            std::cout << e.what() << "\n";
 
             std::string program_cl =
                 cl::util::read_text_file("./Collatz.cl", &error);

@@ -18,19 +18,18 @@ std::string cl::util::read_text_file(const char* const filename,
             std::string red((std::istreambuf_iterator<char>(in)),
                             std::istreambuf_iterator<char>());
 
-            *error = CL_SUCCESS;
+            if (error != nullptr) *error = CL_SUCCESS;
             return red;
 
-        } catch (std::bad_alloc& ex)
+        } catch (std::bad_alloc&)
         {
-            (void)ex;
             detail::errHandler(CL_OUT_OF_RESOURCES, error, "Bad allocation!");
             return std::string();
         }
     }
     else
     {
-        detail::errHandler(CL_INVALID_VALUE, error, "No file!");
+        detail::errHandler(CL_UTIL_FILE_OPERATION_ERROR, error, "No file!");
         return std::string();
     }
 }
@@ -45,17 +44,17 @@ cl::util::read_binary_file(const char* const filename, cl_int* const error)
         {
             std::vector<unsigned char> buffer(
                 std::istreambuf_iterator<char>(in), {});
+            if (error != nullptr) *error = CL_SUCCESS;
             return buffer;
-        } catch (std::bad_alloc& ex)
+        } catch (std::bad_alloc&)
         {
-            (void)ex;
             detail::errHandler(CL_OUT_OF_RESOURCES, error, "Bad allocation!");
             return std::vector<unsigned char>();
         }
     }
     else
     {
-        *error = CL_INVALID_VALUE;
+        detail::errHandler(CL_UTIL_FILE_OPERATION_ERROR, error, "No file!");
         return std::vector<unsigned char>();
     }
 }
@@ -63,24 +62,27 @@ cl::util::read_binary_file(const char* const filename, cl_int* const error)
 
 cl::Program::Binaries
 cl::util::read_binary_files(const std::vector<cl::Device>& devices,
-                            const char* const program_file_name,
+                            const char* const program_base_name,
                             cl_int* const error)
 {
     cl::Program::Binaries binaries(0);
-    size_t num_devices = devices.size();
 
     for (const auto& device : devices)
     {
         string device_name = device.getInfo<CL_DEVICE_NAME>();
         string binary_name =
-            string(program_file_name) + "-" + device_name + ".bin";
-
+            string(program_base_name) + "-" + device_name + ".bin";
 
         binaries.push_back(
             cl::util::read_binary_file(binary_name.c_str(), error));
-        if (*error == CL_INVALID_VALUE) return binaries;
+        if (error != nullptr)
+        {
+            if (*error != CL_SUCCESS)
+            {
+                return cl::Program::Binaries();
+            }
+        }
     }
-    *error = CL_SUCCESS;
     return binaries;
 }
 
@@ -103,9 +105,8 @@ cl_int cl::util::write_binaries(const cl::Program::Binaries& binaries,
                           binaries[i].size() * sizeof(char));
             }
             return error;
-        } catch (std::bad_alloc& ex)
+        } catch (std::bad_alloc&)
         {
-            (void)ex;
             detail::errHandler(CL_OUT_OF_RESOURCES, &error, "Bad allocation!");
             return error;
         }
