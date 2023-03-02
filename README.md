@@ -62,7 +62,7 @@ If CMake is not provided by your build system or OS package manager, please cons
              -D OPENCL_SDK_BUILD_SAMPLES=ON `
              -D OPENCL_SDK_TEST_SAMPLES=OFF `
              -D CMAKE_TOOLCHAIN_FILE=/vcpkg/install/root/scripts/buildsystems/vcpkg.cmake `
-             -D VCPKG_TARGET_TRIPLET=x64-windows
+             -D VCPKG_TARGET_TRIPLET=x64-windows `
              -B ./OpenCL-SDK/build -S ./OpenCL-SDK
        cmake --build ./OpenCL-SDK/build --target install
 
