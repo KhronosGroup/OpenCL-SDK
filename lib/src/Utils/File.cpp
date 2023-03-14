@@ -79,6 +79,8 @@ cl::util::read_binary_files(const std::vector<cl::Device>& devices,
         {
             if (*error != CL_SUCCESS)
             {
+                detail::errHandler(CL_UTIL_FILE_OPERATION_ERROR, error,
+                                   "Not all binaries found!");
                 return cl::Program::Binaries();
             }
         }
@@ -114,7 +116,7 @@ cl_int cl::util::write_binaries(const cl::Program::Binaries& binaries,
     else
     {
         detail::errHandler(CL_INVALID_VALUE, &error,
-                           "binaries and devices don't match");
+                           "Binaries and devices don't match!");
         return error;
     }
 }
