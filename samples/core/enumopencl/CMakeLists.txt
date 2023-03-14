@@ -16,4 +16,10 @@ add_sample(
     TEST
     TARGET enumopencl
     VERSION 120
+    SOURCES main.c)
+
+add_sample(
+    TEST
+    TARGET enumopenclcpp
+    VERSION 120
     SOURCES main.cpp)
