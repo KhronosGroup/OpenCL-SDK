@@ -18,3 +18,11 @@ add_sample(
     VERSION 300
     SOURCES main.c
     KERNELS Collatz.cl)
+
+add_sample(
+    TEST
+    TARGET binariescpp
+    VERSION 300
+    SOURCES main.cpp
+    KERNELS Collatz.cl)
+

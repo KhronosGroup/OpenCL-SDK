@@ -9,6 +9,7 @@
 #include <CL/Utils/Device.hpp>
 #include <CL/Utils/Context.hpp>
 #include <CL/Utils/Event.hpp>
+#include <CL/Utils/File.hpp>
 
 // OpenCL includes
 #include <CL/opencl.hpp>
