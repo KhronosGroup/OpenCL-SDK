@@ -18,3 +18,10 @@ add_sample(
     VERSION 300
     SOURCES main.c
     KERNELS blur.cl)
+
+add_sample(
+    TEST
+    TARGET blurcpp
+    VERSION 300
+    SOURCES main.cpp blur.cpp blur.hpp
+    KERNELS blur.cl)
