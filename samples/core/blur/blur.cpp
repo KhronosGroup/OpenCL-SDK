@@ -23,6 +23,7 @@
 #include <iostream>
 #include <algorithm>
 #include <map>
+#include <math.h>
 
 // TCLAP includes
 #include <tclap/CmdLine.h>
@@ -44,7 +45,8 @@ template <> auto cl::sdk::parse<BlurCppExample::BlurOptions>()
                                                  "Size of blur kernel", false,
                                                  (float)1.0, "positive float"),
         std::make_shared<TCLAP::MultiArg<std::string>>(
-            "b", "blur", "Operation of blur to perform: box or gauss", false, "box"));
+            "b", "blur", "Operation of blur to perform: box or gauss", false,
+            "box"));
 }
 
 template <>
@@ -55,7 +57,8 @@ BlurCppExample::BlurOptions cl::sdk::comprehend<BlurCppExample::BlurOptions>(
     std::shared_ptr<TCLAP::MultiArg<std::string>> op_arg)
 {
     return BlurCppExample::BlurOptions{ in_arg->getValue(), out_arg->getValue(),
-                        size_arg->getValue(), op_arg->getValue() };
+                                        size_arg->getValue(),
+                                        op_arg->getValue() };
 }
 
 void BlurCppExample::single_pass_box_blur()
@@ -70,11 +73,8 @@ void BlurCppExample::single_pass_box_blur()
     auto start = std::chrono::high_resolution_clock::now();
     std::vector<cl::Event> passes;
 
-    auto event =
-        blur(cl::EnqueueArgs{ queue, cl::NDRange{ width, height } },
-            input_image_buf, 
-            output_image_buf,
-            size);
+    auto event = blur(cl::EnqueueArgs{ queue, cl::NDRange{ width, height } },
+                      input_image_buf, output_image_buf, size);
 
     event.wait();
 
@@ -103,16 +103,12 @@ void BlurCppExample::dual_pass_box_blur()
     std::vector<cl::Event> passes;
 
     passes.push_back(
-        blur(cl::EnqueueArgs{ queue, cl::NDRange{ width, height } }, 
-             input_image_buf,
-             temp_image_buf,
-             size));
+        blur(cl::EnqueueArgs{ queue, cl::NDRange{ width, height } },
+             input_image_buf, temp_image_buf, size));
 
     passes.push_back(
         blur(cl::EnqueueArgs{ queue, cl::NDRange{ width, height } },
-             temp_image_buf, 
-             output_image_buf,
-             size));
+             temp_image_buf, output_image_buf, size));
 
     cl::WaitForEvents(passes);
 
@@ -183,7 +179,7 @@ void BlurCppExample::dual_pass_local_memory_exchange_box_blur()
                                &event);
     passes.push_back(event);
 
-    cl::NDRange wgss{ 1, wgs2};
+    cl::NDRange wgss{ 1, wgs2 };
     cl::NDRange work_size2{ (cl::size_type)input_image.width,
                             (input_image.height + wgs2 - 1) / wgs2 * wgs2 };
     queue.enqueueNDRangeKernel(blur2, origin, work_size2, wgss, nullptr,
@@ -229,19 +225,13 @@ void BlurCppExample::dual_pass_subgroup_exchange_box_blur()
 
     cl::NDRange work_size1{ (width + wgs1 - 1) / wgs1 * wgs1, height };
     cl::NDRange wgsf{ wgs1, 1 };
-    passes.push_back(
-        blur1(cl::EnqueueArgs{ queue, work_size1, wgsf },
-            input_image_buf,
-            temp_image_buf,
-            size));
+    passes.push_back(blur1(cl::EnqueueArgs{ queue, work_size1, wgsf },
+                           input_image_buf, temp_image_buf, size));
 
     cl::NDRange work_size2{ width, (height + wgs2 - 1) / wgs2 * wgs2 };
     cl::NDRange wgss{ 1, wgs2 };
-    passes.push_back(
-        blur2(cl::EnqueueArgs{ queue, work_size2, wgss },
-            temp_image_buf,
-            output_image_buf,
-            size));
+    passes.push_back(blur2(cl::EnqueueArgs{ queue, work_size2, wgss },
+                           temp_image_buf, output_image_buf, size));
 
     cl::WaitForEvents(passes);
 
@@ -275,17 +265,11 @@ void BlurCppExample::dual_pass_kernel_blur()
 
     passes.push_back(
         blur1(cl::EnqueueArgs{ queue, cl::NDRange{ width, height } },
-            input_image_buf,
-            temp_image_buf,
-            size,
-            kern));
+              input_image_buf, temp_image_buf, size, kern));
 
     passes.push_back(
         blur2(cl::EnqueueArgs{ queue, cl::NDRange{ width, height } },
-            temp_image_buf,
-            output_image_buf,
-            size,
-            kern));
+              temp_image_buf, output_image_buf, size, kern));
 
     cl::WaitForEvents(passes);
 
@@ -351,25 +335,17 @@ void BlurCppExample::dual_pass_local_memory_exchange_kernel_blur()
     cl::NDRange wgsf{ wgs1, 1 };
     auto local1 = cl::Local(sizeof(cl_uchar4) * (wgs1 + 2 * size));
 
-    passes.push_back(
-        blur1(cl::EnqueueArgs{ queue, work_size1, wgsf },
-            input_image_buf,
-            temp_image_buf,
-            size,
-            kern,
-            local1));
+    passes.push_back(blur1(cl::EnqueueArgs{ queue, work_size1, wgsf },
+                           input_image_buf, temp_image_buf, size, kern,
+                           local1));
 
-    cl::NDRange work_size2{ width, (height + wgs2 - 1) / wgs2 * wgs2};
+    cl::NDRange work_size2{ width, (height + wgs2 - 1) / wgs2 * wgs2 };
     cl::NDRange wgss{ 1, wgs2 };
     auto local2 = cl::Local(sizeof(cl_uchar4) * (wgs2 + 2 * size));
 
-    passes.push_back(
-        blur2(cl::EnqueueArgs{ queue, work_size2, wgss },
-            temp_image_buf,
-            output_image_buf,
-            size,
-            kern,
-            local2));
+    passes.push_back(blur2(cl::EnqueueArgs{ queue, work_size2, wgss },
+                           temp_image_buf, output_image_buf, size, kern,
+                           local2));
 
     cl::WaitForEvents(passes);
 
@@ -412,21 +388,13 @@ void BlurCppExample::dual_pass_subgroup_exchange_kernel_blur()
 
     cl::NDRange work_size1{ (width + wgs1 - 1) / wgs1 * wgs1, height };
     cl::NDRange wgsf{ wgs1, 1 };
-    passes.push_back(
-        blur1(cl::EnqueueArgs{ queue, work_size1, wgsf },
-            input_image_buf,
-            temp_image_buf,
-            size,
-            kern));
+    passes.push_back(blur1(cl::EnqueueArgs{ queue, work_size1, wgsf },
+                           input_image_buf, temp_image_buf, size, kern));
 
-    cl::NDRange work_size2{ width, (height + wgs2 - 1) / wgs2 * wgs2};
+    cl::NDRange work_size2{ width, (height + wgs2 - 1) / wgs2 * wgs2 };
     cl::NDRange wgss{ 1, wgs2 };
-    passes.push_back(
-        blur2(cl::EnqueueArgs{ queue, work_size2, wgss },
-            temp_image_buf,
-            output_image_buf,
-            size,
-            kern));
+    passes.push_back(blur2(cl::EnqueueArgs{ queue, work_size2, wgss },
+                           temp_image_buf, output_image_buf, size, kern));
 
     cl::WaitForEvents(passes);
 
@@ -498,8 +466,8 @@ void BlurCppExample::read_input_image()
 
 void BlurCppExample::prepare_output_image()
 {
-    output_image.width      = input_image.width;
-    output_image.height     = input_image.height;
+    output_image.width = input_image.width;
+    output_image.height = input_image.height;
     output_image.pixel_size = input_image.pixel_size;
     output_image.pixels.clear();
     output_image.pixels.reserve(sizeof(unsigned char) * output_image.width
@@ -512,8 +480,7 @@ std::tuple<bool, bool, bool> BlurCppExample::query_capabilities()
     // 1) query image support
     if (!device.getInfo<CL_DEVICE_IMAGE_SUPPORT>())
     {
-        cl::util::detail::errHandler(CL_INVALID_DEVICE,
-                                     nullptr,
+        cl::util::detail::errHandler(CL_INVALID_DEVICE, nullptr,
                                      "No image support on device!");
     }
 
@@ -597,9 +564,8 @@ void BlurCppExample::create_gaussian_kernel()
 
 // note that the kernel is not normalized and has size of 2*(*size)+1
 // elements
-void BlurCppExample::create_gaussian_kernel_(float radius,
-                                                   float** const kernel,
-                                                   int* const size)
+void BlurCppExample::create_gaussian_kernel_(float radius, float** const kernel,
+                                             int* const size)
 {
     radius = fabsf(radius);
     *size = (int)ceilf(3 * radius);
@@ -640,7 +606,7 @@ void BlurCppExample::parse_command_line(int argc, char* argv[])
 }
 
 void BlurCppExample::print_timings(std::chrono::duration<double> host_duration,
-                              std::vector<cl::Event>& events)
+                                   std::vector<cl::Event>& events)
 {
     std::chrono::duration<double> device_duration(0);
 
@@ -666,8 +632,7 @@ void BlurCppExample::print_timings(std::chrono::duration<double> host_duration,
 bool BlurCppExample::option_active(const std::string option)
 {
     // If no option is selected, all options are assumed to be enabled.
-    if (blur_opts.op.empty()) 
-        return true;
+    if (blur_opts.op.empty()) return true;
 
     return (std::any_of(blur_opts.op.begin(), blur_opts.op.end(),
                         [option](std::string op) {
@@ -684,10 +649,10 @@ void BlurCppExample::show_format(cl::ImageFormat* format)
         };
 
         std::map<cl_channel_type, std::string> channel_type = {
-            { CL_SIGNED_INT8,    "CL_SIGNED_INT8"    },
-            { CL_SIGNED_INT16,   "CL_SIGNED_INT16"   },
-            { CL_SIGNED_INT32,   "CL_SIGNED_INT32"   },
-            { CL_UNSIGNED_INT8,  "CL_UNSIGNED_INT8"  },
+            { CL_SIGNED_INT8, "CL_SIGNED_INT8" },
+            { CL_SIGNED_INT16, "CL_SIGNED_INT16" },
+            { CL_SIGNED_INT32, "CL_SIGNED_INT32" },
+            { CL_UNSIGNED_INT8, "CL_UNSIGNED_INT8" },
             { CL_UNSIGNED_INT16, "CL_UNSIGNED_INT16" },
             { CL_UNSIGNED_INT32, "CL_UNSIGNED_INT32" },
         };
@@ -710,7 +675,7 @@ cl::ImageFormat BlurCppExample::set_image_format()
 
         context.getSupportedImageFormats(CL_MEM_READ_ONLY,
                                          CL_MEM_OBJECT_IMAGE2D, &formats);
-        for (auto &format : formats)
+        for (auto& format : formats)
         {
             if (((input_image.pixel_size == 3)
                  && (format.image_channel_order == CL_RGB)

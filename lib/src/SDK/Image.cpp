@@ -35,12 +35,13 @@ namespace sdk {
 
         if (data == NULL)
         {
-            std::string err_msg{"Not possible to read file"};
+            std::string err_msg{ "Not possible to read file" };
             const char* load_msg = stbi_failure_reason();
-            
+
             if (load_msg) err_msg += std::string(": ") + load_msg;
 
-            cl::util::detail::errHandler(CL_INVALID_ARG_VALUE, &err, err_msg.c_str());
+            cl::util::detail::errHandler(CL_INVALID_ARG_VALUE, &err,
+                                         err_msg.c_str());
         }
 
         im.pixels.insert(im.pixels.end(), data,

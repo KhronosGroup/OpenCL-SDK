@@ -8,17 +8,16 @@
 // STL includes
 #include <fstream>
 
-class BlurCppExample
-{
+class BlurCppExample {
 public:
-
-    BlurCppExample(int argc, char* argv[]) : gauss_kernel(nullptr), origin({ 0, 0 })
-    { 
+    BlurCppExample(int argc, char* argv[])
+        : gauss_kernel(nullptr), origin({ 0, 0 })
+    {
         parse_command_line(argc, argv);
     }
 
     ~BlurCppExample() { delete[] gauss_kernel; }
-  
+
     void single_pass_box_blur();
 
     void dual_pass_box_blur();
@@ -58,11 +57,11 @@ public:
         std::string in;
         std::string out;
         float size;
-        std::vector<std::string> op;    // This is a vector because MultiArg method is used
+        std::vector<std::string>
+            op; // This is a vector because MultiArg method is used
     };
 
- private:
-
+private:
     cl::Device device;
     cl::Context context;
     cl::CommandQueue queue;
@@ -84,22 +83,23 @@ public:
     bool verbose;
     cl_uint step;
 
-    cl::sdk::options::Diagnostic    diag_opts;
-    cl::sdk::options::SingleDevice  dev_opts;
-    BlurOptions                     blur_opts;
+    cl::sdk::options::Diagnostic diag_opts;
+    cl::sdk::options::SingleDevice dev_opts;
+    BlurOptions blur_opts;
 
-    cl::Buffer  gauss_kernel_buf;
-    float*      gauss_kernel;
-    int         gauss_size;
+    cl::Buffer gauss_kernel_buf;
+    float* gauss_kernel;
+    int gauss_size;
 
     void parse_command_line(int argc, char* argv[]);
     void show_format(cl::ImageFormat* format);
     cl::ImageFormat set_image_format();
     void finalize_blur();
 
-    // note that the kernel is not normalized and has size of 2*(*size)+1 elements
+    // note that the kernel is not normalized and has size of 2*(*size)+1
+    // elements
     static void create_gaussian_kernel_(float radius, float** const kernel,
-                                       int* const size);
+                                        int* const size);
     static float gaussian(float x, float radius);
     static void print_timings(std::chrono::duration<double> host_duration,
                               std::vector<cl::Event>& events);

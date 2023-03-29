@@ -25,11 +25,12 @@ int main(int argc, char* argv[])
     {
         // Parse command line arguments and store the parameters in blur class.
         // You can pass '-b box' or '-b gauss' to select conversion type.
-        // You can pass both options with "-b box -b gauss" or don't pass anything.
-        // If you don't pass a parameter both conversions will be performed.
+        // You can pass both options with "-b box -b gauss" or don't pass
+        // anything. If you don't pass a parameter both conversions will be
+        // performed.
         BlurCppExample blur(argc, argv);
 
-        // Create a context and load the device used for blur operations. 
+        // Create a context and load the device used for blur operations.
         blur.load_device();
 
         // Read input image. If not specified on the command line, the default
@@ -38,11 +39,13 @@ int main(int argc, char* argv[])
         // is placed in a default_image.h.
         blur.read_input_image();
 
-        // Prepare output image. It will have the same dimensions as the input image.
+        // Prepare output image. It will have the same dimensions as the input
+        // image.
         blur.prepare_output_image();
 
         // Query device and runtime capabilities
-        bool use_local_mem, use_subgroup_exchange, use_subgroup_exchange_relative;
+        bool use_local_mem, use_subgroup_exchange,
+            use_subgroup_exchange_relative;
         std::tie(use_local_mem, use_subgroup_exchange,
                  use_subgroup_exchange_relative) = blur.query_capabilities();
 
@@ -58,13 +61,14 @@ int main(int argc, char* argv[])
         // file is available in place of execution.
         blur.build_program("");
 
-        // The box blur operation will be performed if you pass "-b box" or don't select any option.
+        // The box blur operation will be performed if you pass "-b box" or
+        // don't select any option.
         if (blur.option_active("box"))
         {
             // Basic blur operation using a kernel functor. Using kernel
             // functors is more convenient than creating a kernel class object
             // and setting the arguments one by one.
-            blur.single_pass_box_blur(); 
+            blur.single_pass_box_blur();
 
             // Dual pass demonstrates the use of the same kernel functor twice.
             // The result of the first operation is stored in a temporary buffer
@@ -83,7 +87,8 @@ int main(int argc, char* argv[])
             // function. In this case, 2 blur kernel functors are used.
             if (use_subgroup_exchange_relative)
             {
-                std::cout << "Dual-pass subgroup relative exchange blur" << std::endl;
+                std::cout << "Dual-pass subgroup relative exchange blur"
+                          << std::endl;
 
                 blur.build_program("-D USE_SUBGROUP_EXCHANGE_RELATIVE ");
                 blur.dual_pass_subgroup_exchange_box_blur();
@@ -97,7 +102,7 @@ int main(int argc, char* argv[])
 
                 blur.build_program("-D USE_SUBGROUP_EXCHANGE ");
                 blur.dual_pass_subgroup_exchange_box_blur();
-            }            
+            }
         } // Box blur
 
         // Build default program with no kernel arguments.
@@ -111,8 +116,8 @@ int main(int argc, char* argv[])
             std::cout << "Dual-pass Gaussian blur" << std::endl;
             // Create a gaussian kernel to be used for the next blurs.
             blur.create_gaussian_kernel();
-           
-            // Basic blur operation using kernel functor and gaussian kernel. 
+
+            // Basic blur operation using kernel functor and gaussian kernel.
             blur.dual_pass_kernel_blur();
 
             // Local memory exchange Gaussian blur with kernel functors. Note
