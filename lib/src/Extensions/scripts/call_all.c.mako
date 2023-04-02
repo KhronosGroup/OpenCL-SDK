@@ -53,6 +53,7 @@ defaultValueForType = {
     'cl_dx9_media_adapter_set_khr'      : 'CL_ALL_DEVICES_FOR_DX9_MEDIA_ADAPTER_KHR',
     'cl_dx9_media_adapter_type_khr'     : 'CL_ADAPTER_D3D9_KHR',
     'cl_external_semaphore_handle_type_khr' : '0',
+    'cl_icdl_info'                      : 'CL_ICDL_OCL_VERSION',
     'cl_image_pitch_info_qcom'          : 'CL_IMAGE_ROW_ALIGNMENT_QCOM',
     'cl_image_requirements_info_ext'    : 'CL_IMAGE_REQUIREMENTS_SIZE_EXT',
     'cl_kernel_exec_info_arm'           : 'CL_KERNEL_EXEC_INFO_SVM_PTRS_ARM',
@@ -158,8 +159,11 @@ def getCallArgs(params):
 #include <CL/cl_va_api_media_sharing_intel.h>
 #endif
 
-// Some headers to not include function prototypes for the DX sharing extensions.
+// Some headers do not include function prototypes for the DX sharing extensions.
 #include "dx_sharing_prototypes.h"
+
+// Some headers do not include function prototypes for the loader info extension.
+#include "loader_info_prototypes.h"
 
 void call_all(void)
 {

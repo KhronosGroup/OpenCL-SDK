@@ -40,8 +40,11 @@
 #include <CL/cl_va_api_media_sharing_intel.h>
 #endif
 
-// Some headers to not include function prototypes for the DX sharing extensions.
+// Some headers do not include function prototypes for the DX sharing extensions.
 #include "dx_sharing_prototypes.h"
+
+// Some headers do not include function prototypes for the loader info extension.
+#include "loader_info_prototypes.h"
 
 void call_all(void)
 {
@@ -256,6 +259,10 @@ void call_all(void)
     clEnqueueAcquireVA_APIMediaSurfacesINTEL(NULL, 0, NULL, 0, NULL, NULL);
     clEnqueueReleaseVA_APIMediaSurfacesINTEL(NULL, 0, NULL, 0, NULL, NULL);
 #endif // cl_intel_va_api_media_sharing
+
+#ifdef cl_loader_info
+    clGetICDLoaderInfoOCLICD(CL_ICDL_OCL_VERSION, 0, NULL, NULL);
+#endif // cl_loader_info
 
 #ifdef cl_pocl_content_size
     clSetContentSizeBufferPoCL(NULL, NULL);

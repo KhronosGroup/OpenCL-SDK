@@ -49,6 +49,10 @@ VA_API_Extensions = {
     'cl_intel_sharing_format_query_va_api',
     }
 
+commonExtensions = {
+    'cl_loader_info',
+    }
+
 # Extensions to include in this file:
 def shouldGenerate(name):
     if name in genExtensions:
@@ -56,6 +60,10 @@ def shouldGenerate(name):
     elif not genExtensions and not name in skipExtensions:
         return True
     return False
+
+# Common Extensions (not per-platform):
+def isCommonExtension(name):
+    return name in commonExtensions
 
 # ifdef condition for an extension:
 def getIfdefCondition(name):
@@ -180,35 +188,35 @@ static inline cl_platform_id _get_platform(cl_platform_id platform)
 
 static inline cl_platform_id _get_platform(cl_device_id device)
 {
-    if (device == NULL) return NULL;
+    if (device == nullptr) return nullptr;
 
-    cl_platform_id platform = NULL;
+    cl_platform_id platform = nullptr;
     clGetDeviceInfo(
         device,
         CL_DEVICE_PLATFORM,
         sizeof(platform),
         &platform,
-        NULL);
+        nullptr);
     return platform;
 }
 
 static inline cl_platform_id _get_platform(cl_command_queue command_queue)
 {
-    if (command_queue == NULL) return NULL;
+    if (command_queue == nullptr) return nullptr;
 
-    cl_device_id device = NULL;
+    cl_device_id device = nullptr;
     clGetCommandQueueInfo(
         command_queue,
         CL_QUEUE_DEVICE,
         sizeof(device),
         &device,
-        NULL);
+        nullptr);
     return _get_platform(device);
 }
 
 static inline cl_platform_id _get_platform(cl_context context)
 {
-    if (context == NULL) return NULL;
+    if (context == nullptr) return nullptr;
 
     cl_uint numDevices = 0;
     clGetContextInfo(
@@ -216,17 +224,16 @@ static inline cl_platform_id _get_platform(cl_context context)
         CL_CONTEXT_NUM_DEVICES,
         sizeof(numDevices),
         &numDevices,
-        NULL );
+        nullptr );
 
-    if( numDevices == 1 )   // fast path, no dynamic allocation
-    {
-        cl_device_id    device = NULL;
+    if (numDevices == 1) {  // fast path, no dynamic allocation
+        cl_device_id    device = nullptr;
         clGetContextInfo(
             context,
             CL_CONTEXT_DEVICES,
             sizeof(cl_device_id),
             &device,
-            NULL );
+            nullptr );
         return _get_platform(device);
     }
 
@@ -237,35 +244,35 @@ static inline cl_platform_id _get_platform(cl_context context)
         CL_CONTEXT_DEVICES,
         numDevices * sizeof(cl_device_id),
         devices.data(),
-        NULL );
+        nullptr );
     return _get_platform(devices[0]);
 }
 
 static inline cl_platform_id _get_platform(cl_kernel kernel)
 {
-    if (kernel == NULL) return NULL;
+    if (kernel == nullptr) return nullptr;
 
-    cl_context context = NULL;
+    cl_context context = nullptr;
     clGetKernelInfo(
         kernel,
         CL_KERNEL_CONTEXT,
         sizeof(context),
         &context,
-        NULL);
+        nullptr);
     return _get_platform(context);
 }
 
 static inline cl_platform_id _get_platform(cl_mem memobj)
 {
-    if (memobj == NULL) return NULL;
+    if (memobj == nullptr) return nullptr;
 
-    cl_context context = NULL;
+    cl_context context = nullptr;
     clGetMemObjectInfo(
         memobj,
         CL_MEM_CONTEXT,
         sizeof(context),
         &context,
-        NULL);
+        nullptr);
     return _get_platform(context);
 }
 
@@ -323,7 +330,38 @@ struct openclext_dispatch_table {
     cl_platform_id platform;
 
 %for extension in sorted(spec.findall('extensions/extension'), key=getExtensionSortKey):
-%  if shouldGenerate(extension.get('name')) and hasFunctions(extension):
+%  if shouldGenerate(extension.get('name')) and hasFunctions(extension) and not isCommonExtension(extension.get('name')):
+%    if getIfdefCondition(extension.get('name')):
+#if defined(${getIfdefCondition(extension.get('name'))})
+%    endif
+#if defined(${extension.get('name')})
+%for block in extension.findall('require'):
+%  if shouldEmit(block):
+%    if block.get('condition'):
+#if ${block.get('condition')}
+%    endif
+%    for func in block.findall('command'):
+<%
+    api = apisigs[func.get('name')]
+%>    ${api.Name}_clextfn ${api.Name};
+%    endfor
+%    if block.get('condition'):
+#endif // ${block.get('condition')}
+%    endif
+%  endif
+%endfor
+#endif // defined(${extension.get('name')})
+%    if getIfdefCondition(extension.get('name')):
+#endif // defined(${getIfdefCondition(extension.get('name'))})
+%    endif
+
+%  endif
+%endfor
+};
+
+struct openclext_dispatch_table_common {
+%for extension in sorted(spec.findall('extensions/extension'), key=getExtensionSortKey):
+%  if shouldGenerate(extension.get('name')) and hasFunctions(extension) and isCommonExtension(extension.get('name')):
 %    if getIfdefCondition(extension.get('name')):
 #if defined(${getIfdefCondition(extension.get('name'))})
 %    endif
@@ -366,7 +404,44 @@ static void _init(cl_platform_id platform, openclext_dispatch_table* dispatch_pt
             platform, #_funcname);
 
 %for extension in sorted(spec.findall('extensions/extension'), key=getExtensionSortKey):
-%  if shouldGenerate(extension.get('name')) and hasFunctions(extension):
+%  if shouldGenerate(extension.get('name')) and hasFunctions(extension) and not isCommonExtension(extension.get('name')):
+%    if getIfdefCondition(extension.get('name')):
+#if defined(${getIfdefCondition(extension.get('name'))})
+%    endif
+#if defined(${extension.get('name')})
+%for block in extension.findall('require'):
+%  if shouldEmit(block):
+%    if block.get('condition'):
+#if ${block.get('condition')}
+%    endif
+%    for func in block.findall('command'):
+<%
+    api = apisigs[func.get('name')]
+%>    CLEXT_GET_EXTENSION(${api.Name});
+%    endfor
+%    if block.get('condition'):
+#endif // ${block.get('condition')}
+%    endif
+%  endif
+%endfor
+#endif // defined(${extension.get('name')})
+%    if getIfdefCondition(extension.get('name')):
+#endif // defined(${getIfdefCondition(extension.get('name'))})
+%    endif
+
+%  endif
+%endfor
+#undef CLEXT_GET_EXTENSION
+}
+
+static void _init_common(openclext_dispatch_table_common* dispatch_ptr)
+{
+#define CLEXT_GET_EXTENSION(_funcname)                                         ${"\\"}
+    dispatch_ptr->_funcname =                                                  ${"\\"}
+        (_funcname##_clextfn)clGetExtensionFunctionAddress(#_funcname);
+
+%for extension in sorted(spec.findall('extensions/extension'), key=getExtensionSortKey):
+%  if shouldGenerate(extension.get('name')) and hasFunctions(extension) and isCommonExtension(extension.get('name')):
 %    if getIfdefCondition(extension.get('name')):
 #if defined(${getIfdefCondition(extension.get('name'))})
 %    endif
@@ -398,15 +473,15 @@ static void _init(cl_platform_id platform, openclext_dispatch_table* dispatch_pt
 
 #if defined(CLEXT_SINGLE_PLATFORM_ONLY)
 
-static openclext_dispatch_table _dispatch = {0};
-static openclext_dispatch_table* _dispatch_ptr = NULL;
+static openclext_dispatch_table _dispatch = {};
+static openclext_dispatch_table* _dispatch_ptr = nullptr;
 
 template<typename T>
 static inline openclext_dispatch_table* _get_dispatch(T object)
 {
-    if (object == NULL) return NULL;
+    if (object == nullptr) return nullptr;
 
-    if (_dispatch_ptr == NULL) {
+    if (_dispatch_ptr == nullptr) {
         cl_platform_id platform = _get_platform(object);
         _init(platform, &_dispatch);
         _dispatch_ptr = &_dispatch;
@@ -454,27 +529,27 @@ inline openclext_dispatch_table* _get_dispatch<cl_accelerator_intel>(cl_accelera
 #else // defined(CLEXT_SINGLE_PLATFORM_ONLY)
 
 static size_t _num_platforms = 0;
-static openclext_dispatch_table* _dispatch_array = NULL;
+static openclext_dispatch_table* _dispatch_array = nullptr;
 
 template<typename T>
 static inline openclext_dispatch_table* _get_dispatch(T object)
 {
-    if (_num_platforms == 0 && _dispatch_array == NULL) {
+    if (_num_platforms == 0 && _dispatch_array == nullptr) {
         cl_uint numPlatforms = 0;
-        clGetPlatformIDs(0, NULL, &numPlatforms);
+        clGetPlatformIDs(0, nullptr, &numPlatforms);
         if (numPlatforms == 0) {
-            return NULL;
+            return nullptr;
         }
 
         openclext_dispatch_table* dispatch =
             (openclext_dispatch_table*)malloc(
                 numPlatforms * sizeof(openclext_dispatch_table));
-        if (dispatch == NULL) {
-            return NULL;
+        if (dispatch == nullptr) {
+            return nullptr;
         }
 
         std::vector<cl_platform_id> platforms(numPlatforms);
-        clGetPlatformIDs(numPlatforms, platforms.data(), NULL);
+        clGetPlatformIDs(numPlatforms, platforms.data(), nullptr);
 
         for (size_t i = 0; i < numPlatforms; i++) {
             _init(platforms[i], dispatch + i);
@@ -493,7 +568,7 @@ static inline openclext_dispatch_table* _get_dispatch(T object)
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 
 // For some extension objects we cannot reliably query a platform ID without
@@ -505,7 +580,7 @@ static inline openclext_dispatch_table* _get_dispatch(T object)
 template<>
 inline openclext_dispatch_table* _get_dispatch<cl_semaphore_khr>(cl_semaphore_khr semaphore)
 {
-    if (semaphore == NULL) return NULL;
+    if (semaphore == nullptr) return nullptr;
     if (_num_platforms <= 1) return _dispatch_array;
 
     for (size_t i = 0; i < _num_platforms; i++) {
@@ -518,14 +593,14 @@ inline openclext_dispatch_table* _get_dispatch<cl_semaphore_khr>(cl_semaphore_kh
                 CL_SEMAPHORE_REFERENCE_COUNT_KHR,
                 sizeof(refCount),
                 &refCount,
-                NULL);
+                nullptr);
             if (errorCode == CL_SUCCESS) {
                 return dispatch_ptr;
             }
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 #endif // defined(cl_khr_semaphore)
 
@@ -533,7 +608,7 @@ inline openclext_dispatch_table* _get_dispatch<cl_semaphore_khr>(cl_semaphore_kh
 template<>
 inline openclext_dispatch_table* _get_dispatch<cl_command_buffer_khr>(cl_command_buffer_khr cmdbuf)
 {
-    if (cmdbuf == NULL) return NULL;
+    if (cmdbuf == nullptr) return nullptr;
     if (_num_platforms <= 1) return _dispatch_array;
 
     for (size_t i = 0; i < _num_platforms; i++) {
@@ -546,14 +621,14 @@ inline openclext_dispatch_table* _get_dispatch<cl_command_buffer_khr>(cl_command
                 CL_COMMAND_BUFFER_REFERENCE_COUNT_KHR,
                 sizeof(refCount),
                 &refCount,
-                NULL);
+                nullptr);
             if (errorCode == CL_SUCCESS) {
                 return dispatch_ptr;
             }
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 #endif // defined(cl_khr_command_buffer)
 
@@ -561,7 +636,7 @@ inline openclext_dispatch_table* _get_dispatch<cl_command_buffer_khr>(cl_command
 template<>
 inline openclext_dispatch_table* _get_dispatch<cl_mutable_command_khr>(cl_mutable_command_khr command)
 {
-    if (command == NULL) return NULL;
+    if (command == nullptr) return nullptr;
     if (_num_platforms <= 1) return _dispatch_array;
 
     for (size_t i = 0; i < _num_platforms; i++) {
@@ -570,20 +645,20 @@ inline openclext_dispatch_table* _get_dispatch<cl_mutable_command_khr>(cl_mutabl
         if (dispatch_ptr->clGetMutableCommandInfoKHR) {
             // Alternatively, this could query the command queue from the
             // command, then get the dispatch table from the command queue.
-            cl_command_buffer_khr cmdbuf = NULL;
+            cl_command_buffer_khr cmdbuf = nullptr;
             cl_int errorCode = dispatch_ptr->clGetMutableCommandInfoKHR(
                 command,
                 CL_MUTABLE_COMMAND_COMMAND_BUFFER_KHR,
                 sizeof(cmdbuf),
                 &cmdbuf,
-                NULL);
+                nullptr);
             if (errorCode == CL_SUCCESS) {
                 return dispatch_ptr;
             }
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 #endif // defined(cl_khr_command_buffer_mutable_dispatch)
 
@@ -591,7 +666,7 @@ inline openclext_dispatch_table* _get_dispatch<cl_mutable_command_khr>(cl_mutabl
 template<>
 inline openclext_dispatch_table* _get_dispatch<cl_accelerator_intel>(cl_accelerator_intel accelerator)
 {
-    if (accelerator == NULL) return NULL;
+    if (accelerator == nullptr) return nullptr;
     if (_num_platforms <= 1) return _dispatch_array;
 
     for (size_t i = 0; i < _num_platforms; i++) {
@@ -604,18 +679,31 @@ inline openclext_dispatch_table* _get_dispatch<cl_accelerator_intel>(cl_accelera
                 CL_ACCELERATOR_REFERENCE_COUNT_INTEL,
                 sizeof(refCount),
                 &refCount,
-                NULL);
+                nullptr);
             if (errorCode == CL_SUCCESS) {
                 return dispatch_ptr;
             }
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 #endif // defined(cl_intel_accelerator)
 
 #endif // defined(CLEXT_SINGLE_PLATFORM_ONLY)
+
+static openclext_dispatch_table_common _dispatch_common = {};
+static openclext_dispatch_table_common* _dispatch_ptr_common = nullptr;
+
+static inline openclext_dispatch_table_common* _get_dispatch(void)
+{
+    if (_dispatch_ptr_common == nullptr) {
+        _init_common(&_dispatch_common);
+        _dispatch_ptr_common = &_dispatch_common;
+    }
+
+    return _dispatch_ptr_common;
+}
 
 #ifdef __cplusplus
 extern "C" {
@@ -650,21 +738,23 @@ ${api.RetType} CL_API_CALL ${api.Name}(
 %        endif
 %      endfor
 {
-%      if api.Name == "clCreateCommandBufferKHR":
-    struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(${api.Params[0].Name} > 0 && ${api.Params[1].Name} ? ${api.Params[1].Name}[0] : NULL);
+%      if isCommonExtension(extension.get('name')) and hasFunctions(extension):
+    struct openclext_dispatch_table_common* dispatch_ptr = _get_dispatch();
+%      elif api.Name == "clCreateCommandBufferKHR":
+    struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(${api.Params[0].Name} > 0 && ${api.Params[1].Name} ? ${api.Params[1].Name}[0] : nullptr);
 %      elif api.Name == "clEnqueueCommandBufferKHR":
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(${api.Params[2].Name});
 %      else:
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(${api.Params[0].Name});
 %      endif
-    if (dispatch_ptr == NULL || dispatch_ptr->${api.Name} == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->${api.Name} == nullptr) {
 %      if api.RetType == "cl_int":
         return CL_INVALID_OPERATION;
 %      elif api.Params[len(api.Params)-1].Name == "errcode_ret":
         if (errcode_ret) *errcode_ret = CL_INVALID_OPERATION;
-        return NULL;
+        return nullptr;
 %      elif api.RetType == "void*":
-        return NULL;
+        return nullptr;
 %      elif api.RetType == "void":
         return;
 %      else:

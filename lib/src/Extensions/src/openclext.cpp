@@ -71,35 +71,35 @@ static inline cl_platform_id _get_platform(cl_platform_id platform)
 
 static inline cl_platform_id _get_platform(cl_device_id device)
 {
-    if (device == NULL) return NULL;
+    if (device == nullptr) return nullptr;
 
-    cl_platform_id platform = NULL;
+    cl_platform_id platform = nullptr;
     clGetDeviceInfo(
         device,
         CL_DEVICE_PLATFORM,
         sizeof(platform),
         &platform,
-        NULL);
+        nullptr);
     return platform;
 }
 
 static inline cl_platform_id _get_platform(cl_command_queue command_queue)
 {
-    if (command_queue == NULL) return NULL;
+    if (command_queue == nullptr) return nullptr;
 
-    cl_device_id device = NULL;
+    cl_device_id device = nullptr;
     clGetCommandQueueInfo(
         command_queue,
         CL_QUEUE_DEVICE,
         sizeof(device),
         &device,
-        NULL);
+        nullptr);
     return _get_platform(device);
 }
 
 static inline cl_platform_id _get_platform(cl_context context)
 {
-    if (context == NULL) return NULL;
+    if (context == nullptr) return nullptr;
 
     cl_uint numDevices = 0;
     clGetContextInfo(
@@ -107,17 +107,16 @@ static inline cl_platform_id _get_platform(cl_context context)
         CL_CONTEXT_NUM_DEVICES,
         sizeof(numDevices),
         &numDevices,
-        NULL );
+        nullptr );
 
-    if( numDevices == 1 )   // fast path, no dynamic allocation
-    {
-        cl_device_id    device = NULL;
+    if (numDevices == 1) {  // fast path, no dynamic allocation
+        cl_device_id    device = nullptr;
         clGetContextInfo(
             context,
             CL_CONTEXT_DEVICES,
             sizeof(cl_device_id),
             &device,
-            NULL );
+            nullptr );
         return _get_platform(device);
     }
 
@@ -128,35 +127,35 @@ static inline cl_platform_id _get_platform(cl_context context)
         CL_CONTEXT_DEVICES,
         numDevices * sizeof(cl_device_id),
         devices.data(),
-        NULL );
+        nullptr );
     return _get_platform(devices[0]);
 }
 
 static inline cl_platform_id _get_platform(cl_kernel kernel)
 {
-    if (kernel == NULL) return NULL;
+    if (kernel == nullptr) return nullptr;
 
-    cl_context context = NULL;
+    cl_context context = nullptr;
     clGetKernelInfo(
         kernel,
         CL_KERNEL_CONTEXT,
         sizeof(context),
         &context,
-        NULL);
+        nullptr);
     return _get_platform(context);
 }
 
 static inline cl_platform_id _get_platform(cl_mem memobj)
 {
-    if (memobj == NULL) return NULL;
+    if (memobj == nullptr) return nullptr;
 
-    cl_context context = NULL;
+    cl_context context = nullptr;
     clGetMemObjectInfo(
         memobj,
         CL_MEM_CONTEXT,
         sizeof(context),
         &context,
-        NULL);
+        nullptr);
     return _get_platform(context);
 }
 
@@ -1192,6 +1191,18 @@ typedef cl_int (CL_API_CALL* clEnqueueReleaseVA_APIMediaSurfacesINTEL_clextfn)(
 #endif // defined(cl_intel_va_api_media_sharing)
 #endif // defined(CLEXT_INCLUDE_VA_API)
 
+#if defined(cl_loader_info)
+
+typedef cl_int (CL_API_CALL* clGetICDLoaderInfoOCLICD_clextfn)(
+    cl_icdl_info param_name,
+    size_t param_value_size,
+    void* param_value,
+    size_t* param_value_size_ret);
+
+#else
+#pragma message("Define for cl_loader_info was not found!  Please update your headers.")
+#endif // defined(cl_loader_info)
+
 #if defined(cl_pocl_content_size)
 
 typedef cl_int (CL_API_CALL* clSetContentSizeBufferPoCL_clextfn)(
@@ -1468,6 +1479,13 @@ struct openclext_dispatch_table {
 
 };
 
+struct openclext_dispatch_table_common {
+#if defined(cl_loader_info)
+    clGetICDLoaderInfoOCLICD_clextfn clGetICDLoaderInfoOCLICD;
+#endif // defined(cl_loader_info)
+
+};
+
 /***************************************************************
 * Dispatch Table Initialization
 ***************************************************************/
@@ -1724,17 +1742,30 @@ static void _init(cl_platform_id platform, openclext_dispatch_table* dispatch_pt
 #undef CLEXT_GET_EXTENSION
 }
 
+static void _init_common(openclext_dispatch_table_common* dispatch_ptr)
+{
+#define CLEXT_GET_EXTENSION(_funcname)                                         \
+    dispatch_ptr->_funcname =                                                  \
+        (_funcname##_clextfn)clGetExtensionFunctionAddress(#_funcname);
+
+#if defined(cl_loader_info)
+    CLEXT_GET_EXTENSION(clGetICDLoaderInfoOCLICD);
+#endif // defined(cl_loader_info)
+
+#undef CLEXT_GET_EXTENSION
+}
+
 #if defined(CLEXT_SINGLE_PLATFORM_ONLY)
 
-static openclext_dispatch_table _dispatch = {0};
-static openclext_dispatch_table* _dispatch_ptr = NULL;
+static openclext_dispatch_table _dispatch = {};
+static openclext_dispatch_table* _dispatch_ptr = nullptr;
 
 template<typename T>
 static inline openclext_dispatch_table* _get_dispatch(T object)
 {
-    if (object == NULL) return NULL;
+    if (object == nullptr) return nullptr;
 
-    if (_dispatch_ptr == NULL) {
+    if (_dispatch_ptr == nullptr) {
         cl_platform_id platform = _get_platform(object);
         _init(platform, &_dispatch);
         _dispatch_ptr = &_dispatch;
@@ -1782,27 +1813,27 @@ inline openclext_dispatch_table* _get_dispatch<cl_accelerator_intel>(cl_accelera
 #else // defined(CLEXT_SINGLE_PLATFORM_ONLY)
 
 static size_t _num_platforms = 0;
-static openclext_dispatch_table* _dispatch_array = NULL;
+static openclext_dispatch_table* _dispatch_array = nullptr;
 
 template<typename T>
 static inline openclext_dispatch_table* _get_dispatch(T object)
 {
-    if (_num_platforms == 0 && _dispatch_array == NULL) {
+    if (_num_platforms == 0 && _dispatch_array == nullptr) {
         cl_uint numPlatforms = 0;
-        clGetPlatformIDs(0, NULL, &numPlatforms);
+        clGetPlatformIDs(0, nullptr, &numPlatforms);
         if (numPlatforms == 0) {
-            return NULL;
+            return nullptr;
         }
 
         openclext_dispatch_table* dispatch =
             (openclext_dispatch_table*)malloc(
                 numPlatforms * sizeof(openclext_dispatch_table));
-        if (dispatch == NULL) {
-            return NULL;
+        if (dispatch == nullptr) {
+            return nullptr;
         }
 
         std::vector<cl_platform_id> platforms(numPlatforms);
-        clGetPlatformIDs(numPlatforms, platforms.data(), NULL);
+        clGetPlatformIDs(numPlatforms, platforms.data(), nullptr);
 
         for (size_t i = 0; i < numPlatforms; i++) {
             _init(platforms[i], dispatch + i);
@@ -1821,7 +1852,7 @@ static inline openclext_dispatch_table* _get_dispatch(T object)
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 
 // For some extension objects we cannot reliably query a platform ID without
@@ -1833,7 +1864,7 @@ static inline openclext_dispatch_table* _get_dispatch(T object)
 template<>
 inline openclext_dispatch_table* _get_dispatch<cl_semaphore_khr>(cl_semaphore_khr semaphore)
 {
-    if (semaphore == NULL) return NULL;
+    if (semaphore == nullptr) return nullptr;
     if (_num_platforms <= 1) return _dispatch_array;
 
     for (size_t i = 0; i < _num_platforms; i++) {
@@ -1846,14 +1877,14 @@ inline openclext_dispatch_table* _get_dispatch<cl_semaphore_khr>(cl_semaphore_kh
                 CL_SEMAPHORE_REFERENCE_COUNT_KHR,
                 sizeof(refCount),
                 &refCount,
-                NULL);
+                nullptr);
             if (errorCode == CL_SUCCESS) {
                 return dispatch_ptr;
             }
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 #endif // defined(cl_khr_semaphore)
 
@@ -1861,7 +1892,7 @@ inline openclext_dispatch_table* _get_dispatch<cl_semaphore_khr>(cl_semaphore_kh
 template<>
 inline openclext_dispatch_table* _get_dispatch<cl_command_buffer_khr>(cl_command_buffer_khr cmdbuf)
 {
-    if (cmdbuf == NULL) return NULL;
+    if (cmdbuf == nullptr) return nullptr;
     if (_num_platforms <= 1) return _dispatch_array;
 
     for (size_t i = 0; i < _num_platforms; i++) {
@@ -1874,14 +1905,14 @@ inline openclext_dispatch_table* _get_dispatch<cl_command_buffer_khr>(cl_command
                 CL_COMMAND_BUFFER_REFERENCE_COUNT_KHR,
                 sizeof(refCount),
                 &refCount,
-                NULL);
+                nullptr);
             if (errorCode == CL_SUCCESS) {
                 return dispatch_ptr;
             }
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 #endif // defined(cl_khr_command_buffer)
 
@@ -1889,7 +1920,7 @@ inline openclext_dispatch_table* _get_dispatch<cl_command_buffer_khr>(cl_command
 template<>
 inline openclext_dispatch_table* _get_dispatch<cl_mutable_command_khr>(cl_mutable_command_khr command)
 {
-    if (command == NULL) return NULL;
+    if (command == nullptr) return nullptr;
     if (_num_platforms <= 1) return _dispatch_array;
 
     for (size_t i = 0; i < _num_platforms; i++) {
@@ -1898,20 +1929,20 @@ inline openclext_dispatch_table* _get_dispatch<cl_mutable_command_khr>(cl_mutabl
         if (dispatch_ptr->clGetMutableCommandInfoKHR) {
             // Alternatively, this could query the command queue from the
             // command, then get the dispatch table from the command queue.
-            cl_command_buffer_khr cmdbuf = NULL;
+            cl_command_buffer_khr cmdbuf = nullptr;
             cl_int errorCode = dispatch_ptr->clGetMutableCommandInfoKHR(
                 command,
                 CL_MUTABLE_COMMAND_COMMAND_BUFFER_KHR,
                 sizeof(cmdbuf),
                 &cmdbuf,
-                NULL);
+                nullptr);
             if (errorCode == CL_SUCCESS) {
                 return dispatch_ptr;
             }
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 #endif // defined(cl_khr_command_buffer_mutable_dispatch)
 
@@ -1919,7 +1950,7 @@ inline openclext_dispatch_table* _get_dispatch<cl_mutable_command_khr>(cl_mutabl
 template<>
 inline openclext_dispatch_table* _get_dispatch<cl_accelerator_intel>(cl_accelerator_intel accelerator)
 {
-    if (accelerator == NULL) return NULL;
+    if (accelerator == nullptr) return nullptr;
     if (_num_platforms <= 1) return _dispatch_array;
 
     for (size_t i = 0; i < _num_platforms; i++) {
@@ -1932,18 +1963,31 @@ inline openclext_dispatch_table* _get_dispatch<cl_accelerator_intel>(cl_accelera
                 CL_ACCELERATOR_REFERENCE_COUNT_INTEL,
                 sizeof(refCount),
                 &refCount,
-                NULL);
+                nullptr);
             if (errorCode == CL_SUCCESS) {
                 return dispatch_ptr;
             }
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 #endif // defined(cl_intel_accelerator)
 
 #endif // defined(CLEXT_SINGLE_PLATFORM_ONLY)
+
+static openclext_dispatch_table_common _dispatch_common = {};
+static openclext_dispatch_table_common* _dispatch_ptr_common = nullptr;
+
+static inline openclext_dispatch_table_common* _get_dispatch(void)
+{
+    if (_dispatch_ptr_common == nullptr) {
+        _init_common(&_dispatch_common);
+        _dispatch_ptr_common = &_dispatch_common;
+    }
+
+    return _dispatch_ptr_common;
+}
 
 #ifdef __cplusplus
 extern "C" {
@@ -1961,10 +2005,10 @@ cl_command_buffer_khr CL_API_CALL clCreateCommandBufferKHR(
     const cl_command_buffer_properties_khr* properties,
     cl_int* errcode_ret)
 {
-    struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(num_queues > 0 && queues ? queues[0] : NULL);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCreateCommandBufferKHR == NULL) {
+    struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(num_queues > 0 && queues ? queues[0] : nullptr);
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCreateCommandBufferKHR == nullptr) {
         if (errcode_ret) *errcode_ret = CL_INVALID_OPERATION;
-        return NULL;
+        return nullptr;
     }
     return dispatch_ptr->clCreateCommandBufferKHR(
         num_queues,
@@ -1977,7 +2021,7 @@ cl_int CL_API_CALL clFinalizeCommandBufferKHR(
     cl_command_buffer_khr command_buffer)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_buffer);
-    if (dispatch_ptr == NULL || dispatch_ptr->clFinalizeCommandBufferKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clFinalizeCommandBufferKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clFinalizeCommandBufferKHR(
@@ -1988,7 +2032,7 @@ cl_int CL_API_CALL clRetainCommandBufferKHR(
     cl_command_buffer_khr command_buffer)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_buffer);
-    if (dispatch_ptr == NULL || dispatch_ptr->clRetainCommandBufferKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clRetainCommandBufferKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clRetainCommandBufferKHR(
@@ -1999,7 +2043,7 @@ cl_int CL_API_CALL clReleaseCommandBufferKHR(
     cl_command_buffer_khr command_buffer)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_buffer);
-    if (dispatch_ptr == NULL || dispatch_ptr->clReleaseCommandBufferKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clReleaseCommandBufferKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clReleaseCommandBufferKHR(
@@ -2015,7 +2059,7 @@ cl_int CL_API_CALL clEnqueueCommandBufferKHR(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_buffer);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueCommandBufferKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueCommandBufferKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueCommandBufferKHR(
@@ -2036,7 +2080,7 @@ cl_int CL_API_CALL clCommandBarrierWithWaitListKHR(
     cl_mutable_command_khr* mutable_handle)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_buffer);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCommandBarrierWithWaitListKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCommandBarrierWithWaitListKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clCommandBarrierWithWaitListKHR(
@@ -2062,7 +2106,7 @@ cl_int CL_API_CALL clCommandCopyBufferKHR(
     cl_mutable_command_khr* mutable_handle)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_buffer);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCommandCopyBufferKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCommandCopyBufferKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clCommandCopyBufferKHR(
@@ -2097,7 +2141,7 @@ cl_int CL_API_CALL clCommandCopyBufferRectKHR(
     cl_mutable_command_khr* mutable_handle)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_buffer);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCommandCopyBufferRectKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCommandCopyBufferRectKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clCommandCopyBufferRectKHR(
@@ -2132,7 +2176,7 @@ cl_int CL_API_CALL clCommandCopyBufferToImageKHR(
     cl_mutable_command_khr* mutable_handle)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_buffer);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCommandCopyBufferToImageKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCommandCopyBufferToImageKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clCommandCopyBufferToImageKHR(
@@ -2163,7 +2207,7 @@ cl_int CL_API_CALL clCommandCopyImageKHR(
     cl_mutable_command_khr* mutable_handle)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_buffer);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCommandCopyImageKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCommandCopyImageKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clCommandCopyImageKHR(
@@ -2194,7 +2238,7 @@ cl_int CL_API_CALL clCommandCopyImageToBufferKHR(
     cl_mutable_command_khr* mutable_handle)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_buffer);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCommandCopyImageToBufferKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCommandCopyImageToBufferKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clCommandCopyImageToBufferKHR(
@@ -2225,7 +2269,7 @@ cl_int CL_API_CALL clCommandFillBufferKHR(
     cl_mutable_command_khr* mutable_handle)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_buffer);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCommandFillBufferKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCommandFillBufferKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clCommandFillBufferKHR(
@@ -2255,7 +2299,7 @@ cl_int CL_API_CALL clCommandFillImageKHR(
     cl_mutable_command_khr* mutable_handle)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_buffer);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCommandFillImageKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCommandFillImageKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clCommandFillImageKHR(
@@ -2286,7 +2330,7 @@ cl_int CL_API_CALL clCommandNDRangeKernelKHR(
     cl_mutable_command_khr* mutable_handle)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_buffer);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCommandNDRangeKernelKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCommandNDRangeKernelKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clCommandNDRangeKernelKHR(
@@ -2312,7 +2356,7 @@ cl_int CL_API_CALL clGetCommandBufferInfoKHR(
     size_t* param_value_size_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_buffer);
-    if (dispatch_ptr == NULL || dispatch_ptr->clGetCommandBufferInfoKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clGetCommandBufferInfoKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clGetCommandBufferInfoKHR(
@@ -2332,7 +2376,7 @@ cl_int CL_API_CALL clUpdateMutableCommandsKHR(
     const cl_mutable_base_config_khr* mutable_config)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_buffer);
-    if (dispatch_ptr == NULL || dispatch_ptr->clUpdateMutableCommandsKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clUpdateMutableCommandsKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clUpdateMutableCommandsKHR(
@@ -2348,7 +2392,7 @@ cl_int CL_API_CALL clGetMutableCommandInfoKHR(
     size_t* param_value_size_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command);
-    if (dispatch_ptr == NULL || dispatch_ptr->clGetMutableCommandInfoKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clGetMutableCommandInfoKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clGetMutableCommandInfoKHR(
@@ -2370,9 +2414,9 @@ cl_command_queue CL_API_CALL clCreateCommandQueueWithPropertiesKHR(
     cl_int* errcode_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCreateCommandQueueWithPropertiesKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCreateCommandQueueWithPropertiesKHR == nullptr) {
         if (errcode_ret) *errcode_ret = CL_INVALID_OPERATION;
-        return NULL;
+        return nullptr;
     }
     return dispatch_ptr->clCreateCommandQueueWithPropertiesKHR(
         context,
@@ -2396,7 +2440,7 @@ cl_int CL_API_CALL clGetDeviceIDsFromD3D10KHR(
     cl_uint* num_devices)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(platform);
-    if (dispatch_ptr == NULL || dispatch_ptr->clGetDeviceIDsFromD3D10KHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clGetDeviceIDsFromD3D10KHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clGetDeviceIDsFromD3D10KHR(
@@ -2416,9 +2460,9 @@ cl_mem CL_API_CALL clCreateFromD3D10BufferKHR(
     cl_int* errcode_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCreateFromD3D10BufferKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCreateFromD3D10BufferKHR == nullptr) {
         if (errcode_ret) *errcode_ret = CL_INVALID_OPERATION;
-        return NULL;
+        return nullptr;
     }
     return dispatch_ptr->clCreateFromD3D10BufferKHR(
         context,
@@ -2435,9 +2479,9 @@ cl_mem CL_API_CALL clCreateFromD3D10Texture2DKHR(
     cl_int* errcode_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCreateFromD3D10Texture2DKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCreateFromD3D10Texture2DKHR == nullptr) {
         if (errcode_ret) *errcode_ret = CL_INVALID_OPERATION;
-        return NULL;
+        return nullptr;
     }
     return dispatch_ptr->clCreateFromD3D10Texture2DKHR(
         context,
@@ -2455,9 +2499,9 @@ cl_mem CL_API_CALL clCreateFromD3D10Texture3DKHR(
     cl_int* errcode_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCreateFromD3D10Texture3DKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCreateFromD3D10Texture3DKHR == nullptr) {
         if (errcode_ret) *errcode_ret = CL_INVALID_OPERATION;
-        return NULL;
+        return nullptr;
     }
     return dispatch_ptr->clCreateFromD3D10Texture3DKHR(
         context,
@@ -2476,7 +2520,7 @@ cl_int CL_API_CALL clEnqueueAcquireD3D10ObjectsKHR(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueAcquireD3D10ObjectsKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueAcquireD3D10ObjectsKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueAcquireD3D10ObjectsKHR(
@@ -2497,7 +2541,7 @@ cl_int CL_API_CALL clEnqueueReleaseD3D10ObjectsKHR(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueReleaseD3D10ObjectsKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueReleaseD3D10ObjectsKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueReleaseD3D10ObjectsKHR(
@@ -2526,7 +2570,7 @@ cl_int CL_API_CALL clGetDeviceIDsFromD3D11KHR(
     cl_uint* num_devices)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(platform);
-    if (dispatch_ptr == NULL || dispatch_ptr->clGetDeviceIDsFromD3D11KHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clGetDeviceIDsFromD3D11KHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clGetDeviceIDsFromD3D11KHR(
@@ -2546,9 +2590,9 @@ cl_mem CL_API_CALL clCreateFromD3D11BufferKHR(
     cl_int* errcode_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCreateFromD3D11BufferKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCreateFromD3D11BufferKHR == nullptr) {
         if (errcode_ret) *errcode_ret = CL_INVALID_OPERATION;
-        return NULL;
+        return nullptr;
     }
     return dispatch_ptr->clCreateFromD3D11BufferKHR(
         context,
@@ -2565,9 +2609,9 @@ cl_mem CL_API_CALL clCreateFromD3D11Texture2DKHR(
     cl_int* errcode_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCreateFromD3D11Texture2DKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCreateFromD3D11Texture2DKHR == nullptr) {
         if (errcode_ret) *errcode_ret = CL_INVALID_OPERATION;
-        return NULL;
+        return nullptr;
     }
     return dispatch_ptr->clCreateFromD3D11Texture2DKHR(
         context,
@@ -2585,9 +2629,9 @@ cl_mem CL_API_CALL clCreateFromD3D11Texture3DKHR(
     cl_int* errcode_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCreateFromD3D11Texture3DKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCreateFromD3D11Texture3DKHR == nullptr) {
         if (errcode_ret) *errcode_ret = CL_INVALID_OPERATION;
-        return NULL;
+        return nullptr;
     }
     return dispatch_ptr->clCreateFromD3D11Texture3DKHR(
         context,
@@ -2606,7 +2650,7 @@ cl_int CL_API_CALL clEnqueueAcquireD3D11ObjectsKHR(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueAcquireD3D11ObjectsKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueAcquireD3D11ObjectsKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueAcquireD3D11ObjectsKHR(
@@ -2627,7 +2671,7 @@ cl_int CL_API_CALL clEnqueueReleaseD3D11ObjectsKHR(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueReleaseD3D11ObjectsKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueReleaseD3D11ObjectsKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueReleaseD3D11ObjectsKHR(
@@ -2657,7 +2701,7 @@ cl_int CL_API_CALL clGetDeviceIDsFromDX9MediaAdapterKHR(
     cl_uint* num_devices)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(platform);
-    if (dispatch_ptr == NULL || dispatch_ptr->clGetDeviceIDsFromDX9MediaAdapterKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clGetDeviceIDsFromDX9MediaAdapterKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clGetDeviceIDsFromDX9MediaAdapterKHR(
@@ -2680,9 +2724,9 @@ cl_mem CL_API_CALL clCreateFromDX9MediaSurfaceKHR(
     cl_int* errcode_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCreateFromDX9MediaSurfaceKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCreateFromDX9MediaSurfaceKHR == nullptr) {
         if (errcode_ret) *errcode_ret = CL_INVALID_OPERATION;
-        return NULL;
+        return nullptr;
     }
     return dispatch_ptr->clCreateFromDX9MediaSurfaceKHR(
         context,
@@ -2702,7 +2746,7 @@ cl_int CL_API_CALL clEnqueueAcquireDX9MediaSurfacesKHR(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueAcquireDX9MediaSurfacesKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueAcquireDX9MediaSurfacesKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueAcquireDX9MediaSurfacesKHR(
@@ -2723,7 +2767,7 @@ cl_int CL_API_CALL clEnqueueReleaseDX9MediaSurfacesKHR(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueReleaseDX9MediaSurfacesKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueReleaseDX9MediaSurfacesKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueReleaseDX9MediaSurfacesKHR(
@@ -2749,9 +2793,9 @@ cl_event CL_API_CALL clCreateEventFromEGLSyncKHR(
     cl_int* errcode_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCreateEventFromEGLSyncKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCreateEventFromEGLSyncKHR == nullptr) {
         if (errcode_ret) *errcode_ret = CL_INVALID_OPERATION;
-        return NULL;
+        return nullptr;
     }
     return dispatch_ptr->clCreateEventFromEGLSyncKHR(
         context,
@@ -2776,9 +2820,9 @@ cl_mem CL_API_CALL clCreateFromEGLImageKHR(
     cl_int* errcode_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCreateFromEGLImageKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCreateFromEGLImageKHR == nullptr) {
         if (errcode_ret) *errcode_ret = CL_INVALID_OPERATION;
-        return NULL;
+        return nullptr;
     }
     return dispatch_ptr->clCreateFromEGLImageKHR(
         context,
@@ -2798,7 +2842,7 @@ cl_int CL_API_CALL clEnqueueAcquireEGLObjectsKHR(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueAcquireEGLObjectsKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueAcquireEGLObjectsKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueAcquireEGLObjectsKHR(
@@ -2819,7 +2863,7 @@ cl_int CL_API_CALL clEnqueueReleaseEGLObjectsKHR(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueReleaseEGLObjectsKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueReleaseEGLObjectsKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueReleaseEGLObjectsKHR(
@@ -2846,7 +2890,7 @@ cl_int CL_API_CALL clEnqueueAcquireExternalMemObjectsKHR(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueAcquireExternalMemObjectsKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueAcquireExternalMemObjectsKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueAcquireExternalMemObjectsKHR(
@@ -2867,7 +2911,7 @@ cl_int CL_API_CALL clEnqueueReleaseExternalMemObjectsKHR(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueReleaseExternalMemObjectsKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueReleaseExternalMemObjectsKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueReleaseExternalMemObjectsKHR(
@@ -2892,7 +2936,7 @@ cl_int CL_API_CALL clGetSemaphoreHandleForTypeKHR(
     size_t* handle_size_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(sema_object);
-    if (dispatch_ptr == NULL || dispatch_ptr->clGetSemaphoreHandleForTypeKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clGetSemaphoreHandleForTypeKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clGetSemaphoreHandleForTypeKHR(
@@ -2915,9 +2959,9 @@ cl_event CL_API_CALL clCreateEventFromGLsyncKHR(
     cl_int* errcode_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCreateEventFromGLsyncKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCreateEventFromGLsyncKHR == nullptr) {
         if (errcode_ret) *errcode_ret = CL_INVALID_OPERATION;
-        return NULL;
+        return nullptr;
     }
     return dispatch_ptr->clCreateEventFromGLsyncKHR(
         context,
@@ -2938,9 +2982,9 @@ cl_program CL_API_CALL clCreateProgramWithILKHR(
     cl_int* errcode_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCreateProgramWithILKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCreateProgramWithILKHR == nullptr) {
         if (errcode_ret) *errcode_ret = CL_INVALID_OPERATION;
-        return NULL;
+        return nullptr;
     }
     return dispatch_ptr->clCreateProgramWithILKHR(
         context,
@@ -2959,9 +3003,9 @@ cl_semaphore_khr CL_API_CALL clCreateSemaphoreWithPropertiesKHR(
     cl_int* errcode_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCreateSemaphoreWithPropertiesKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCreateSemaphoreWithPropertiesKHR == nullptr) {
         if (errcode_ret) *errcode_ret = CL_INVALID_OPERATION;
-        return NULL;
+        return nullptr;
     }
     return dispatch_ptr->clCreateSemaphoreWithPropertiesKHR(
         context,
@@ -2979,7 +3023,7 @@ cl_int CL_API_CALL clEnqueueWaitSemaphoresKHR(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueWaitSemaphoresKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueWaitSemaphoresKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueWaitSemaphoresKHR(
@@ -3002,7 +3046,7 @@ cl_int CL_API_CALL clEnqueueSignalSemaphoresKHR(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueSignalSemaphoresKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueSignalSemaphoresKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueSignalSemaphoresKHR(
@@ -3023,7 +3067,7 @@ cl_int CL_API_CALL clGetSemaphoreInfoKHR(
     size_t* param_value_size_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(sema_object);
-    if (dispatch_ptr == NULL || dispatch_ptr->clGetSemaphoreInfoKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clGetSemaphoreInfoKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clGetSemaphoreInfoKHR(
@@ -3038,7 +3082,7 @@ cl_int CL_API_CALL clReleaseSemaphoreKHR(
     cl_semaphore_khr sema_object)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(sema_object);
-    if (dispatch_ptr == NULL || dispatch_ptr->clReleaseSemaphoreKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clReleaseSemaphoreKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clReleaseSemaphoreKHR(
@@ -3049,7 +3093,7 @@ cl_int CL_API_CALL clRetainSemaphoreKHR(
     cl_semaphore_khr sema_object)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(sema_object);
-    if (dispatch_ptr == NULL || dispatch_ptr->clRetainSemaphoreKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clRetainSemaphoreKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clRetainSemaphoreKHR(
@@ -3071,7 +3115,7 @@ cl_int CL_API_CALL clGetKernelSubGroupInfoKHR(
     size_t* param_value_size_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(in_kernel);
-    if (dispatch_ptr == NULL || dispatch_ptr->clGetKernelSubGroupInfoKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clGetKernelSubGroupInfoKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clGetKernelSubGroupInfoKHR(
@@ -3098,7 +3142,7 @@ cl_int CL_API_CALL clGetKernelSuggestedLocalWorkSizeKHR(
     size_t* suggested_local_work_size)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clGetKernelSuggestedLocalWorkSizeKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clGetKernelSuggestedLocalWorkSizeKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clGetKernelSuggestedLocalWorkSizeKHR(
@@ -3118,7 +3162,7 @@ cl_int CL_API_CALL clTerminateContextKHR(
     cl_context context)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clTerminateContextKHR == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clTerminateContextKHR == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clTerminateContextKHR(
@@ -3133,7 +3177,7 @@ cl_int CL_API_CALL clReleaseDeviceEXT(
     cl_device_id device)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(device);
-    if (dispatch_ptr == NULL || dispatch_ptr->clReleaseDeviceEXT == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clReleaseDeviceEXT == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clReleaseDeviceEXT(
@@ -3144,7 +3188,7 @@ cl_int CL_API_CALL clRetainDeviceEXT(
     cl_device_id device)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(device);
-    if (dispatch_ptr == NULL || dispatch_ptr->clRetainDeviceEXT == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clRetainDeviceEXT == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clRetainDeviceEXT(
@@ -3159,7 +3203,7 @@ cl_int CL_API_CALL clCreateSubDevicesEXT(
     cl_uint* num_devices)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(in_device);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCreateSubDevicesEXT == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCreateSubDevicesEXT == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clCreateSubDevicesEXT(
@@ -3186,7 +3230,7 @@ cl_int CL_API_CALL clGetImageRequirementsInfoEXT(
     size_t* param_value_size_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clGetImageRequirementsInfoEXT == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clGetImageRequirementsInfoEXT == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clGetImageRequirementsInfoEXT(
@@ -3215,7 +3259,7 @@ cl_int CL_API_CALL clEnqueueMigrateMemObjectEXT(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueMigrateMemObjectEXT == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueMigrateMemObjectEXT == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueMigrateMemObjectEXT(
@@ -3241,9 +3285,9 @@ cl_mem CL_API_CALL clImportMemoryARM(
     cl_int* errcode_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clImportMemoryARM == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clImportMemoryARM == nullptr) {
         if (errcode_ret) *errcode_ret = CL_INVALID_OPERATION;
-        return NULL;
+        return nullptr;
     }
     return dispatch_ptr->clImportMemoryARM(
         context,
@@ -3265,8 +3309,8 @@ void* CL_API_CALL clSVMAllocARM(
     cl_uint alignment)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clSVMAllocARM == NULL) {
-        return NULL;
+    if (dispatch_ptr == nullptr || dispatch_ptr->clSVMAllocARM == nullptr) {
+        return nullptr;
     }
     return dispatch_ptr->clSVMAllocARM(
         context,
@@ -3280,7 +3324,7 @@ void CL_API_CALL clSVMFreeARM(
     void* svm_pointer)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clSVMFreeARM == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clSVMFreeARM == nullptr) {
         return;
     }
     dispatch_ptr->clSVMFreeARM(
@@ -3299,7 +3343,7 @@ cl_int CL_API_CALL clEnqueueSVMFreeARM(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueSVMFreeARM == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueSVMFreeARM == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueSVMFreeARM(
@@ -3324,7 +3368,7 @@ cl_int CL_API_CALL clEnqueueSVMMemcpyARM(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueSVMMemcpyARM == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueSVMMemcpyARM == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueSVMMemcpyARM(
@@ -3349,7 +3393,7 @@ cl_int CL_API_CALL clEnqueueSVMMemFillARM(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueSVMMemFillARM == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueSVMMemFillARM == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueSVMMemFillARM(
@@ -3374,7 +3418,7 @@ cl_int CL_API_CALL clEnqueueSVMMapARM(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueSVMMapARM == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueSVMMapARM == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueSVMMapARM(
@@ -3396,7 +3440,7 @@ cl_int CL_API_CALL clEnqueueSVMUnmapARM(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueSVMUnmapARM == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueSVMUnmapARM == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueSVMUnmapARM(
@@ -3413,7 +3457,7 @@ cl_int CL_API_CALL clSetKernelArgSVMPointerARM(
     const void* arg_value)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(kernel);
-    if (dispatch_ptr == NULL || dispatch_ptr->clSetKernelArgSVMPointerARM == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clSetKernelArgSVMPointerARM == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clSetKernelArgSVMPointerARM(
@@ -3429,7 +3473,7 @@ cl_int CL_API_CALL clSetKernelExecInfoARM(
     const void* param_value)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(kernel);
-    if (dispatch_ptr == NULL || dispatch_ptr->clSetKernelExecInfoARM == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clSetKernelExecInfoARM == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clSetKernelExecInfoARM(
@@ -3455,7 +3499,7 @@ cl_int CL_API_CALL clEnqueueGenerateMipmapIMG(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueGenerateMipmapIMG == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueGenerateMipmapIMG == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueGenerateMipmapIMG(
@@ -3483,7 +3527,7 @@ cl_int CL_API_CALL clEnqueueAcquireGrallocObjectsIMG(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueAcquireGrallocObjectsIMG == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueAcquireGrallocObjectsIMG == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueAcquireGrallocObjectsIMG(
@@ -3504,7 +3548,7 @@ cl_int CL_API_CALL clEnqueueReleaseGrallocObjectsIMG(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueReleaseGrallocObjectsIMG == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueReleaseGrallocObjectsIMG == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueReleaseGrallocObjectsIMG(
@@ -3528,9 +3572,9 @@ cl_accelerator_intel CL_API_CALL clCreateAcceleratorINTEL(
     cl_int* errcode_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCreateAcceleratorINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCreateAcceleratorINTEL == nullptr) {
         if (errcode_ret) *errcode_ret = CL_INVALID_OPERATION;
-        return NULL;
+        return nullptr;
     }
     return dispatch_ptr->clCreateAcceleratorINTEL(
         context,
@@ -3548,7 +3592,7 @@ cl_int CL_API_CALL clGetAcceleratorInfoINTEL(
     size_t* param_value_size_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(accelerator);
-    if (dispatch_ptr == NULL || dispatch_ptr->clGetAcceleratorInfoINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clGetAcceleratorInfoINTEL == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clGetAcceleratorInfoINTEL(
@@ -3563,7 +3607,7 @@ cl_int CL_API_CALL clRetainAcceleratorINTEL(
     cl_accelerator_intel accelerator)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(accelerator);
-    if (dispatch_ptr == NULL || dispatch_ptr->clRetainAcceleratorINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clRetainAcceleratorINTEL == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clRetainAcceleratorINTEL(
@@ -3574,7 +3618,7 @@ cl_int CL_API_CALL clReleaseAcceleratorINTEL(
     cl_accelerator_intel accelerator)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(accelerator);
-    if (dispatch_ptr == NULL || dispatch_ptr->clReleaseAcceleratorINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clReleaseAcceleratorINTEL == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clReleaseAcceleratorINTEL(
@@ -3594,9 +3638,9 @@ cl_mem CL_API_CALL clCreateBufferWithPropertiesINTEL(
     cl_int* errcode_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCreateBufferWithPropertiesINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCreateBufferWithPropertiesINTEL == nullptr) {
         if (errcode_ret) *errcode_ret = CL_INVALID_OPERATION;
-        return NULL;
+        return nullptr;
     }
     return dispatch_ptr->clCreateBufferWithPropertiesINTEL(
         context,
@@ -3622,7 +3666,7 @@ cl_int CL_API_CALL clGetDeviceIDsFromDX9INTEL(
     cl_uint* num_devices)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(platform);
-    if (dispatch_ptr == NULL || dispatch_ptr->clGetDeviceIDsFromDX9INTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clGetDeviceIDsFromDX9INTEL == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clGetDeviceIDsFromDX9INTEL(
@@ -3644,9 +3688,9 @@ cl_mem CL_API_CALL clCreateFromDX9MediaSurfaceINTEL(
     cl_int* errcode_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCreateFromDX9MediaSurfaceINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCreateFromDX9MediaSurfaceINTEL == nullptr) {
         if (errcode_ret) *errcode_ret = CL_INVALID_OPERATION;
-        return NULL;
+        return nullptr;
     }
     return dispatch_ptr->clCreateFromDX9MediaSurfaceINTEL(
         context,
@@ -3666,7 +3710,7 @@ cl_int CL_API_CALL clEnqueueAcquireDX9ObjectsINTEL(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueAcquireDX9ObjectsINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueAcquireDX9ObjectsINTEL == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueAcquireDX9ObjectsINTEL(
@@ -3687,7 +3731,7 @@ cl_int CL_API_CALL clEnqueueReleaseDX9ObjectsINTEL(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueReleaseDX9ObjectsINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueReleaseDX9ObjectsINTEL == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueReleaseDX9ObjectsINTEL(
@@ -3717,7 +3761,7 @@ cl_int CL_API_CALL clEnqueueReadHostPipeINTEL(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueReadHostPipeINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueReadHostPipeINTEL == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueReadHostPipeINTEL(
@@ -3744,7 +3788,7 @@ cl_int CL_API_CALL clEnqueueWriteHostPipeINTEL(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueWriteHostPipeINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueWriteHostPipeINTEL == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueWriteHostPipeINTEL(
@@ -3773,7 +3817,7 @@ cl_int CL_API_CALL clGetSupportedD3D10TextureFormatsINTEL(
     cl_uint* num_texture_formats)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clGetSupportedD3D10TextureFormatsINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clGetSupportedD3D10TextureFormatsINTEL == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clGetSupportedD3D10TextureFormatsINTEL(
@@ -3802,7 +3846,7 @@ cl_int CL_API_CALL clGetSupportedD3D11TextureFormatsINTEL(
     cl_uint* num_texture_formats)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clGetSupportedD3D11TextureFormatsINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clGetSupportedD3D11TextureFormatsINTEL == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clGetSupportedD3D11TextureFormatsINTEL(
@@ -3832,7 +3876,7 @@ cl_int CL_API_CALL clGetSupportedDX9MediaSurfaceFormatsINTEL(
     cl_uint* num_surface_formats)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clGetSupportedDX9MediaSurfaceFormatsINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clGetSupportedDX9MediaSurfaceFormatsINTEL == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clGetSupportedDX9MediaSurfaceFormatsINTEL(
@@ -3861,7 +3905,7 @@ cl_int CL_API_CALL clGetSupportedGLTextureFormatsINTEL(
     cl_uint* num_texture_formats)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clGetSupportedGLTextureFormatsINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clGetSupportedGLTextureFormatsINTEL == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clGetSupportedGLTextureFormatsINTEL(
@@ -3890,7 +3934,7 @@ cl_int CL_API_CALL clGetSupportedVA_APIMediaSurfaceFormatsINTEL(
     cl_uint* num_surface_formats)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clGetSupportedVA_APIMediaSurfaceFormatsINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clGetSupportedVA_APIMediaSurfaceFormatsINTEL == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clGetSupportedVA_APIMediaSurfaceFormatsINTEL(
@@ -3917,9 +3961,9 @@ void* CL_API_CALL clHostMemAllocINTEL(
     cl_int* errcode_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clHostMemAllocINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clHostMemAllocINTEL == nullptr) {
         if (errcode_ret) *errcode_ret = CL_INVALID_OPERATION;
-        return NULL;
+        return nullptr;
     }
     return dispatch_ptr->clHostMemAllocINTEL(
         context,
@@ -3938,9 +3982,9 @@ void* CL_API_CALL clDeviceMemAllocINTEL(
     cl_int* errcode_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clDeviceMemAllocINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clDeviceMemAllocINTEL == nullptr) {
         if (errcode_ret) *errcode_ret = CL_INVALID_OPERATION;
-        return NULL;
+        return nullptr;
     }
     return dispatch_ptr->clDeviceMemAllocINTEL(
         context,
@@ -3960,9 +4004,9 @@ void* CL_API_CALL clSharedMemAllocINTEL(
     cl_int* errcode_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clSharedMemAllocINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clSharedMemAllocINTEL == nullptr) {
         if (errcode_ret) *errcode_ret = CL_INVALID_OPERATION;
-        return NULL;
+        return nullptr;
     }
     return dispatch_ptr->clSharedMemAllocINTEL(
         context,
@@ -3978,7 +4022,7 @@ cl_int CL_API_CALL clMemFreeINTEL(
     void* ptr)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clMemFreeINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clMemFreeINTEL == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clMemFreeINTEL(
@@ -3991,7 +4035,7 @@ cl_int CL_API_CALL clMemBlockingFreeINTEL(
     void* ptr)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clMemBlockingFreeINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clMemBlockingFreeINTEL == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clMemBlockingFreeINTEL(
@@ -4008,7 +4052,7 @@ cl_int CL_API_CALL clGetMemAllocInfoINTEL(
     size_t* param_value_size_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clGetMemAllocInfoINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clGetMemAllocInfoINTEL == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clGetMemAllocInfoINTEL(
@@ -4026,7 +4070,7 @@ cl_int CL_API_CALL clSetKernelArgMemPointerINTEL(
     const void* arg_value)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(kernel);
-    if (dispatch_ptr == NULL || dispatch_ptr->clSetKernelArgMemPointerINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clSetKernelArgMemPointerINTEL == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clSetKernelArgMemPointerINTEL(
@@ -4046,7 +4090,7 @@ cl_int CL_API_CALL clEnqueueMemFillINTEL(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueMemFillINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueMemFillINTEL == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueMemFillINTEL(
@@ -4071,7 +4115,7 @@ cl_int CL_API_CALL clEnqueueMemcpyINTEL(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueMemcpyINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueMemcpyINTEL == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueMemcpyINTEL(
@@ -4095,7 +4139,7 @@ cl_int CL_API_CALL clEnqueueMemAdviseINTEL(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueMemAdviseINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueMemAdviseINTEL == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueMemAdviseINTEL(
@@ -4120,7 +4164,7 @@ cl_int CL_API_CALL clEnqueueMigrateMemINTEL(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueMigrateMemINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueMigrateMemINTEL == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueMigrateMemINTEL(
@@ -4145,7 +4189,7 @@ cl_int CL_API_CALL clEnqueueMemsetINTEL(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueMemsetINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueMemsetINTEL == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueMemsetINTEL(
@@ -4173,7 +4217,7 @@ cl_int CL_API_CALL clGetDeviceIDsFromVA_APIMediaAdapterINTEL(
     cl_uint* num_devices)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(platform);
-    if (dispatch_ptr == NULL || dispatch_ptr->clGetDeviceIDsFromVA_APIMediaAdapterINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clGetDeviceIDsFromVA_APIMediaAdapterINTEL == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clGetDeviceIDsFromVA_APIMediaAdapterINTEL(
@@ -4194,9 +4238,9 @@ cl_mem CL_API_CALL clCreateFromVA_APIMediaSurfaceINTEL(
     cl_int* errcode_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(context);
-    if (dispatch_ptr == NULL || dispatch_ptr->clCreateFromVA_APIMediaSurfaceINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clCreateFromVA_APIMediaSurfaceINTEL == nullptr) {
         if (errcode_ret) *errcode_ret = CL_INVALID_OPERATION;
-        return NULL;
+        return nullptr;
     }
     return dispatch_ptr->clCreateFromVA_APIMediaSurfaceINTEL(
         context,
@@ -4215,7 +4259,7 @@ cl_int CL_API_CALL clEnqueueAcquireVA_APIMediaSurfacesINTEL(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueAcquireVA_APIMediaSurfacesINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueAcquireVA_APIMediaSurfacesINTEL == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueAcquireVA_APIMediaSurfacesINTEL(
@@ -4236,7 +4280,7 @@ cl_int CL_API_CALL clEnqueueReleaseVA_APIMediaSurfacesINTEL(
     cl_event* event)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(command_queue);
-    if (dispatch_ptr == NULL || dispatch_ptr->clEnqueueReleaseVA_APIMediaSurfacesINTEL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clEnqueueReleaseVA_APIMediaSurfacesINTEL == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clEnqueueReleaseVA_APIMediaSurfacesINTEL(
@@ -4252,6 +4296,27 @@ cl_int CL_API_CALL clEnqueueReleaseVA_APIMediaSurfacesINTEL(
 #endif // defined(CLEXT_INCLUDE_VA_API)
 
 
+#if defined(cl_loader_info)
+
+cl_int CL_API_CALL clGetICDLoaderInfoOCLICD(
+    cl_icdl_info param_name,
+    size_t param_value_size,
+    void* param_value,
+    size_t* param_value_size_ret)
+{
+    struct openclext_dispatch_table_common* dispatch_ptr = _get_dispatch();
+    if (dispatch_ptr == nullptr || dispatch_ptr->clGetICDLoaderInfoOCLICD == nullptr) {
+        return CL_INVALID_OPERATION;
+    }
+    return dispatch_ptr->clGetICDLoaderInfoOCLICD(
+        param_name,
+        param_value_size,
+        param_value,
+        param_value_size_ret);
+}
+
+#endif // defined(cl_loader_info)
+
 #if defined(cl_pocl_content_size)
 
 cl_int CL_API_CALL clSetContentSizeBufferPoCL(
@@ -4259,7 +4324,7 @@ cl_int CL_API_CALL clSetContentSizeBufferPoCL(
     cl_mem content_size_buffer)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(buffer);
-    if (dispatch_ptr == NULL || dispatch_ptr->clSetContentSizeBufferPoCL == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clSetContentSizeBufferPoCL == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clSetContentSizeBufferPoCL(
@@ -4282,7 +4347,7 @@ cl_int CL_API_CALL clGetDeviceImageInfoQCOM(
     size_t* param_value_size_ret)
 {
     struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(device);
-    if (dispatch_ptr == NULL || dispatch_ptr->clGetDeviceImageInfoQCOM == NULL) {
+    if (dispatch_ptr == nullptr || dispatch_ptr->clGetDeviceImageInfoQCOM == nullptr) {
         return CL_INVALID_OPERATION;
     }
     return dispatch_ptr->clGetDeviceImageInfoQCOM(
