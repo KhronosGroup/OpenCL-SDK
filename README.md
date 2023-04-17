@@ -40,7 +40,7 @@ If CMake is not provided by your build system or OS package manager, please cons
 
 ### Example Build
 
-> The example build guide uses [Vcpkg](https://vcpkg.io/en/index.html) to fetch all dependencies. Note that Vcpkg is _not_ a requirement and is only used for convenience. One may provide dependencies through any other CMake mechanism. For details on how to install Vcpkg, refer to it's [Getting Started Guide](https://vcpkg.io/en/getting-started.html). The example build assumes targeting 64-bit Windows.
+> The example build guide uses [Vcpkg](https://vcpkg.io/en/index.html) to fetch all dependencies. Note that Vcpkg is _not_ a requirement and is only used for convenience. One may provide dependencies through any other CMake mechanism. For details on how to install Vcpkg, refer to its [Getting Started Guide](https://vcpkg.io/en/getting-started.html). The example build assumes targeting 64-bit Windows.
 
 1. Clone this repo with the rest of the OpenCL SDK components:
 
@@ -48,11 +48,11 @@ If CMake is not provided by your build system or OS package manager, please cons
        git submodule init
        git submodule update
 
-1. Install dependencies
+1. Install dependencies:
 
        vcpkg --triplet x64-windows install sfml tclap glm
 
-1. Build and install SDK with samples and no downstream unit tests
+1. Build and install SDK with samples and no downstream unit tests:
 
        cmake -A x64 `
              -D BUILD_TESTING=OFF `
@@ -66,4 +66,4 @@ If CMake is not provided by your build system or OS package manager, please cons
              -B ./OpenCL-SDK/build -S ./OpenCL-SDK
        cmake --build ./OpenCL-SDK/build --target install
 
-_(Note: on Linux paths to dependent libraries are automatically handled by RPATH in both the build and install tree. On Windows all DLLs have to be on the `PATH`. Vcpkg copies dependent DLLs to the build tree, but in order to do the same in the install tree, sufficiently new CMake version is required. CMake 3.21 instroduces `install(IMPORTED_RUNTIME_ARTIFACTS)`.)_
+_(Note: on Linux, paths to dependent libraries are automatically handled by RPATH in both the build and install tree. On Windows, all DLLs have to be on the `PATH`. Vcpkg copies dependent DLLs to the build tree, but in order to do the same in the install tree, a sufficiently new CMake version is required. CMake 3.21 introduces `install(IMPORTED_RUNTIME_ARTIFACTS)`.)_
