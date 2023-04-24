@@ -26,5 +26,11 @@ namespace util {
     write_binaries(const cl::Program::Binaries& binaries,
                    const std::vector<cl::Device>& devices,
                    const char* const program_file_name);
+
+    std::string UTILSCPP_EXPORT
+    executable_folder(cl_int* const error = nullptr);
+
+    std::string UTILSCPP_EXPORT read_exe_relative_text_file(
+        const char* const filename, cl_int* const error = nullptr);
 }
 }

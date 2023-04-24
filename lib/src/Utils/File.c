@@ -6,6 +6,9 @@
 #include <stdio.h> // fopen, ferror, fread, fclose
 #include <string.h> // memset
 
+// whereami includes
+#include <whereami.h>
+
 // read all the text file contents securely in ANSI C89
 // return pointer to C-string with file contents
 // can handle streams with no known size and no support for fseek
@@ -328,4 +331,77 @@ end: // cleanup
 
     if (error != NULL) *error = err;
     return program;
+}
+
+UTILS_EXPORT
+cl_int cl_util_executable_folder(char *const filename, size_t *const length)
+{
+    cl_int err = CL_SUCCESS;
+    int wai_length, wai_dirname_length = 0;
+    char *wai_filename = NULL;
+
+#define IF_ERR(func, error_type, label)                                        \
+    do                                                                         \
+    {                                                                          \
+        if (func)                                                              \
+        {                                                                      \
+            err = error_type;                                                  \
+            goto label;                                                        \
+        }                                                                      \
+    } while (0)
+
+    wai_length = wai_getExecutablePath(NULL, 0, NULL);
+    IF_ERR(wai_length == -1, CL_UTIL_FILE_OPERATION_ERROR, end);
+    MEM_CHECK(wai_filename = (char *)malloc(wai_length), err, end);
+    IF_ERR(wai_getExecutablePath(wai_filename, wai_length, &wai_dirname_length)
+               == -1,
+           CL_UTIL_FILE_OPERATION_ERROR, end);
+
+    if (length != NULL)
+    {
+        *length = (int)wai_dirname_length + 1;
+    }
+
+    if (filename != NULL)
+    {
+        memmove(filename, wai_filename, wai_dirname_length);
+        filename[wai_dirname_length] = '\0';
+    }
+
+end:
+    free(wai_filename);
+
+    return err;
+}
+
+// read all the text file contents securely in ANSI C89
+// return pointer to C-string with file contents
+// interprets filename relative to the folder containing
+// the running executable
+UTILS_EXPORT
+char *cl_util_read_exe_relative_text_file(const char *const rel_path,
+                                          size_t *const length,
+                                          cl_int *const error)
+{
+    char *result = NULL;
+    size_t result_size = 0;
+    char *abs_path = NULL;
+    cl_int err = CL_SUCCESS;
+    size_t exe_folder_length;
+    OCLERROR_RET(cl_util_executable_folder(NULL, &exe_folder_length), err, end);
+    MEM_CHECK(abs_path = (char *)malloc(sizeof(char) * exe_folder_length
+                                        + strlen(rel_path) + 1),
+              err, end);
+    OCLERROR_RET(cl_util_executable_folder(abs_path, NULL), err, end);
+    strcat(strcat(abs_path, "/"), rel_path);
+    OCLERROR_PAR(result = cl_util_read_text_file(abs_path, &result_size, &err),
+                 err, end);
+
+    if (length != NULL) *length = result_size;
+
+    if (error != NULL) *error = err;
+end:
+    free(abs_path);
+
+    return result;
 }
