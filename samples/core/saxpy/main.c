@@ -120,7 +120,6 @@ int main(int argc, char *argv[])
     cl_context context;
     cl_command_queue queue;
 
-    const char *kernel_location = "./saxpy.cl";
     char *kernel = NULL;
     size_t program_size = 0;
     cl_program program = NULL;
@@ -165,10 +164,9 @@ int main(int argc, char *argv[])
     }
 
     // Compile kernel
-    OCLERROR_PAR(
-        kernel = cl_util_read_text_file(kernel_location, &program_size, &error),
-        error, que);
-
+    OCLERROR_PAR(kernel = cl_util_read_exe_relative_text_file(
+                     "saxpy.cl", &program_size, &error),
+                 error, que);
     OCLERROR_PAR(program = clCreateProgramWithSource(
                      context, 1, (const char **)&kernel, &program_size, &error),
                  error, ker);
@@ -176,7 +174,6 @@ int main(int argc, char *argv[])
 
     cl_kernel saxpy;
     OCLERROR_PAR(saxpy = clCreateKernel(program, "saxpy", &error), error, prg);
-
     // Initialize host-side storage
     const size_t length = saxpy_opts.length;
 

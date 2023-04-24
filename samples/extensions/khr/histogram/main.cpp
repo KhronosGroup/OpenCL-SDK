@@ -16,6 +16,7 @@
 
 // OpenCL SDK includes
 #include <CL/Utils/Context.hpp>
+#include <CL/Utils/File.hpp>
 #include <CL/SDK/Context.hpp>
 #include <CL/SDK/Options.hpp>
 #include <CL/SDK/CLI.hpp>
@@ -89,17 +90,9 @@ int main(int argc, char* argv[])
         }
 
         // Compile kernel
-        const char* kernel_location = "./histogram.cl";
-        std::ifstream kernel_stream{ kernel_location };
-        if (!kernel_stream.is_open())
-            throw std::runtime_error{
-                std::string{ "Cannot open kernel source: " } + kernel_location
-            };
-
-        cl::Program program{ context,
-                             std::string{ std::istreambuf_iterator<char>{
-                                              kernel_stream },
-                                          std::istreambuf_iterator<char>{} } };
+        cl::Program program{
+            context, cl::util::read_exe_relative_text_file("histogram.cl")
+        };
         program.build(device);
 
         auto histogram_shared =

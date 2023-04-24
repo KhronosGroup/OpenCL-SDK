@@ -100,7 +100,7 @@ int main(int argc, char* argv[])
             std::cout << e.what() << "\n";
 
             std::string program_cl =
-                cl::util::read_text_file("./Collatz.cl", &error);
+                cl::util::read_exe_relative_text_file("Collatz.cl", &error);
             cl::Program program{ context, program_cl };
 
             program.build(devices.at(0));

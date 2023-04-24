@@ -191,13 +191,12 @@ int main(int argc, char *argv[])
 
     if (error != CL_SUCCESS)
     { // if binary not present, compile and save
-        const char *kernel_location = "./Collatz.cl";
         char *kernel = NULL;
         size_t program_size = 0;
         char *options = NULL;
 
-        OCLERROR_PAR(kernel = cl_util_read_text_file(kernel_location,
-                                                     &program_size, &error),
+        OCLERROR_PAR(kernel = cl_util_read_exe_relative_text_file(
+                         "Collatz.cl", &program_size, &error),
                      error, cont);
         printf("OpenCL file red... ");
 

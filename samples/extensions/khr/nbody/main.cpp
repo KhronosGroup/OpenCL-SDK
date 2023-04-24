@@ -155,10 +155,8 @@ void NBody::initializeGL()
     if (glewInit() != GLEW_OK) std::exit(EXIT_FAILURE);
 
     auto create_shader = [](std::string file_path, cl_GLenum shader_stage) {
-        std::ifstream shader_stream(file_path);
-        std::string shader_string{ std::istreambuf_iterator<GLchar>{
-                                       shader_stream },
-                                   std::istreambuf_iterator<GLchar>{} };
+        std::string shader_string =
+            cl::util::read_exe_relative_text_file(file_path.c_str());
         auto pshader_string = shader_string.c_str();
         GLuint shader = glCreateShader(shader_stage);
         glShaderSource(shader, 1, &pshader_string, NULL);
@@ -216,8 +214,8 @@ void NBody::initializeGL()
         return program;
     };
 
-    vertex_shader = create_shader("./nbody.vert.glsl", GL_VERTEX_SHADER);
-    fragment_shader = create_shader("./nbody.frag.glsl", GL_FRAGMENT_SHADER);
+    vertex_shader = create_shader("nbody.vert.glsl", GL_VERTEX_SHADER);
+    fragment_shader = create_shader("nbody.frag.glsl", GL_FRAGMENT_SHADER);
     gl_program = create_program({ vertex_shader, fragment_shader });
 
     using uni = std::uniform_real_distribution<float>;
@@ -288,16 +286,9 @@ void NBody::initializeCL()
     queue = cl::CommandQueue{ opencl_context, device };
 
     // Compile kernel
-    const char* kernel_location = "./nbody.cl";
-    std::ifstream kernel_stream{ kernel_location };
-    if (!kernel_stream.is_open())
-        throw std::runtime_error{ std::string{ "Cannot open kernel source: " }
-                                  + kernel_location };
-
-    cl_program = cl::Program{ opencl_context,
-                              std::string{ std::istreambuf_iterator<char>{
-                                               kernel_stream },
-                                           std::istreambuf_iterator<char>{} } };
+    cl_program =
+        cl::Program{ opencl_context,
+                     cl::util::read_exe_relative_text_file("nbody.cl") };
     cl_program.build(device);
     kernel = cl::Kernel{ cl_program, "nbody" };
 

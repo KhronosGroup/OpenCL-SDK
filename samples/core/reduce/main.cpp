@@ -155,18 +155,11 @@ int main(int argc, char* argv[])
             : static_cast<cl_int>(0);
 
         // Compile kernel
-        const char* kernel_location = "./reduce.cl";
-        std::ifstream kernel_stream{ kernel_location };
-        if (!kernel_stream.is_open())
-            throw std::runtime_error{
-                std::string{ "Cannot open kernel source: " } + kernel_location
-            };
-
-        cl::Program program{ context,
-                             std::string{ std::istreambuf_iterator<char>{
-                                              kernel_stream },
-                                          std::istreambuf_iterator<char>{} }
-                                 .append(kernel_op) }; // Note append
+        cl::Program program{
+            context,
+            cl::util::read_exe_relative_text_file("reduce.cl")
+                .append(kernel_op) // Note append
+        };
         cl::string compiler_options =
             cl::string{ may_use_work_group_reduce ? "-D USE_WORK_GROUP_REDUCE "
                                                   : "" }

@@ -1078,14 +1078,13 @@ int main(int argc, char *argv[])
                  error, tmpbuf);
 
     /// Create OpenCL program
-    const char *kernel_location = "./blur.cl";
     s.kernel = NULL;
     s.program_size = 0;
     char kernel_op[1024] = ""; // here we put some dynamic definitions
     s.options = kernel_op;
 
-    OCLERROR_PAR(s.kernel = cl_util_read_text_file(kernel_location,
-                                                   &s.program_size, &error),
+    OCLERROR_PAR(s.kernel = cl_util_read_exe_relative_text_file(
+                     "blur.cl", &s.program_size, &error),
                  error, tmpbuf);
 
     OCLERROR_PAR(s.program = clCreateProgramWithSource(s.context, 1,
