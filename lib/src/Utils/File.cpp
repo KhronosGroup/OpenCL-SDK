@@ -32,7 +32,8 @@ std::string cl::util::read_text_file(const char* const filename,
     }
     else
     {
-        detail::errHandler(CL_UTIL_FILE_OPERATION_ERROR, error, "No file!");
+        detail::errHandler(CL_UTIL_FILE_OPERATION_ERROR, error,
+                           (std::string("Unable to read ") + filename).c_str());
         return std::string();
     }
 }
@@ -57,7 +58,8 @@ cl::util::read_binary_file(const char* const filename, cl_int* const error)
     }
     else
     {
-        detail::errHandler(CL_UTIL_FILE_OPERATION_ERROR, error, "No file!");
+        detail::errHandler(CL_UTIL_FILE_OPERATION_ERROR, error,
+                           (std::string("Unable to read ") + filename).c_str());
         return std::vector<unsigned char>();
     }
 }
