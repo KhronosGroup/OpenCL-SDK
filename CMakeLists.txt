@@ -23,7 +23,8 @@ project(OpenCL-SDK
 )
 
 include(CMakeDependentOption)
-option(OPENCL_SDK_BUILD_SAMPLES "Build sample code" ON)
+option(OPENCL_SDK_BUILD_UTILITY_LIBRARIES "Build utility libraries" ON)
+cmake_dependent_option(OPENCL_SDK_BUILD_SAMPLES "Build sample code" ON OPENCL_SDK_BUILD_UTILITY_LIBRARIES OFF)
 cmake_dependent_option(OPENCL_SDK_BUILD_OPENGL_SAMPLES "Build OpenCL-OpenGL interop sample code" ON OPENCL_SDK_BUILD_SAMPLES OFF)
 cmake_dependent_option(OPENCL_SDK_TEST_SAMPLES "Add CTest to samples (where applicable)" ON OPENCL_SDK_BUILD_SAMPLES OFF)
 
@@ -47,8 +48,9 @@ list(APPEND CMAKE_MODULE_PATH
   ${PROJECT_SOURCE_DIR}/cmake/Modules
 )
 include(Dependencies)
-
-add_subdirectory(lib)
+if(OPENCL_SDK_BUILD_UTILITY_LIBRARIES)
+  add_subdirectory(lib)
+endif()
 if(OPENCL_SDK_BUILD_SAMPLES)
   add_subdirectory(samples)
 endif()
