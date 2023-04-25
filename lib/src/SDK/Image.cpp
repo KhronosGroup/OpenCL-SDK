@@ -33,7 +33,7 @@ namespace sdk {
         unsigned char* data =
             stbi_load(file_name, &im.width, &im.height, &im.pixel_size, 0);
 
-        if (data == NULL)
+        if (data == nullptr)
         {
             std::string err_msg{ "Not possible to read file" };
             const char* load_msg = stbi_failure_reason();

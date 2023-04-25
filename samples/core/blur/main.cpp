@@ -155,7 +155,7 @@ int main(int argc, char* argv[])
         } // Gaussian blur
     } catch (cl::Error& e)
     {
-        std::cerr << "OpenCL rutnime error: " << e.what() << std::endl;
+        std::cerr << "OpenCL runtime error: " << e.what() << std::endl;
         std::exit(e.err());
     } catch (std::exception& e)
     {

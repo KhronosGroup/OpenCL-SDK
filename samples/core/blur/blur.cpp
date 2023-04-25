@@ -76,6 +76,8 @@ void BlurCppExample::single_pass_box_blur()
     auto event = blur(cl::EnqueueArgs{ queue, cl::NDRange{ width, height } },
                       input_image_buf, output_image_buf, size);
 
+    passes.push_back(event);
+
     event.wait();
 
     auto end = std::chrono::high_resolution_clock::now();
@@ -487,7 +489,7 @@ std::tuple<bool, bool, bool> BlurCppExample::query_capabilities()
     // 2) query if the image format is supported and change image if not
     format = set_image_format();
 
-    // 3) query if device have local memory and its size
+    // 3) query if device have local memory
     bool use_local_mem =
         (device.getInfo<CL_DEVICE_LOCAL_MEM_TYPE>() == CL_LOCAL);
 
