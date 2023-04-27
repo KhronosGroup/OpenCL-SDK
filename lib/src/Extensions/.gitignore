@@ -1,0 +1,15 @@
+.klocwork/
+.vscode/
+_bin/
+_bin32/
+_bin64/
+build/
+build32/
+build64/
+install/
+scripts/cl.xml
+scripts/*.c
+scripts/*.cpp
+scripts/gen/__pycache__/*
+*~
+log.txt
