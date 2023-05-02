@@ -66,4 +66,12 @@ If CMake is not provided by your build system or OS package manager, please cons
              -B ./OpenCL-SDK/build -S ./OpenCL-SDK
        cmake --build ./OpenCL-SDK/build --target install
 
+* Optional submodules flags with default values:
+
+        -D OPENCL_CLHPP_BUILD_TESTING=OFF
+        -D OPENCL_HEADERS_BUILD_TESTING=OFF
+        -D OPENCL_HEADERS_BUILD_CXX_TESTS=ON
+        -D OPENCL_ICD_LOADER_BUILD_SHARED_LIBS=ON
+        -D ENABLE_OPENCL_LAYERS=ON
+
 _(Note: on Linux, paths to dependent libraries are automatically handled by RPATH in both the build and install tree. On Windows, all DLLs have to be on the `PATH`. Vcpkg copies dependent DLLs to the build tree, but in order to do the same in the install tree, a sufficiently new CMake version is required. CMake 3.21 introduces `install(IMPORTED_RUNTIME_ARTIFACTS)`.)_
