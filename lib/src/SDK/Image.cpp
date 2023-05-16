@@ -32,6 +32,18 @@ namespace sdk {
         Image im;
         unsigned char* data =
             stbi_load(file_name, &im.width, &im.height, &im.pixel_size, 0);
+
+        if (data == nullptr)
+        {
+            std::string err_msg{ "Not possible to read file" };
+            const char* load_msg = stbi_failure_reason();
+
+            if (load_msg) err_msg += std::string(": ") + load_msg;
+
+            cl::util::detail::errHandler(CL_INVALID_ARG_VALUE, &err,
+                                         err_msg.c_str());
+        }
+
         im.pixels.insert(im.pixels.end(), data,
                          data + im.width * im.height * im.pixel_size);
 
@@ -42,7 +54,7 @@ namespace sdk {
             cl::util::detail::errHandler(CL_INVALID_ARG_VALUE, &err,
                                          "File read error!");
 
-        if (error != NULL) *error = err;
+        if (error != nullptr) *error = err;
         return im;
     }
 
