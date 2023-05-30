@@ -34,11 +34,19 @@ char *cl_util_read_text_file(const char *const filename, size_t *const length,
         }                                                                      \
     } while (0)
 
+#ifndef _WIN32
+#define fopen_s(fp, fmt, mode)                                                 \
+    ({                                                                         \
+        *(fp) = fopen((fmt), (mode));                                          \
+        (*(fp)) ? 0 : -1;                                                      \
+    })
+#endif
+
     /* File name can not be NULL. */
     IF_ERR(!filename, CL_INVALID_ARG_VALUE, end);
 
     /* Open file. */
-    IF_ERR(!(in = fopen(filename, "r")), CL_INVALID_VALUE, end);
+    IF_ERR((fopen_s(&in, filename, "r") != 0), CL_INVALID_VALUE, end);
 
     /* A read error already occurred? */
     IF_ERR(ferror(in), CL_UTIL_FILE_OPERATION_ERROR, fl);
@@ -116,7 +124,7 @@ unsigned char *cl_util_read_binary_file(const char *const filename,
     IF_ERR(!filename, CL_INVALID_ARG_VALUE, end);
 
     /* Open file. */
-    IF_ERR(!(in = fopen(filename, "rb")), CL_INVALID_VALUE, end);
+    IF_ERR((fopen_s(&in, filename, "rb") != 0), CL_INVALID_VALUE, end);
 
     /* A read error already occurred? */
     IF_ERR(ferror(in), CL_UTIL_FILE_OPERATION_ERROR, fl);
@@ -236,8 +244,8 @@ cl_int cl_util_write_binaries(const cl_program program,
                  name_data);
 
         // write the binary to the output file
-        FILE *f = fopen(filename, "wb");
-        if (f != NULL)
+        FILE *f = NULL;
+        if (fopen_s(&f, filename, "wb") != 0)
         {
             if (fwrite(binaries_ptr[i], sizeof(unsigned char), binaries_size[i],
                        f)
