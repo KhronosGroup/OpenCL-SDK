@@ -67,8 +67,8 @@ static cl_int PrintDeviceInfoSummary(const std::vector<cl::Device> devices)
 
 int main(int argc, char** argv)
 {
-    (void) argc;
-    (void**) argv;
+    (void)argc;
+    (void**)argv;
     
     std::vector<cl::Platform> platforms;
     cl::Platform::get(&platforms);
