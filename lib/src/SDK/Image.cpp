@@ -31,7 +31,9 @@ namespace sdk {
 
         Image im;
         unsigned char* data =
-            stbi_load(file_name, reinterpret_cast<int*>(&im.width), reinterpret_cast<int*>(&im.height), reinterpret_cast<int*>(&im.pixel_size), 0);
+            stbi_load(file_name, reinterpret_cast<int*>(&im.width),
+                      reinterpret_cast<int*>(&im.height),
+                      reinterpret_cast<int*>(&im.pixel_size), 0);
 
         if (data == nullptr)
         {
