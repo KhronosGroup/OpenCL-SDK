@@ -363,8 +363,7 @@ void Conway::event(const sf::Event& event)
                 animating = !animating;
             }
             break;
-        default:
-            break;
+        default: break;
     }
 }
 

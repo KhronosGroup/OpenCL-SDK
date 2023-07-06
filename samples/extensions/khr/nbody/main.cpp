@@ -421,8 +421,7 @@ void NBody::event(const sf::Event& event)
             dist = abs(dist);
             needMatrixReset = true; // view matrix need to be recalculated
             break;
-        default:
-            break;
+        default: break;
     }
 }
 
