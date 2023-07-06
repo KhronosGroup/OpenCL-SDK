@@ -67,7 +67,6 @@ static cl_int PrintDeviceInfoSummary(const std::vector<cl::Device> devices)
 
 int main(int, char**)
 {
-    
     std::vector<cl::Platform> platforms;
     cl::Platform::get(&platforms);
     std::cout << "Enumerated " << platforms.size() << " platforms.\n\n";
