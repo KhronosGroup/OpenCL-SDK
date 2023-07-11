@@ -10,7 +10,7 @@ namespace cl {
 namespace sdk {
     struct Image
     {
-        size_t width = 0, height = 0, pixel_size = 1;
+        int width = 0, height = 0, pixel_size = 1;
         cl::vector<unsigned char> pixels;
     };
 
