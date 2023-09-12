@@ -31,7 +31,7 @@ jobs:
         run: |
             if [[ "${{ matrix.os }}" == "ubuntu-20.04" ]]; then
               sudo apt update
-              sudo apt install -y libidn11 libx11-dev libxrandr-dev libxi-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libudev-dev \
+              sudo apt install -y libidn11 libx11-dev libxrandr-dev libxcursor-dev libxi-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libudev-dev \
               `if [[ "${{matrix.deps}}" == "os" ]]; then echo libtclap-dev libglm-dev libglew-dev libsfml-dev libstb-dev; fi;`
               if [[ "${{matrix.deps}}" == "vcpkg" ]]; then
                 git clone https://github.com/Microsoft/vcpkg.git
