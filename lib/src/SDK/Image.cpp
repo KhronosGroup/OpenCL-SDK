@@ -44,11 +44,12 @@ namespace sdk {
                                          err_msg.c_str());
         }
 
-        im.pixels.insert(im.pixels.end(), data,
-                         data + im.width * im.height * im.pixel_size);
+        std::size_t data_size = im.width * im.height * im.pixel_size;
+
+        im.pixels.insert(im.pixels.end(), data, data + data_size);
 
         if (im.width && im.height && im.pixel_size
-            && im.pixels.size() == im.width * im.height * im.pixel_size)
+            && im.pixels.size() == data_size)
             err = CL_SUCCESS;
         else
             cl::util::detail::errHandler(CL_INVALID_ARG_VALUE, &err,

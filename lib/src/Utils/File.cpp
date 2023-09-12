@@ -97,7 +97,7 @@ cl_int cl::util::write_binaries(const cl::Program::Binaries& binaries,
     {
         try
         {
-            for (auto i = 0; i < binaries.size(); ++i)
+            for (auto i = 0U; i < binaries.size(); ++i)
             {
                 string binary_name = string(program_file_name) + "-"
                     + devices.at(i).getInfo<CL_DEVICE_NAME>() + ".bin";
