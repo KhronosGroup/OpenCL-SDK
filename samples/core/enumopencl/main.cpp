@@ -65,7 +65,7 @@ static cl_int PrintDeviceInfoSummary(const std::vector<cl::Device> devices)
     return CL_SUCCESS;
 }
 
-int main(int argc, char** argv)
+int main(int, char**)
 {
     std::vector<cl::Platform> platforms;
     cl::Platform::get(&platforms);
