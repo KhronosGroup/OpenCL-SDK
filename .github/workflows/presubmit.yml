@@ -198,6 +198,17 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
+    - name: Install samples dependencies
+      run: |
+        if [[ "${{ matrix.BIN }}" == "64" ]]; then
+          apt-get update -qq;
+          apt-get install -y libvulkan-dev;
+        else
+          dpkg --add-architecture i386;
+          apt-get update -qq;
+          apt-get install -y libvulkan-dev:i386;
+        fi
+
     - name: Configure, package & install OpenCL-Headers
       run: $CMAKE_EXE
           -G "${{matrix.CONF.GEN}}"
@@ -416,6 +427,8 @@ jobs:
       INTEL_OCL_URL: https://github.com/intel/llvm/releases/download/2023-WW27/win-oclcpuexp-2023.16.6.0.28_rel.zip
       INTEL_TBB_URL: https://github.com/oneapi-src/oneTBB/releases/download/v2021.10.0/oneapi-tbb-2021.10.0-win.zip
       IMAGE_INTEL_PREFIX: C:\Tools\Intel
+      VULKAN_SDK_URL: https://sdk.lunarg.com/sdk/download/1.3.261.1/windows/VulkanSDK-1.3.261.1-Installer.exe
+      VULKAN_SDK: C:/VulkanSDK/1.3.261.1
 
     steps:
 
@@ -457,6 +470,18 @@ jobs:
         fetch-depth: 0
         submodules: recursive
 
+    - name: Install samples dependencies
+      run: |
+        Invoke-WebRequest ${env:VULKAN_SDK_URL} -OutFile vulkan-sdk-installer.exe
+        .\vulkan-sdk-installer.exe --accept-licenses --default-answer --confirm-command install com.lunarg.vulkan.32bit
+        Remove-Item vulkan-sdk-installer.exe
+        if ('${{ matrix.BIN }}' -eq 'x64')
+        {
+          echo "Vulkan_LIB_DIR=$env:VULKAN_SDK/Lib" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        } else {
+          echo "Vulkan_LIB_DIR=$env:VULKAN_SDK/Lib32" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        }
+
     - name: Configure (MSBuild)
       if: matrix.GEN == 'Visual Studio 17 2022'
       run: |
@@ -479,6 +504,8 @@ jobs:
           -D CMAKE_C_FLAGS="${env:CMAKE_CFLAGS}" `
           -D CMAKE_CXX_FLAGS="${env:CMAKE_CXXFLAGS}" `
           -D CMAKE_INSTALL_PREFIX=${env:GITHUB_WORKSPACE}\install `
+          -D Vulkan_INCLUDE_DIR=${env:VULKAN_SDK}/Include `
+          -D Vulkan_LIBRARY=${env:Vulkan_LIB_DIR}/vulkan-1.lib `
           -S ${env:GITHUB_WORKSPACE} `
           -B ${env:GITHUB_WORKSPACE}\build
         if ($LASTEXITCODE -ne 0) { throw "Configuring OpenCL-SDK failed." }
@@ -509,6 +536,8 @@ jobs:
           -D CMAKE_CXX_FLAGS="${env:CMAKE_CXXFLAGS}" `
           -D CMAKE_EXE_LINKER_FLAGS=/INCREMENTAL `
           -D CMAKE_INSTALL_PREFIX=${env:GITHUB_WORKSPACE}\install `
+          -D Vulkan_INCLUDE_DIR=${env:VULKAN_SDK}/Include `
+          -D Vulkan_LIBRARY=${env:Vulkan_LIB_DIR}/vulkan-1.lib `
           -S ${env:GITHUB_WORKSPACE} `
           -B ${env:GITHUB_WORKSPACE}\build
           if ($LASTEXITCODE -ne 0) { throw "Configuring OpenCL-SDK failed." }
@@ -546,12 +575,14 @@ jobs:
       if: matrix.BIN != 'x86'
       working-directory: ${{runner.workspace}}/OpenCL-SDK/build
       run: |
+        $EXCLUDE_REGEX = 'externalmemory.*'
         foreach ($Config in 'Release','Debug') {
           & ctest `
             --build-config ${Config} `
             --output-on-failure `
             --no-tests=error `
-            --parallel ${env:NUMBER_OF_PROCESSORS}
+            --parallel ${env:NUMBER_OF_PROCESSORS} `
+            --exclude-regex "$EXCLUDE_REGEX"
           if ($LASTEXITCODE -ne 0) { throw "Running OpenCL-SDK tests in $Config failed." }
         }
 
@@ -664,6 +695,10 @@ jobs:
         echo "OCL_ICD_VENDORS=$POCL_INSTALL_PATH/etc/OpenCL/vendors" >> $GITHUB_ENV
         cmake --version
 
+    - name: Install samples dependencies
+      run: |
+        brew install vulkan-loader
+
     - name: Install dependencies (Homebrew)
       if: matrix.DEPS == 'system'
       run: brew install tclap glm glew sfml mesa-glu
@@ -718,7 +753,7 @@ jobs:
     - name: Test
       working-directory: ${{runner.workspace}}/OpenCL-SDK/build
       run: |
-        EXCLUDE_REGEX="multidevice.*"
+        EXCLUDE_REGEX="(multidevice|externalmemory).*"
         ctest -C Debug --output-on-failure --no-tests=error --parallel `sysctl -n hw.logicalcpu` --exclude-regex "$EXCLUDE_REGEX"
         ctest -C Release --output-on-failure --no-tests=error --parallel `sysctl -n hw.logicalcpu` --exclude-regex "$EXCLUDE_REGEX"
 
