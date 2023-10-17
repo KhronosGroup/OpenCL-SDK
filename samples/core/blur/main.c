@@ -923,6 +923,7 @@ end:
 
 int main(int argc, char *argv[])
 {
+    srand((unsigned int)time(NULL));
     cl_int error = CL_SUCCESS, end_error = CL_SUCCESS;
     state s;
     cl_platform_id platform;
@@ -934,7 +935,7 @@ int main(int argc, char *argv[])
         .triplet = { 0, 0, CL_DEVICE_TYPE_ALL }
     };
     struct options_Blur blur_opts = {
-        .size = 1, .op = "box", .in = NULL, .out = "out.png"
+        .size = 1, .op = "box", .in = NULL, .out = "blur_out.png"
     };
 
     OCLERROR_RET(parse_options(argc, argv, &diag_opts, &dev_opts, &blur_opts),
@@ -969,9 +970,11 @@ int main(int argc, char *argv[])
     if (!diag_opts.quiet) cl_util_print_device_info(s.device);
 
     /// Read input image and prepare output image
-    const char fname[] = "andrew_svk_7oJ4D_ewB7c_unsplash.png";
+    char fname[FILENAME_MAX];
+    memset(fname, 0, FILENAME_MAX);
     if (!blur_opts.in)
     {
+        sprintf(fname, "andrew_svk_7oJ4D_ewB7c_unsplash_%x.png", rand());
         printf("No file given, use standard image %s\n", fname);
         const unsigned char *fcont = andrew_svk_7oJ4D_ewB7c_unsplash_png;
         const size_t fsize = andrew_svk_7oJ4D_ewB7c_unsplash_png_size;
@@ -1048,6 +1051,18 @@ int main(int argc, char *argv[])
         free(name);
     }
 
+    // 5) query if OpenCL driver version is 2.0
+    bool opencl_version_2_0 = false;
+    {
+        char *driver_version = NULL;
+        OCLERROR_PAR(
+            driver_version = cl_util_get_device_info(s.device, CL_DRIVER_VERSION, &error),
+            error, clean);
+        opencl_version_2_0 = strcmp("2.0", driver_version) ? 0 : 1;
+    clean:
+        free(driver_version);
+    }
+
     /// Create image buffers
     const cl_image_desc desc = { .image_type = CL_MEM_OBJECT_IMAGE2D,
                                  .image_width = s.input_image.width,
@@ -1114,22 +1129,25 @@ int main(int argc, char *argv[])
                          error, prg);
 
         /// Subgroup exchange in dual-pass blur
-        if (use_subgroup_exchange_relative)
+        if (use_subgroup_exchange_relative && opencl_version_2_0)
         {
             printf("Dual-pass subgroup relative exchange blur\n");
 
             kernel_op[0] = '\0';
+            // cl_khr_subgroup_shuffle_relative requires OpenCL 2.0
+            strcat(kernel_op, " -cl-std=CL2.0 ");
             strcat(kernel_op, "-D USE_SUBGROUP_EXCHANGE_RELATIVE ");
-
             OCLERROR_RET(dual_pass_subgroup_exchange_box_blur(
                              &s, (cl_int)blur_opts.size),
                          error, prg);
         }
-        if (use_subgroup_exchange)
+        if (use_subgroup_exchange && opencl_version_2_0)
         {
             printf("Dual-pass subgroup exchange blur\n");
 
             kernel_op[0] = '\0';
+            // cl_khr_subgroup_shuffle requires OpenCL 2.0
+            strcat(kernel_op, " -cl-std=CL2.0 ");
             strcat(kernel_op, "-D USE_SUBGROUP_EXCHANGE ");
 
             OCLERROR_RET(dual_pass_subgroup_exchange_box_blur(
@@ -1168,22 +1186,26 @@ int main(int argc, char *argv[])
         }
 
         /// Subgroup exchange in dual-pass Gaussian blur
-        if (use_subgroup_exchange_relative)
+        if (use_subgroup_exchange_relative && opencl_version_2_0)
         {
             printf("Dual-pass subgroup relative exchange Gaussian blur\n");
 
             kernel_op[0] = '\0';
+            // cl_khr_subgroup_shuffle_relative requires OpenCL 2.0
+            strcat(kernel_op, " -cl-std=CL2.0 ");
             strcat(kernel_op, "-D USE_SUBGROUP_EXCHANGE_RELATIVE ");
 
             OCLERROR_RET(dual_pass_subgroup_exchange_kernel_blur(&s, gauss_size,
                                                                  gauss_kern),
                          error, gkrn);
         }
-        if (use_subgroup_exchange)
+        if (use_subgroup_exchange && opencl_version_2_0)
         {
             printf("Dual-pass subgroup exchange Gaussian blur\n");
 
             kernel_op[0] = '\0';
+            // cl_khr_subgroup_shuffle requires OpenCL 2.0
+            strcat(kernel_op, " -cl-std=CL2.0 ");
             strcat(kernel_op, "-D USE_SUBGROUP_EXCHANGE ");
 
             OCLERROR_RET(dual_pass_subgroup_exchange_kernel_blur(&s, gauss_size,
