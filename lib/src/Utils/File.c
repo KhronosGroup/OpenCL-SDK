@@ -245,7 +245,7 @@ cl_int cl_util_write_binaries(const cl_program program,
 
         // write the binary to the output file
         FILE *f = NULL;
-        if (fopen_s(&f, filename, "wb") != 0)
+        if (fopen_s(&f, filename, "wb") == 0)
         {
             if (fwrite(binaries_ptr[i], sizeof(unsigned char), binaries_size[i],
                        f)
@@ -263,7 +263,10 @@ end: // cleanup
         for (cl_uint i = 0; i < num_devices; ++i) free(binaries_ptr[i]);
         free(binaries_ptr);
     }
-    free(binaries_size);
+    if(binaries_size != NULL)
+    {
+        free(binaries_size);
+    }
 
     return error;
 }
@@ -332,7 +335,10 @@ end: // cleanup
         for (cl_uint i = 0; i < num_devices; ++i) free(binaries_ptr[i]);
         free(binaries_ptr);
     }
-    free(binaries_size);
+    if(binaries_size != NULL)
+    {
+        free(binaries_size);
+    }
 
     if (error != NULL) *error = err;
     return program;

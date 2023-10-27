@@ -159,7 +159,7 @@ int main(int argc, char *argv[])
     cl_platform_id platform;
     cl_device_id device;
     cl_context context;
-    cl_command_queue queue;
+    cl_command_queue queue = NULL;
 
     cl_program program;
 
@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
         OCLERROR_PAR(kernel = cl_util_read_text_file(kernel_location,
                                                      &program_size, &error),
                      error, cont);
-        printf("OpenCL file red... ");
+        printf("OpenCL file read... ");
 
         OCLERROR_PAR(program = clCreateProgramWithSource(context, 1,
                                                          (const char **)&kernel,
