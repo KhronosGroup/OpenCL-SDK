@@ -213,4 +213,4 @@ std::string read_exe_relative_text_file(
     cl_int* const error = nullptr);
 ```
 
-These functions read a text file into memory, where `filename` is evaluated relative to the executable currently running. The C-version contains a terminating null and takes an optional pointer to `length` by which the length my be returned, potentially saving a subsequent call to `strlen`. The function hands ownership of the allocated storage to the caller.
+These functions read a text file into memory, where `filename` is evaluated relative to the executable currently running. The C-version contains a terminating null and takes an optional pointer to `length` by which the length will be returned, potentially saving a subsequent call to `strlen`. The function hands ownership of the allocated storage to the caller.
