@@ -38,9 +38,6 @@ namespace {
 
 struct ReadJob
 {
-    // Although the buffer is not used in the callback, we keep a reference to
-    // the OpenCL object to keep it alive while the read is performed.
-    cl::Buffer buffer;
     std::vector<cl_uchar> data;
     std::size_t side;
 };
@@ -88,9 +85,8 @@ void CL_CALLBACK read_complete_callback(cl_event, cl_int, void* user_data)
             const std::string filename =
                 "callbackcpp_out" + std::to_string(job_id) + ".png";
             cl::sdk::write_image(filename.c_str(), image);
+            std::cout << "Written image to " << filename << '\n';
         });
-
-    // job.buffer goes out of scope here, releasing the OpenCL buffer.
 }
 
 struct CallbackOptions
@@ -158,11 +154,7 @@ int main(int argc, char* argv[])
 
         if (!diag_opts.quiet)
         {
-            std::cout << "Selected platform: "
-                      << platform.getInfo<CL_PLATFORM_VENDOR>() << "\n"
-                      << "Selected device: " << device.getInfo<CL_DEVICE_NAME>()
-                      << "\n"
-                      << std::endl;
+            cl::util::print_device_info(device);
         }
 
         // Compile kernel
@@ -265,8 +257,8 @@ int main(int argc, char* argv[])
                     return read_jobs[copy_job_id] = {};
                 }();
                 // We should allocate outside of the critical section
-                job.buffer = cl::Buffer(context, CL_MEM_READ_WRITE,
-                                        side * side * sizeof(cl_uchar4));
+                cl::Buffer copy_buffer(context, CL_MEM_READ_WRITE,
+                                       side * side * sizeof(cl_uchar4));
                 job.data = std::vector<cl_uchar>(side * side * 4);
                 job.side = side;
 
@@ -280,7 +272,7 @@ int main(int argc, char* argv[])
                     prev_compute_event
                 };
                 copy_queue.enqueueCopyImageToBuffer(
-                    images.read, job.buffer, { 0, 0 }, { side, side, 1 }, 0,
+                    images.read, copy_buffer, { 0, 0 }, { side, side, 1 }, 0,
                     &compute_events, &copy_event);
 
                 // When the device->device copy is finished, a device->host read
@@ -289,7 +281,7 @@ int main(int argc, char* argv[])
                 const std::vector<cl::Event> copy_events{ copy_event };
                 cl::Event read_event;
                 read_queue.enqueueReadBuffer(
-                    job.buffer, false, 0, side * side * sizeof(cl_uchar4),
+                    copy_buffer, false, 0, side * side * sizeof(cl_uchar4),
                     job.data.data(), &copy_events, &read_event);
 
                 // When the device->host read is finished, a callback is called.

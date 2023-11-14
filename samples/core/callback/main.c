@@ -81,7 +81,7 @@ static int image_save_consumer_thread(void* data)
     memset(image_filename, 0, FILENAME_MAX);
     sprintf(image_filename, "callback_out_%zu.png", task->index);
     OCLERROR_RET(cl_sdk_write_image(image_filename, &task->image), error, end);
-    printf("Written image %zu\n", task->index);
+    printf("Written image to %s\n", image_filename);
 
     // signal completion
     THRDERROR(mtx_lock(&g_state.image_save_finished_mtx), error, end);
