@@ -151,7 +151,7 @@ std::vector<unsigned char> read_binary_file(
     cl_int* const error = nullptr);
 ```
 
-These functions read a binary file into memory, where `filename` is evaluated relative to the current working directory. The C-version takes an optional pointer to `length` by which the length my be returned. Beause it's binary data, it is _not_ null-terminated, therefore highly recommended to take it's size. The returned types align with OpenCL APIs taking binaries as input. The function hands ownership of the allocated storage to the caller.
+These functions read a binary file into memory, where `filename` is evaluated relative to the current working directory. The C-version takes an optional pointer to `length` by which the length my be returned. Because it's binary data, it is _not_ null-terminated, therefore highly recommended to take it's size. The returned types align with OpenCL APIs taking binaries as input. The function hands ownership of the allocated storage to the caller.
 
 ```c
 cl_program cl_util_read_binaries(
