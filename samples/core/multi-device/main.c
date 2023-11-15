@@ -163,6 +163,13 @@ void host_convolution(const cl_float* in, cl_float* out, const cl_float* mask,
     }
 }
 
+cl_int opencl_version_contains(const char* dev_version,
+                               const char* version_fragment)
+{
+    char* found_version = strstr(dev_version, version_fragment);
+    return (found_version != NULL);
+}
+
 int main(int argc, char* argv[])
 {
     cl_int error = CL_SUCCESS;
@@ -199,7 +206,13 @@ int main(int argc, char* argv[])
     OCLERROR_PAR(dev = cl_util_get_device(dev_opts.triplet.plat_index,
                                           dev_opts.triplet.dev_index,
                                           dev_opts.triplet.dev_type, &error),
-                 error, dev);
+                 error, end);
+
+    // Query OpenCL version supported by device.
+    char dev_version[64];
+    OCLERROR_RET(clGetDeviceInfo(dev, CL_DEVICE_VERSION, sizeof(dev_version),
+                                 &dev_version, NULL),
+                 error, end);
 
     if (!diag_opts.quiet)
     {
@@ -212,48 +225,88 @@ int main(int argc, char* argv[])
         fflush(stdout);
     }
 
-#if CL_HPP_TARGET_OPENCL_VERSION < 120
-    fprintf(stderr,
-            "Error: OpenCL subdevices not supported before version 1.2 ");
-    exit(EXIT_FAILURE);
-#endif
+    if (opencl_version_contains(dev_version, "1.0")
+        || opencl_version_contains(dev_version, "1.1"))
+    {
+        fprintf(stdout,
+                "This sample requires device partitioning, which is an OpenCL "
+                "1.2 feature, but the device chosen only supports OpenCL %s. "
+                "Please try with a different OpenCL device instead.\n",
+                dev_version);
+        exit(EXIT_SUCCESS);
+    }
 
-    // Create subdevices, each with half of the compute units available.
+    // Check if device supports fission.
+    cl_device_partition_property* dev_props = NULL;
+    size_t props_size = 0;
+    OCLERROR_RET(clGetDeviceInfo(dev, CL_DEVICE_PARTITION_PROPERTIES, 0, NULL,
+                                 &props_size),
+                 error, end);
+    if (props_size == 0)
+    {
+        fprintf(stdout,
+                "This sample requires device fission, which is a "
+                "feature available from OpenCL 1.2 on, but the "
+                "device chosen does not seem to support it. Please "
+                "try with a different OpenCL device instead.\n");
+        exit(EXIT_SUCCESS);
+    }
+
+    // Check if the "partition equally" type is supported.
+    MEM_CHECK(dev_props = (cl_device_partition_property*)malloc(props_size),
+              error, end);
+    OCLERROR_RET(clGetDeviceInfo(dev, CL_DEVICE_PARTITION_PROPERTIES,
+                                 props_size, dev_props, NULL),
+                 error, props);
+    size_t prop = 0,
+           props_length = props_size / sizeof(cl_device_partition_property);
+    for (; prop < props_length; ++prop)
+    {
+        if (dev_props[prop] == CL_DEVICE_PARTITION_EQUALLY)
+        {
+            break;
+        }
+    }
+    if (prop == props_length)
+    {
+        fprintf(stdout,
+                "This sample requires partition equally, which is a "
+                "partition scheme available from OpenCL 1.2 on, but "
+                "the device chosen does not seem to support it. "
+                "Please try with a different OpenCL device instead.\n");
+        exit(EXIT_SUCCESS);
+    }
+
+    // Create sub-devices, each with half of the compute units available.
     cl_uint max_compute_units = 0;
+    cl_uint subdev_created = 0;
+    const cl_uint subdev_count = 2;
     OCLERROR_RET(clGetDeviceInfo(dev, CL_DEVICE_MAX_COMPUTE_UNITS,
                                  sizeof(cl_uint), &max_compute_units, NULL),
-                 error, dev);
+                 error, props);
     cl_device_partition_property subdevices_properties[] = {
         (cl_device_partition_property)CL_DEVICE_PARTITION_EQUALLY,
-        (cl_device_partition_property)(max_compute_units / 2), 0
+        (cl_device_partition_property)(max_compute_units / subdev_count), 0
     };
 
-    // Initialize subdevices array with one device and then reallocate for
-    // MacOS and Windows not to complain about NULL subdevices array.
-    cl_uint subdev_count = 1;
     cl_device_id* subdevices =
         (cl_device_id*)malloc(subdev_count * sizeof(cl_device_id));
 
-    OCLERROR_RET(clCreateSubDevices(dev, subdevices_properties,
-                                    max_compute_units, subdevices,
-                                    &subdev_count),
-                 error, dev);
+    OCLERROR_RET(clCreateSubDevices(dev, subdevices_properties, subdev_count,
+                                    subdevices, &subdev_created),
+                 error, props);
 
-    if (subdev_count < 2)
+    if (subdev_created < subdev_count)
     {
-        fprintf(stderr, "Error: OpenCL cannot create subdevices");
+        fprintf(stderr,
+                "Error: OpenCL cannot create the number of sub-devices "
+                "requested\n");
         exit(EXIT_FAILURE);
     }
 
-    subdevices =
-        (cl_device_id*)realloc(subdevices, subdev_count * sizeof(cl_device_id));
-    OCLERROR_RET(clCreateSubDevices(dev, subdevices_properties, subdev_count,
-                                    subdevices, NULL),
-                 error, subdevs);
-
     OCLERROR_PAR(context = clCreateContext(NULL, subdev_count, subdevices, NULL,
                                            NULL, &error),
-                 error, subdevs);
+                 error, subdev1);
 
     // Read kernel file.
     const char* kernel_location = "./convolution.cl";
@@ -280,11 +333,14 @@ int main(int argc, char* argv[])
     // it's only necessary to add the -cl-std option for 2.0 and 3.0 OpenCL
     // versions.
     char compiler_options[1023] = "";
-#if CL_HPP_TARGET_OPENCL_VERSION >= 300
-    strcat(compiler_options, "-cl-std=CL3.0 ");
-#elif CL_HPP_TARGET_OPENCL_VERSION >= 200
-    strcat(compiler_options, "-cl-std=CL2.0 ");
-#endif
+    if (opencl_version_contains(dev_version, "3."))
+    {
+        strcat(compiler_options, "-cl-std=CL3.0 ");
+    }
+    else if (opencl_version_contains(dev_version, "2."))
+    {
+        strcat(compiler_options, "-cl-std=CL2.0 ");
+    }
 
     OCLERROR_RET(
         clBuildProgram(program, 2, subdevices, compiler_options, NULL, NULL),
@@ -356,7 +412,7 @@ int main(int argc, char* argv[])
                                        mask_dim * mask_dim, -1000, 1000);
 
     // Create device buffers, from which we will create the subbuffers for the
-    // subdevices.
+    // sub-devices.
     const size_t grid_midpoint = y_dim / 2;
     const size_t pad_grid_midpoint = pad_y_dim / 2;
 
@@ -391,7 +447,7 @@ int main(int argc, char* argv[])
         fflush(stdout);
     }
 
-    // Set up subdevices for kernel execution.
+    // Set up sub-devices for kernel execution.
     const size_t half_input_bytes =
         sizeof(cl_float) * pad_x_dim * (pad_grid_midpoint + 1);
     const size_t input_offset =
@@ -414,7 +470,7 @@ int main(int argc, char* argv[])
                      error, bufmask);
 
         // Initialize queues for command execution on each device.
-#if CL_HPP_TARGET_OPENCL_VERSION >= 200
+#if defined(CL_VERSION_2_0) || defined(CL_VERSION_3_0)
         cl_command_queue_properties props[] = { CL_QUEUE_PROPERTIES,
                                                 CL_QUEUE_PROFILING_ENABLE, 0 };
         OCLERROR_PAR(sub_queues[subdevice] = clCreateCommandQueueWithProperties(
@@ -507,7 +563,8 @@ int main(int argc, char* argv[])
     }
 
     GET_CURRENT_TIMER(host_start)
-    host_convolution(h_input_grid, h_output_grid, h_mask, (cl_uint)x_dim, (cl_uint)y_dim);
+    host_convolution(h_input_grid, h_output_grid, h_mask, (cl_uint)x_dim,
+                     (cl_uint)y_dim);
     GET_CURRENT_TIMER(host_end)
     size_t host_time;
     TIMER_DIFFERENCE(host_time, host_start, host_end)
@@ -588,7 +645,7 @@ event2:
 event1:
     OCLERROR_RET(clReleaseEvent(events[0]), end_error, subbufout);
 subbufout:
-    if (subdevice == 1)
+    if (subdevice >= 1)
     {
         OCLERROR_RET(clReleaseMemObject(sub_output_grids[1]), end_error,
                      subbufout0);
@@ -596,7 +653,7 @@ subbufout:
 subbufout0:
     OCLERROR_PAR(clReleaseMemObject(sub_output_grids[0]), end_error, subbufin);
 subbufin:
-    if (subdevice == 1)
+    if (subdevice >= 1)
     {
         OCLERROR_RET(clReleaseMemObject(sub_input_grids[1]), end_error,
                      subbufin0);
@@ -604,15 +661,15 @@ subbufin:
 subbufin0:
     OCLERROR_RET(clReleaseMemObject(sub_input_grids[0]), end_error, subqueue);
 subqueue:
-    if (subdevice == 1)
+    if (subdevice >= 1)
     {
         OCLERROR_RET(clReleaseCommandQueue(sub_queues[1]), end_error,
                      subqueue0);
     }
 subqueue0:
-    OCLERROR_RET(clReleaseCommandQueue(sub_queues[1]), end_error, conv);
+    OCLERROR_RET(clReleaseCommandQueue(sub_queues[0]), end_error, conv);
 conv:
-    if (subdevice == 1)
+    if (subdevice >= 1)
     {
         OCLERROR_RET(clReleaseKernel(convolutions[1]), end_error, conv0);
     }
@@ -631,15 +688,19 @@ houtput:
 hinput:
     free(h_input_grid);
 prg:
-    OCLERROR_RET(clReleaseProgram(program), end_error, subdevs);
+    OCLERROR_RET(clReleaseProgram(program), end_error, ker);
 ker:
     free(kernel);
 contx:
-    OCLERROR_RET(clReleaseContext(context), end_error, end);
+    OCLERROR_RET(clReleaseContext(context), end_error, subdev1);
+subdev1:
+    OCLERROR_RET(clReleaseDevice(subdevices[1]), end_error, subdev0);
+subdev0:
+    OCLERROR_RET(clReleaseDevice(subdevices[0]), end_error, subdevs);
 subdevs:
     free(subdevices);
-dev:
-    OCLERROR_RET(clReleaseDevice(dev), end_error, end);
+props:
+    free(dev_props);
 end:
     if (error) cl_util_print_error(error);
     return error;

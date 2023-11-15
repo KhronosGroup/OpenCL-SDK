@@ -97,6 +97,12 @@ void host_convolution(const std::vector<cl_float> in,
     }
 }
 
+bool opencl_version_contains(const cl::string& dev_version,
+                             const cl::string& version_fragment)
+{
+    return dev_version.find(version_fragment) != cl::string::npos;
+}
+
 int main(int argc, char* argv[])
 {
     try
@@ -118,6 +124,9 @@ int main(int argc, char* argv[])
             dev.getInfo<CL_DEVICE_PLATFORM>()
         }; // https://github.com/KhronosGroup/OpenCL-CLHPP/issues/150
 
+        // Query OpenCL version supported by device.
+        const std::string dev_version = dev.getInfo<CL_DEVICE_VERSION>();
+
         if (!diag_opts.quiet)
         {
             std::cout << "Selected device: " << dev.getInfo<CL_DEVICE_NAME>()
@@ -133,12 +142,44 @@ int main(int argc, char* argv[])
             std::cout.flush();
         }
 
-#if CL_HPP_TARGET_OPENCL_VERSION < 120
-        std::cerr
-            << "Error: OpenCL subdevices not supported before version 1.2 "
-            << std::endl;
-        exit(EXIT_FAILURE);
-#endif
+        if (opencl_version_contains(dev_version, "1.0")
+            || opencl_version_contains(dev_version, "1.1"))
+        {
+            std::cout
+                << "This sample requires device partitioning, which is an "
+                   "OpenCL 1.2 feature, but the device chosen only "
+                   "supports OpenCL "
+                << dev_version
+                << ". Please try with a different OpenCL device instead."
+                << std::endl;
+            exit(EXIT_SUCCESS);
+        }
+
+        // Check if device supports fission.
+        std::vector<cl_device_partition_property> dev_props =
+            dev.getInfo<CL_DEVICE_PARTITION_PROPERTIES>();
+        if (dev_props.size() == 0)
+        {
+            std::cout << "This sample requires device fission, which is a "
+                         "feature available from OpenCL 1.2 on, but the "
+                         "device chosen does not seem to support it. Please "
+                         "try with a different OpenCL device instead."
+                      << std::endl;
+            exit(EXIT_SUCCESS);
+        }
+
+        // Check if the "partition equally" type is supported.
+        if (std::find(dev_props.begin(), dev_props.end(),
+                      CL_DEVICE_PARTITION_EQUALLY)
+            == dev_props.end())
+        {
+            std::cout << "This sample requires partition equally, which is a "
+                         "partition scheme available from OpenCL 1.2 on, but "
+                         "the device chosen does not seem to support it. "
+                         "Please try with a different OpenCL device instead."
+                      << std::endl;
+            exit(EXIT_SUCCESS);
+        }
 
         // Create subdevices, each with half of the compute units available.
         cl_uint max_compute_units = dev.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>();
@@ -189,10 +230,10 @@ int main(int argc, char* argv[])
             std::string compiler_opt_str =
                 "-cl-std=CL" + std::to_string(i) + ".0 "; // -cl-std=CLi.0
 
-            compiler_options += cl::string{ cl::util::opencl_c_version_contains(
-                                                dev, version_str)
-                                                ? compiler_opt_str
-                                                : "" };
+            compiler_options +=
+                cl::string{ opencl_version_contains(dev_version, version_str)
+                                ? compiler_opt_str
+                                : "" };
         }
         program.build(subdevices, compiler_options.c_str());
 
@@ -316,10 +357,7 @@ int main(int argc, char* argv[])
                 std::cout.flush();
             }
 
-            auto convolution =
-                cl::KernelFunctor<cl::Buffer, cl::Buffer, cl::Buffer, cl_uint2>(
-                    program, "convolution_3x3")
-                    .getKernel();
+            auto convolution = cl::Kernel(program, "convolution_3x3");
 
             cl::CommandQueue queue(context, subdevice,
                                    cl::QueueProperties::Profiling);
@@ -362,7 +400,7 @@ int main(int argc, char* argv[])
                 std::cout.flush();
             }
 
-            convolutions.push_back(convolution.clone());
+            convolutions.push_back(convolution);
             sub_queues.push_back(queue);
             sub_input_grids.push_back(sub_input_grid);
             sub_output_grids.push_back(sub_output_grid);
