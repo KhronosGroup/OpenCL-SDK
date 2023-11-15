@@ -389,8 +389,8 @@ char *cl_util_read_exe_relative_text_file(const char *const rel_path,
     cl_int err = CL_SUCCESS;
     size_t exe_folder_length;
     OCLERROR_RET(cl_util_executable_folder(NULL, &exe_folder_length), err, end);
-    MEM_CHECK(abs_path = (char *)malloc(exe_folder_length
-                                        + strlen(rel_path) + 1),
+    MEM_CHECK(abs_path =
+                  (char *)malloc(exe_folder_length + strlen(rel_path) + 1),
               err, end);
     OCLERROR_RET(cl_util_executable_folder(abs_path, NULL), err, end);
     strcat(strcat(abs_path, "/"), rel_path);
