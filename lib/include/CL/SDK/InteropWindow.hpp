@@ -13,13 +13,16 @@
 #include <SFML/Window.hpp>
 #include <SFML/OpenGL.hpp>
 
+// STL includes
+#include <type_traits>
+
 namespace cl {
 namespace sdk {
     class SDKCPP_EXPORT InteropWindow : public sf::Window {
     public:
         explicit InteropWindow(
             sf::VideoMode mode, const sf::String& title,
-            sf::Uint32 style = sf::Style::Default,
+            decltype(sf::Style::Default) style = sf::Style::Default,
             const sf::ContextSettings& settings = sf::ContextSettings{},
             cl_uint platform_id = 0, cl_uint device_id = 0,
             cl_bitfield device_type = CL_DEVICE_TYPE_DEFAULT);
