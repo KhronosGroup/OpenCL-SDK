@@ -3,8 +3,7 @@
 #include <CL/SDK/InteropContext.hpp>
 
 cl::sdk::InteropWindow::InteropWindow(sf::VideoMode mode,
-                                      const sf::String& title,
-                                      decltype(sf::Style::Default) style,
+                                      const sf::String& title, Style style,
                                       const sf::ContextSettings& settings,
                                       cl_uint platform_id, cl_uint device_id,
                                       cl_bitfield device_type)

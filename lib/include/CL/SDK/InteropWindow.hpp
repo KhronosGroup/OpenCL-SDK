@@ -20,9 +20,11 @@ namespace cl {
 namespace sdk {
     class SDKCPP_EXPORT InteropWindow : public sf::Window {
     public:
+        using Style = std::underlying_type_t<decltype(sf::Style::Default)>;
+
         explicit InteropWindow(
             sf::VideoMode mode, const sf::String& title,
-            decltype(sf::Style::Default) style = sf::Style::Default,
+            Style style = sf::Style::Default,
             const sf::ContextSettings& settings = sf::ContextSettings{},
             cl_uint platform_id = 0, cl_uint device_id = 0,
             cl_bitfield device_type = CL_DEVICE_TYPE_DEFAULT);
