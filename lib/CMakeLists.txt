@@ -36,6 +36,8 @@ foreach(UTIL_LIB_NAME IN ITEMS Utils UtilsCpp)
       $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
   )
   target_link_libraries(${UTIL_LIB_TARGET}
+    PRIVATE
+      whereami
     PUBLIC
       ${UTIL_LIB_DEPS}
       OpenCL::OpenCL

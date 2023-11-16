@@ -40,3 +40,16 @@ cl_program cl_util_read_binaries(const cl_context context,
                                  const cl_uint num_devices,
                                  const char* const program_file_name,
                                  cl_int* const error);
+
+// returns the folder containing the running executable
+UTILS_EXPORT
+cl_int cl_util_executable_folder(char* filename, size_t* const length);
+
+// read all the text file contents securely in ANSI C89
+// return pointer to C-string with file contents
+// interprets filename relative to the folder containing
+// the running executable
+UTILS_EXPORT
+char* cl_util_read_exe_relative_text_file(const char* const rel_path,
+                                          size_t* const length,
+                                          cl_int* const error);

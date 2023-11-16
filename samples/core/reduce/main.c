@@ -336,14 +336,13 @@ int main(int argc, char *argv[])
     cl_int zero_elem = !strcmp(reduce_opts.op, "min") ? CL_INT_MAX : 0;
 
     // Compile kernel
-    const char *kernel_location = "./reduce.cl";
     char *kernel = NULL, *tmp = NULL;
     size_t program_size = 0;
     cl_program program = NULL;
 
-    OCLERROR_PAR(
-        kernel = cl_util_read_text_file(kernel_location, &program_size, &error),
-        error, que);
+    OCLERROR_PAR(kernel = cl_util_read_exe_relative_text_file(
+                     "reduce.cl", &program_size, &error),
+                 error, que);
     // Note append of definitions
     program_size += 1 + strlen(kernel_op);
     MEM_CHECK(tmp = (char *)realloc(kernel, program_size), error, ker);

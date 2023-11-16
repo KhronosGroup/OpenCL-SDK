@@ -1,3 +1,10 @@
+if(OPENCL_SDK_BUILD_UTILITY_LIBRARIES)
+  foreach(DEP IN ITEMS whereami)
+    list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/Dependencies/${DEP}")
+    include(${DEP})
+  endforeach()
+endif()
+
 if(OPENCL_SDK_BUILD_SAMPLES)
   foreach(DEP IN ITEMS cargs TCLAP Stb)
     list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/Dependencies/${DEP}")

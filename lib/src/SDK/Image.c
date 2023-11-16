@@ -40,7 +40,7 @@ cl_sdk_image cl_sdk_read_image(const char* const file_name, cl_int* const error)
 
 static char* to_lowercase(const char* const s, char* const d, const size_t n)
 {
-    for (size_t i = 0; i < n; ++i) d[i] = tolower(s[i]);
+    for (size_t i = 0; i < n; ++i) d[i] = (char)tolower(s[i]);
     return d;
 }
 
