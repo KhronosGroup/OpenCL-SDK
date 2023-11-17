@@ -448,13 +448,17 @@ int main(int argc, char* argv[])
         state.img_b = tmp;
     }
 
+    // Make sure that all queued items are dispatched for execution
+    OCLERROR_RET(clFlush(state.compute_queue), error, read_ev);
+    OCLERROR_RET(clFlush(state.copy_queue), error, read_ev);
+    OCLERROR_RET(clFlush(state.read_queue), error, read_ev);
+
     size_t num_saved_images =
         (cb_opts.iterations + cb_opts.write_iter - 1) / cb_opts.write_iter;
 
     for (;;)
     {
-        THRDERROR(mtx_lock(&g_state.image_save_finished_mtx), error,
-                  free_image_b);
+        THRDERROR(mtx_lock(&g_state.image_save_finished_mtx), error, read_ev);
         bool wait_for_saving =
             num_saved_images != g_state.image_save_finished_count;
         if (wait_for_saving)
@@ -462,18 +466,18 @@ int main(int argc, char* argv[])
             cnd_wait(&g_state.image_save_finished_signal,
                      &g_state.image_save_finished_mtx);
             THRDERROR(mtx_unlock(&g_state.image_save_finished_mtx), error,
-                      free_image_b);
+                      read_ev);
         }
         else
         {
             THRDERROR(mtx_unlock(&g_state.image_save_finished_mtx), error,
-                      free_image_b);
+                      read_ev);
             break;
         }
     }
 
     cl_int end_error = CL_SUCCESS;
-    // read_ev:
+read_ev:
     OCLERROR_RET(clReleaseEvent(state.read_event), end_error, copy_ev);
 copy_ev:
     OCLERROR_RET(clReleaseEvent(state.copy_event), end_error, compute_ev);

@@ -45,9 +45,9 @@ endif()
 
 add_sample(
     TEST
-    TARGET callback_cpp
+    TARGET callbackcpp
     VERSION 300
     SOURCES main.cpp
     KERNELS reaction_diffusion.cl)
-target_link_libraries(callback_cpp PRIVATE
+target_link_libraries(callbackcpp PRIVATE
     $<TARGET_NAME_IF_EXISTS:Threads::Threads>)
