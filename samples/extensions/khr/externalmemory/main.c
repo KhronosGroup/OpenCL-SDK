@@ -430,7 +430,6 @@ int main(int argc, char* argv[])
     buffer_info.size = sizeof(cl_float) * length;
     buffer_info.usage =
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-    ;
     buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
     VkBuffer vk_buf_x, vk_buf_y;
@@ -485,6 +484,35 @@ int main(int argc, char* argv[])
     memcpy(vk_arr_x, arr_x, sizeof(cl_float) * length);
     memcpy(vk_arr_y, arr_y, sizeof(cl_float) * length);
 
+#ifdef _WIN32
+    // Get Vulkan external memory file descriptors for accessing external memory
+    // with OpenCL.
+    VkMemoryGetWin32HandleInfoKHR handle_info_x = { 0 };
+    handle_info_x.sType = VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR;
+    handle_info_x.pNext = NULL;
+    handle_info_x.memory = vk_buf_x_memory;
+    handle_info_x.handleType = vk_external_memory_handle_type;
+    HANDLE handle_x;
+
+    VkMemoryGetWin32HandleInfoKHR handle_info_y = { 0 };
+    handle_info_y.sType = VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR;
+    handle_info_y.pNext = NULL;
+    handle_info_y.memory = vk_buf_y_memory;
+    handle_info_y.handleType = vk_external_memory_handle_type;
+    HANDLE handle_y;
+
+    // We need to get the pointer to the
+    // vkGetMemoryFdKHR/vkGetMemoryWin32HandleKHR function because it's from
+    // extension VK_KHR_external_memory_fd. This Vulkan function exports a POSIX
+    // file descriptor/Windows handle referencing the payload of a Vulkan device
+    // memory object.
+    PFN_vkGetMemoryWin32HandleKHR vkGetMemoryWin32Handle;
+    *(PFN_vkGetMemoryWin32HandleKHR*)&vkGetMemoryWin32Handle =
+        (PFN_vkGetMemoryWin32HandleKHR)vkGetDeviceProcAddr(
+            vk_device, "vkGetMemoryWin32HandleKHR");
+    VK_CHECK(vkGetMemoryWin32Handle(vk_device, &handle_info_x, &handle_x));
+    VK_CHECK(vkGetMemoryWin32Handle(vk_device, &handle_info_y, &handle_y));
+#else
     // Get Vulkan external memory file descriptors for accessing external memory
     // with OpenCL.
     VkMemoryGetFdInfoKHR fd_info_x = { 0 };
@@ -501,19 +529,28 @@ int main(int argc, char* argv[])
     fd_info_y.handleType = vk_external_memory_handle_type;
     int fd_y;
 
-    // We need to get the pointer to the vkGetMemoryFdKHR function because it's
-    // from extension VK_KHR_external_memory_fd.
-    PFN_vkGetMemoryFdKHR vkGetMemoryFdKHR =
+    // We need to get the pointer to the
+    // vkGetMemoryFdKHR/vkGetMemoryWin32HandleKHR function because it's from
+    // extension VK_KHR_external_memory_fd. This Vulkan function exports a POSIX
+    // file descriptor/Windows handle referencing the payload of a Vulkan device
+    // memory object.
+    PFN_vkGetMemoryFdKHR vkGetMemoryFd;
+    *(PFN_vkGetMemoryFdKHR*)&vkGetMemoryFd =
         (PFN_vkGetMemoryFdKHR)vkGetDeviceProcAddr(vk_device,
                                                   "vkGetMemoryFdKHR");
+    VK_CHECK(vkGetMemoryFd(vk_device, &fd_info_x, &fd_x));
+    VK_CHECK(vkGetMemoryFd(vk_device, &fd_info_y, &fd_y));
+#endif
 
-    VK_CHECK(vkGetMemoryFdKHR(vk_device, &fd_info_x, &fd_x));
-    VK_CHECK(vkGetMemoryFdKHR(vk_device, &fd_info_y, &fd_y));
 
     // Create OpenCL buffers from Vulkan external memory file descriptors.
     cl_mem_properties ext_mem_props_x[] = {
         (cl_mem_properties)CL_EXTERNAL_MEMORY_HANDLE_OPAQUE_FD_KHR,
+#ifdef _WIN32
+        (cl_mem_properties)handle_x,
+#else
         (cl_mem_properties)fd_x,
+#endif
         (cl_mem_properties)CL_DEVICE_HANDLE_LIST_KHR,
         (cl_mem_properties)(uintptr_t)cl_device,
         CL_DEVICE_HANDLE_LIST_END_KHR,
@@ -521,7 +558,11 @@ int main(int argc, char* argv[])
     };
     cl_mem_properties ext_mem_props_y[] = {
         (cl_mem_properties)CL_EXTERNAL_MEMORY_HANDLE_OPAQUE_FD_KHR,
+#ifdef _WIN32
+        (cl_mem_properties)handle_y,
+#else
         (cl_mem_properties)fd_y,
+#endif
         (cl_mem_properties)CL_DEVICE_HANDLE_LIST_KHR,
         (cl_mem_properties)(uintptr_t)cl_device,
         CL_DEVICE_HANDLE_LIST_END_KHR,
@@ -552,6 +593,16 @@ int main(int argc, char* argv[])
     OCLERROR_RET(clSetKernelArg(saxpy, 2, sizeof(cl_mem), &cl_buf_y), error,
                  clbufy);
 
+    // Acquire OpenCL memory objects created from Vulkan external memory
+    // handles.
+    cl_mem cl_mem_objects[] = { cl_buf_x, cl_buf_y };
+    clEnqueueAcquireExternalMemObjectsKHR_fn
+        clEnqueueAcquireExternalMemObjects =
+            (clEnqueueAcquireExternalMemObjectsKHR_fn)
+                clGetExtensionFunctionAddressForPlatform(
+                    cl_platform, "clEnqueueAcquireExternalMemObjectsKHR");
+    clEnqueueAcquireExternalMemObjects(queue, 2, cl_mem_objects, 0, NULL, NULL);
+
     // Launch kernel.
     if (diag_opts.verbose)
     {
@@ -569,6 +620,15 @@ int main(int argc, char* argv[])
 
     cl_ulong dev_time;
     TIMER_DIFFERENCE(dev_time, dev_start, dev_end)
+
+    // Release OpenCL memory objects created from Vulkan external memory
+    // handles.
+    clEnqueueReleaseExternalMemObjectsKHR_fn
+        clEnqueueReleaseExternalMemObjects =
+            (clEnqueueReleaseExternalMemObjectsKHR_fn)
+                clGetExtensionFunctionAddressForPlatform(
+                    cl_platform, "clEnqueueReleaseExternalMemObjectsKHR");
+    clEnqueueReleaseExternalMemObjects(queue, 2, cl_mem_objects, 0, NULL, NULL);
 
     // Concurrently calculate reference saxpy.
     if (diag_opts.verbose)
