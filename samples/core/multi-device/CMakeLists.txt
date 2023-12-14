@@ -1,4 +1,4 @@
-# Copyright (c) 2020 The Khronos Group Inc.
+# Copyright (c) 2023 The Khronos Group Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,12 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(binaries)
-add_subdirectory(blur)
-add_subdirectory(callback)
-add_subdirectory(copybuffer)
-add_subdirectory(copybufferkernel)
-add_subdirectory(enumopencl)
-add_subdirectory(multi-device)
-add_subdirectory(reduce)
-add_subdirectory(saxpy)
+add_sample(
+    TEST
+    TARGET multidevice
+    VERSION 300
+    SOURCES main.c
+    KERNELS convolution.cl)
+
+add_sample(
+    TEST
+    TARGET multidevicecpp
+    VERSION 300
+    SOURCES main.cpp
+    KERNELS convolution.cl)
