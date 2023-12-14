@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(externalmemory)
 add_subdirectory(histogram)
 if(OPENCL_SDK_BUILD_OPENGL_SAMPLES)
   add_subdirectory(conway)
   add_subdirectory(nbody)
+endif()
+if(OPENCL_SDK_BUILD_VULKAN_SAMPLES)
+  add_subdirectory(externalmemory)
 endif()
