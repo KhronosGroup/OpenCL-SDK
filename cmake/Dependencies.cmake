@@ -41,7 +41,7 @@ set(BUILD_SHARED_LIBS OFF CACHE BOOL "Global flag to cause add_library() to crea
 
 # Fetch dependencies
 if(OPENCL_SDK_BUILD_SAMPLES)
-  foreach(DEP IN ITEMS cargs TCLAP Stb Vulkan)
+  foreach(DEP IN ITEMS cargs TCLAP Stb)
     list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/Dependencies/${DEP}")
     include(${DEP})
   endforeach()
@@ -52,6 +52,11 @@ if(OPENCL_SDK_BUILD_SAMPLES)
       include(${DEP})
     endforeach()
   endif(OPENCL_SDK_BUILD_OPENGL_SAMPLES)
+
+  if(OPENCL_SDK_BUILD_VULKAN_SAMPLES)
+    list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/Dependencies/Vulkan")
+    include(Vulkan)
+  endif(OPENCL_SDK_BUILD_VULKAN_SAMPLES)
 endif(OPENCL_SDK_BUILD_SAMPLES)
 
 if(OPENCL_SDK_BUILD_CLINFO)

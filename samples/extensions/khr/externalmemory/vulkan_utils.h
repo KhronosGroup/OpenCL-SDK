@@ -224,24 +224,24 @@ find_suitable_device(VkInstance instance,
     // Query OpenCL devices available.
     cl_int error = CL_SUCCESS;
     bool candidate_found = false;
-    cl_uint cl_platform_count = 0;
+    cl_uint platform_count = 0;
     struct device_candidate found_candidate = {0};
-    OCLERROR_RET(clGetPlatformIDs(0, NULL, &cl_platform_count), error, ret);
+    OCLERROR_RET(clGetPlatformIDs(0, NULL, &platform_count), error, ret);
 
     cl_platform_id* platforms =
-        (cl_platform_id*)malloc(cl_platform_count * sizeof(cl_platform_id));
-    OCLERROR_RET(clGetPlatformIDs(cl_platform_count, platforms, NULL), error,
+        (cl_platform_id*)malloc(platform_count * sizeof(cl_platform_id));
+    OCLERROR_RET(clGetPlatformIDs(platform_count, platforms, NULL), error,
                  platforms);
 
     size_t cl_device_count = 0;
     const char* uuid_khronos_extension[] = {
         CL_KHR_DEVICE_UUID_EXTENSION_NAME
     };
-    for (cl_uint cl_platform_id = 0; cl_platform_id < cl_platform_count;
-         ++cl_platform_id)
+    for (cl_uint platform_id = 0; platform_id < platform_count;
+         ++platform_id)
     {
         cl_uint cl_platform_devices_count = 0;
-        OCLERROR_RET(clGetDeviceIDs(platforms[cl_platform_id],
+        OCLERROR_RET(clGetDeviceIDs(platforms[platform_id],
                                     CL_DEVICE_TYPE_ALL, 0, NULL,
                                     &cl_platform_devices_count),
                      error, platforms);
@@ -250,7 +250,7 @@ find_suitable_device(VkInstance instance,
         {
             cl_device_id device;
             OCLERROR_PAR(device = cl_util_get_device(
-                cl_platform_id, device_id, CL_DEVICE_TYPE_ALL, &error), error, platforms);
+                platform_id, device_id, CL_DEVICE_TYPE_ALL, &error), error, platforms);
             cl_device_count +=
                 check_khronos_extensions(device, uuid_khronos_extension, 1);
         }
@@ -264,11 +264,11 @@ find_suitable_device(VkInstance instance,
         (struct cl_device_candidate*)malloc(
             cl_device_count * sizeof(struct cl_device_candidate));
     cl_device_count = 0;
-    for (cl_uint cl_platform_id = 0; cl_platform_id < cl_platform_count;
-         ++cl_platform_id)
+    for (cl_uint platform_id = 0; platform_id < platform_count;
+         ++platform_id)
     {
         cl_uint cl_platform_devices_count = 0;
-        OCLERROR_RET(clGetDeviceIDs(platforms[cl_platform_id],
+        OCLERROR_RET(clGetDeviceIDs(platforms[platform_id],
                                     CL_DEVICE_TYPE_ALL, 0, NULL,
                                     &cl_platform_devices_count),
                      error, candidates);
@@ -278,7 +278,7 @@ find_suitable_device(VkInstance instance,
              ++cl_candidate_id, ++cl_device_count)
         {
             cl_device_id device = cl_util_get_device(
-                cl_platform_id, cl_candidate_id, CL_DEVICE_TYPE_ALL, &error);
+                platform_id, cl_candidate_id, CL_DEVICE_TYPE_ALL, &error);
             if (check_khronos_extensions(device, uuid_khronos_extension, 1))
             {
                 cl_uchar vk_candidate_uuid[CL_UUID_SIZE_KHR];
