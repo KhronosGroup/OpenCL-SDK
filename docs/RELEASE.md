@@ -88,7 +88,13 @@ git commit -a -m "Update project version"
 
 ## Tag SDK
 
-> As noted previously, wait with the tagging until the prerequisite Debian packages has been published.
+The automatic release pipeline that is triggered on git tags, generates a Debian source package from the SDK code and uploads it to Launchpad. The packaging details and credentials have to be set as [described before](#uploading-source-packages-to-the-launchpad-ppa).
+
+While the SDK repository consumes the [OpenCL-Headers](https://github.com/KhronosGroup/OpenCL-Headers), [OpenCL-ICD-Loader](https://github.com/KhronosGroup/OpenCL-ICD-Loader) and [OpenCL-CLHPP](https://github.com/KhronosGroup/OpenCL-CLHPP) as git submodules, the same relation between the generated source packages is defined as a package dependency. Therefore, all 3 dependencies must be available in the Launchpad PPA to be able to build the SDK source package. The maintainer must make sure that the dependencies have already become available in the prescribed PPA before attempting to push a release tag for the OpenCL SDK.
+
+All Debian packages are version locked, which means that the **OpenCL SDK Debian package depends on exactly the same versions of the Headers, CLHPP and ICD-Loader as itself**. The source of this version information is the main `project` statement in the CMake scripts, therefore the maintainer has to make sure that all repositories have updated the version number, as [described above](#update-project-version).
+
+When all dependencies are published to the PPA, the SDK can be released by the following commands:
 
 ```
 git tag vYYYY.MM.DD
