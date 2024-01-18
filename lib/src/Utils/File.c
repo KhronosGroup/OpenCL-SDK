@@ -248,7 +248,7 @@ cl_int cl_util_write_binaries(const cl_program program,
 
         // write the binary to the output file
         FILE *f = NULL;
-        if (fopen_s(&f, filename, "wb") != 0)
+        if (fopen_s(&f, filename, "wb") == 0)
         {
             if (fwrite(binaries_ptr[i], sizeof(unsigned char), binaries_size[i],
                        f)
