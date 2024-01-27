@@ -8,8 +8,8 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(whereami-external)
 add_library(whereami IMPORTED INTERFACE)
 target_include_directories(whereami
-  INTERFACE "${CMAKE_CURRENT_BINARY_DIR}/_deps/whereami-external-src/src"
+    INTERFACE "${whereami-external_SOURCE_DIR}/src"
 )
 target_sources(whereami
-  INTERFACE "${CMAKE_CURRENT_BINARY_DIR}/_deps/whereami-external-src/src/whereami.c"
+  INTERFACE "${whereami-external_SOURCE_DIR}/src/whereami.c"
 )
