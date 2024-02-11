@@ -39,9 +39,20 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}/install" CACHE PATH "Install Path" FORCE)
 endif()
 
-add_subdirectory(external/OpenCL-Headers)
-add_subdirectory(external/OpenCL-ICD-Loader)
-add_subdirectory(external/OpenCL-CLHPP)
+find_package (OpenCLHeaders)
+if (NOT TARGET OpenCL::Headers)
+    add_subdirectory(external/OpenCL-Headers)
+endif ()
+
+find_package (OpenCLICDLoader)
+if (NOT TARGET OpenCL::OpenCL)
+    add_subdirectory(external/OpenCL-ICD-Loader)
+endif ()
+
+find_package (OpenCLHeadersCpp)
+if (NOT TARGET OpenCL::HeadersCpp)
+    add_subdirectory(external/OpenCL-CLHPP)
+endif ()
 
 list(APPEND CMAKE_MODULE_PATH
   ${PROJECT_SOURCE_DIR}/cmake
