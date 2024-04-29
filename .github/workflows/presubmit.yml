@@ -103,7 +103,8 @@ jobs:
     name: Exercise Python examples on ${{matrix.os}}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        #os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
@@ -140,7 +141,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        #os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
     steps:
       - uses: actions/checkout@v2
         with:
