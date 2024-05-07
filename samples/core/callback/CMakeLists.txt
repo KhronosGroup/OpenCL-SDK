@@ -20,6 +20,11 @@ file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/threads.c"
 int main(void) { thrd_sleep(&(struct timespec){.tv_nsec=1}, NULL); }
 ")
 
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/atomic.c"
+"#include <stdatomic.h>
+int main() { return 0; }
+")
+
 # Signature can be modernized at CMake version 3.25
 try_compile(
     HAS_C11_THREADS
@@ -29,7 +34,21 @@ try_compile(
     C_STANDARD_REQUIRED ON
 )
 
-if (HAS_C11_THREADS)
+try_compile(
+    HAS_C11_ATOMICS
+    "${CMAKE_CURRENT_BINARY_DIR}"
+    SOURCES "${CMAKE_CURRENT_BINARY_DIR}/atomic.c"
+    C_STANDARD 11
+    C_STANDARD_REQUIRED ON
+)
+
+if (NOT HAS_C11_THREADS)
+    message(WARNING
+    "Skipping callback sample, C11 standard threads are not supported with the current toolset")
+elseif (NOT HAS_C11_ATOMICS)
+    message(WARNING
+    "Skipping callback sample, C11 standard atomics are not supported with the current toolset")
+else()
     add_sample(
         TEST
         TARGET callback
@@ -38,9 +57,6 @@ if (HAS_C11_THREADS)
         KERNELS reaction_diffusion.cl)
     target_link_libraries(callback PRIVATE
         $<TARGET_NAME_IF_EXISTS:Threads::Threads>)
-else()
-    message(WARNING
-    "Skipping callback sample, C11 standard threads are not supported with the current toolset")
 endif()
 
 add_sample(
