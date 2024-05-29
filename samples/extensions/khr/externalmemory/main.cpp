@@ -471,9 +471,9 @@ int main(int argc, char* argv[])
 #else
             (cl_mem_properties)fd_x,
 #endif
-            (cl_mem_properties)CL_DEVICE_HANDLE_LIST_KHR,
+            (cl_mem_properties)CL_MEM_DEVICE_HANDLE_LIST_KHR,
             (cl_mem_properties)cl_device(),
-            CL_DEVICE_HANDLE_LIST_END_KHR,
+            CL_MEM_DEVICE_HANDLE_LIST_END_KHR,
             0
         };
         std::vector<cl_mem_properties> ext_mem_props_y = {
@@ -483,9 +483,9 @@ int main(int argc, char* argv[])
 #else
             (cl_mem_properties)fd_y,
 #endif
-            (cl_mem_properties)CL_DEVICE_HANDLE_LIST_KHR,
+            (cl_mem_properties)CL_MEM_DEVICE_HANDLE_LIST_KHR,
             (cl_mem_properties)cl_device(),
-            CL_DEVICE_HANDLE_LIST_END_KHR,
+            CL_MEM_DEVICE_HANDLE_LIST_END_KHR,
             0
         };
 
