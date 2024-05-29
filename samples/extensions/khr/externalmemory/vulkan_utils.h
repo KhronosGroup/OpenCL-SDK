@@ -256,6 +256,12 @@ find_suitable_device(VkInstance instance,
         }
     }
 
+    if (!cl_device_count)
+    {
+        printf("No suitable OpenCL Vulkan-compatible devices available\n");
+        goto platforms;
+    }
+
     // For each OpenCL device, query its Vulkan-compatible device UUID and
     // add it to the list of candidates. The device must support the
     // cl_khr_device_uuid extension for us to be able to query the device's
@@ -275,7 +281,7 @@ find_suitable_device(VkInstance instance,
 
         for (cl_uint cl_candidate_id = 0;
              cl_candidate_id < cl_platform_devices_count;
-             ++cl_candidate_id, ++cl_device_count)
+             ++cl_candidate_id)
         {
             cl_device_id device = cl_util_get_device(
                 platform_id, cl_candidate_id, CL_DEVICE_TYPE_ALL, &error);
@@ -292,6 +298,7 @@ find_suitable_device(VkInstance instance,
                 memcpy(candidate.uuid, &vk_candidate_uuid,
                        sizeof(cl_uchar) * CL_UUID_SIZE_KHR);
                 cl_candidates[cl_device_count] = candidate;
+                cl_device_count++;
             }
         }
     }
