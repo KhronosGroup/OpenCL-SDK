@@ -671,8 +671,7 @@ int main(int argc, char* argv[])
         printf("Kernel execution time as seen by host: %llu us.\n",
                (unsigned long long)(dev_time + 500) / 1000);
 
-        printf("Kernel execution time as measured by device:\n");
-        printf("\t%llu us.\n",
+        printf("Kernel execution time as measured by device: %llu us.\n",
                (unsigned long long)(cl_util_get_event_duration(
                                         kernel_run, CL_PROFILING_COMMAND_START,
                                         CL_PROFILING_COMMAND_END, &error)
