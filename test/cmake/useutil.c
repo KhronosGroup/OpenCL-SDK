@@ -10,7 +10,7 @@
 #define print(...) printf(__VA_ARGS__)
 #endif
 
-int main()
+int main(void)
 {
     cl_int CL_err = CL_SUCCESS;
     cl_uint numPlatforms = 0;

@@ -102,7 +102,8 @@ int main(int argc, char** argv)
                 ++i;
                 if (i < argc)
                 {
-                    deviceIndex = strtoul(argv[i], NULL, 10);
+                    deviceIndex =
+                        static_cast<cl_uint>(strtoul(argv[i], NULL, 10));
                 }
             }
             else if (!strcmp(argv[i], "-p"))
@@ -110,7 +111,8 @@ int main(int argc, char** argv)
                 ++i;
                 if (i < argc)
                 {
-                    platformIndex = strtoul(argv[i], NULL, 10);
+                    platformIndex =
+                        static_cast<cl_uint>(strtoul(argv[i], NULL, 10));
                 }
             }
             else

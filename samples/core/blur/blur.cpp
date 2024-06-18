@@ -19,10 +19,14 @@
 #include <CL/SDK/Context.hpp>
 #include <CL/SDK/CLI.hpp>
 
-// STL includes
-#include <iostream>
+// standard includes
 #include <algorithm>
+#include <iostream>
 #include <map>
+#include <random>
+#include <sstream>
+
+// C header includes
 #include <math.h>
 
 // TCLAP includes
@@ -40,7 +44,7 @@ template <> auto cl::sdk::parse<BlurCppExample::BlurOptions>()
         std::make_shared<TCLAP::ValueArg<std::string>>(
             "i", "in", "Input image file", false, "", "name"),
         std::make_shared<TCLAP::ValueArg<std::string>>(
-            "o", "out", "Output image file", false, "out.png", "name"),
+            "o", "out", "Output image file", false, "blurcpp_out.png", "name"),
         std::make_shared<TCLAP::ValueArg<float>>("s", "size",
                                                  "Size of blur kernel", false,
                                                  (float)1.0, "positive float"),
@@ -439,14 +443,18 @@ void BlurCppExample::read_input_image()
     /// If file not provided in command line, create a default one.
     if (blur_opts.in.empty())
     {
-        std::string fname("andrew_svk_7oJ4D_ewB7c_unsplash.png");
+        const int random_val = std::random_device{}();
+        std::stringstream fname;
+        fname << "andrew_svk_7oJ4D_ewB7c_unsplash_" << std::hex << random_val
+              << ".png";
 
-        std::cout << "No file given, use standard image " << fname << std::endl;
+        std::cout << "No file given, use standard image " << fname.str()
+                  << std::endl;
 
         const char* fcont = (const char*)andrew_svk_7oJ4D_ewB7c_unsplash_png;
         const size_t fsize = andrew_svk_7oJ4D_ewB7c_unsplash_png_size;
 
-        std::fstream f(fname, std::ios::out | std::ios::binary);
+        std::fstream f(fname.str(), std::ios::out | std::ios::binary);
         if (!f.is_open())
         {
             throw std::runtime_error{ std::string{
@@ -456,7 +464,7 @@ void BlurCppExample::read_input_image()
         f.write(fcont, fsize);
         f.close();
 
-        blur_opts.in = fname;
+        blur_opts.in = fname.str();
     }
 
     input_image = cl::sdk::read_image(blur_opts.in.c_str(), nullptr);
@@ -472,9 +480,8 @@ void BlurCppExample::prepare_output_image()
     output_image.height = input_image.height;
     output_image.pixel_size = input_image.pixel_size;
     output_image.pixels.clear();
-    output_image.pixels.reserve(sizeof(unsigned char) * output_image.width
-                                * output_image.height
-                                * output_image.pixel_size);
+    output_image.pixels.resize(output_image.width * output_image.height
+                               * output_image.pixel_size);
 }
 
 std::tuple<bool, bool, bool> BlurCppExample::query_capabilities()
@@ -494,13 +501,21 @@ std::tuple<bool, bool, bool> BlurCppExample::query_capabilities()
         (device.getInfo<CL_DEVICE_LOCAL_MEM_TYPE>() == CL_LOCAL);
 
     // 4) query if device allow subgroup shuffle operations
+    bool use_subgroups =
+        cl::util::supports_extension(device, "cl_khr_subgroups");
     bool use_subgroup_exchange =
         cl::util::supports_extension(device, "cl_khr_subgroup_shuffle");
     bool use_subgroup_exchange_relative = cl::util::supports_extension(
         device, "cl_khr_subgroup_shuffle_relative");
 
-    return std::make_tuple(use_local_mem, use_subgroup_exchange,
-                           use_subgroup_exchange_relative);
+    return std::make_tuple(use_local_mem,
+                           use_subgroups && use_subgroup_exchange,
+                           use_subgroups && use_subgroup_exchange_relative);
+}
+
+bool BlurCppExample::query_opencl_c_2_0_support()
+{
+    return cl::util::opencl_c_version_contains(device, "2.0");
 }
 
 void BlurCppExample::create_image_buffers()
@@ -696,10 +711,10 @@ cl::ImageFormat BlurCppExample::set_image_format()
             std::cout << "Converting picture into supported format... ";
 
         const size_t pixels = input_image.width * input_image.height;
-        const size_t new_size = sizeof(unsigned char) * pixels * 4;
+        const size_t new_size = pixels * 4;
 
-        input_image.pixels.reserve(new_size);
-        output_image.pixels.reserve(new_size);
+        input_image.pixels.resize(new_size);
+        output_image.pixels.resize(new_size);
 
         // change picture
         const size_t pixel_size = input_image.pixel_size;

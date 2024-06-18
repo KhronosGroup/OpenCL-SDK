@@ -16,7 +16,8 @@ find_path (Stb_INCLUDE_PATH stb_image.h
   PATH_SUFFIXES
     include
     include/stb
-  )
+  NO_CMAKE_FIND_ROOT_PATH
+)
 
 # handle the QUIETLY and REQUIRED arguments and set Stb_FOUND to
 # TRUE if all listed variables are TRUE
