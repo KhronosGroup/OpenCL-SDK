@@ -1,6 +1,9 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.16)
 
 project(PkgConfigTest-UseUtil)
+
+include(CTest)
+include("${CMAKE_CURRENT_SOURCE_DIR}/../../../../cmake/Dependencies/whereami/whereami.cmake")
 
 find_package(OpenCL
   REQUIRED
@@ -25,6 +28,7 @@ target_link_libraries(${PROJECT_NAME}_cpp
     OpenCL::HeadersCpp
     OpenCL::Headers
     OpenCL::OpenCL
+    whereami
 )
 
 target_compile_definitions(${PROJECT_NAME}_cpp
@@ -49,6 +53,7 @@ target_link_libraries(${PROJECT_NAME}_c
     OpenCL::Utils
     OpenCL::Headers
     OpenCL::OpenCL
+    whereami
 )
 
 target_compile_definitions(${PROJECT_NAME}_c

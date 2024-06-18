@@ -11,7 +11,7 @@
 class BlurCppExample {
 public:
     BlurCppExample(int argc, char* argv[])
-        : gauss_kernel(nullptr), origin({ 0, 0 })
+        : origin({ 0, 0 }), gauss_kernel(nullptr)
     {
         parse_command_line(argc, argv);
     }
@@ -40,6 +40,9 @@ public:
 
     // Query device and runtime capabilities
     std::tuple<bool, bool, bool> query_capabilities();
+
+    // Query device support for OpenCL 2.0
+    bool query_opencl_2_0_support();
 
     void create_image_buffers();
 
