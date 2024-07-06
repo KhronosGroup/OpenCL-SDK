@@ -36,7 +36,8 @@ if(NOT (SFML_FOUND OR TARGET SFML::Graphics))
       INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}"
       FOLDER "Dependencies"
   )
-  target_compile_options (sfml-window
+  if((CMAKE_C_COMPILER_ID MATCHES "GNU") OR (CMAKE_C_COMPILER_ID MATCHES "Clang"))
+    target_compile_options (sfml-window
       PRIVATE
         -Wno-implicit-fallthrough
         -Wno-sign-compare
@@ -50,4 +51,5 @@ if(NOT (SFML_FOUND OR TARGET SFML::Graphics))
       PRIVATE
         -Wno-implicit-fallthrough
         -Wno-maybe-uninitialized)
+  endif()
 endif()
