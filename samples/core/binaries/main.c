@@ -159,7 +159,7 @@ int main(int argc, char *argv[])
     cl_platform_id platform;
     cl_device_id device;
     cl_context context;
-    cl_command_queue queue = NULL;
+    cl_command_queue queue;
 
     cl_program program;
 
@@ -211,7 +211,7 @@ int main(int argc, char *argv[])
         printf("Binary file written.\n\n");
 
     prgs:
-        OCLERROR_RET(clReleaseProgram(program), end_error, que);
+        OCLERROR_RET(clReleaseProgram(program), end_error, cont);
     ker:
         free(kernel);
 
