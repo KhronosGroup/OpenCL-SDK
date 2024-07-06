@@ -266,10 +266,7 @@ end: // cleanup
         for (cl_uint i = 0; i < num_devices; ++i) free(binaries_ptr[i]);
         free(binaries_ptr);
     }
-    if(binaries_size != NULL)
-    {
-        free(binaries_size);
-    }
+    free(binaries_size);
 
     return error;
 }
@@ -338,10 +335,7 @@ end: // cleanup
         for (cl_uint i = 0; i < num_devices; ++i) free(binaries_ptr[i]);
         free(binaries_ptr);
     }
-    if(binaries_size != NULL)
-    {
-        free(binaries_size);
-    }
+    free(binaries_size);
 
     if (error != NULL) *error = err;
     return program;
