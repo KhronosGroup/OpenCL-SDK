@@ -232,13 +232,13 @@ cl_int accumulate(cl_int *arr, size_t len, cl_int zero_elem,
 cl_ulong new_size(const cl_ulong actual, const cl_ulong factor)
 {
     return actual / factor + (actual % factor == 0 ? 0 : 1);
-};
+}
 // NOTE: because one work-group produces one output
 //       new_size == number_of_work_groups
 size_t global(const size_t actual, const cl_ulong factor, const size_t wgs)
 {
     return new_size(actual, factor) * wgs;
-};
+}
 
 // Random number generator state
 pcg32_random_t rng;

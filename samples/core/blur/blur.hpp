@@ -11,7 +11,7 @@
 class BlurCppExample {
 public:
     BlurCppExample(int argc, char* argv[])
-        : gauss_kernel(nullptr), origin({ 0, 0 })
+        : origin({ 0, 0 }), gauss_kernel(nullptr)
     {
         parse_command_line(argc, argv);
     }

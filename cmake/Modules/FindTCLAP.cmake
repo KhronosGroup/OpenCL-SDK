@@ -14,6 +14,7 @@ find_path (TCLAP_INCLUDE_PATH tclap/CmdLine.h
   PATHS
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_INSTALL_PREFIX}/include
+    NO_CMAKE_FIND_ROOT_PATH
 )
 
 # handle the QUIETLY and REQUIRED arguments and set TCLAP_FOUND to
