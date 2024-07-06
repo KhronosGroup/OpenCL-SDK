@@ -288,6 +288,9 @@ jobs:
       EnforceProcessCountAcrossBuilds: 'true' # -=-
       MultiProcMaxCount: '3'                  # -=-
       WindowsSDKVersion: '10.0.22621.0'
+      INTEL_OCL_URL: https://github.com/intel/llvm/releases/download/2023-WW27/win-oclcpuexp-2023.16.6.0.28_rel.zip
+      INTEL_TBB_URL: https://github.com/oneapi-src/oneTBB/releases/download/v2021.10.0/oneapi-tbb-2021.10.0-win.zip
+      IMAGE_INTEL_PREFIX: C:\Tools\Intel
 
     steps:
       - name: Cache Ninja install
@@ -306,6 +309,24 @@ jobs:
           Invoke-WebRequest ${env:NINJA_URL} -OutFile ~\Downloads\ninja-win.zip
           Expand-Archive ~\Downloads\ninja-win.zip -DestinationPath ${env:NINJA_ROOT}\
           Remove-Item ~\Downloads\*
+
+      - name: Install OpenCL runtime
+        shell: pwsh
+        run: |
+          $INTEL_OCL_ARCHIVE_NAME = Split-Path ${env:INTEL_OCL_URL} -Leaf; `
+          Invoke-WebRequest ${env:INTEL_OCL_URL} -OutFile ${env:TEMP}\$INTEL_OCL_ARCHIVE_NAME; `
+          Expand-Archive ${env:TEMP}\$INTEL_OCL_ARCHIVE_NAME -DestinationPath ${env:IMAGE_INTEL_PREFIX}\oclcpuexp; `
+          Remove-Item ${env:TEMP}\$INTEL_OCL_ARCHIVE_NAME; `
+          $INTEL_TBB_ARCHIVE_NAME = Split-Path ${env:INTEL_TBB_URL} -Leaf; `
+          Invoke-WebRequest ${env:INTEL_TBB_URL} -OutFile ${env:TEMP}\$INTEL_TBB_ARCHIVE_NAME; `
+          Expand-Archive ${env:TEMP}\$INTEL_TBB_ARCHIVE_NAME -DestinationPath ${env:IMAGE_INTEL_PREFIX}; `
+          Get-ChildItem ${env:IMAGE_INTEL_PREFIX}\oneapi-tbb* | Rename-Item  -NewName oneapi-tbb; `
+          Remove-Item ${env:TEMP}\$INTEL_TBB_ARCHIVE_NAME; `
+          New-Item -Type Directory ${env:IMAGE_INTEL_PREFIX}\oclcpuexp\tbb | Out-Null; `
+          Get-ChildItem ${env:IMAGE_INTEL_PREFIX}\oneapi-tbb\redist\intel64\vc14\*.dll | ForEach-Object { New-Item -Type SymbolicLink -Path ${env:IMAGE_INTEL_PREFIX}\oclcpuexp\tbb -Name $_.Name -Value $_.FullName | Out-Null; }; `
+          New-Item -Type Directory HKLM:\SOFTWARE\Khronos\OpenCL -Force | Out-Null; `
+          New-Item -Type File HKLM:\SOFTWARE\Khronos\OpenCL\Vendors | Out-Null; `
+          Set-ItemProperty -Path HKLM:\SOFTWARE\Khronos\OpenCL\Vendors -Name ${env:IMAGE_INTEL_PREFIX}\oclcpuexp\intelocl64.dll -Type DWord -Value 0;
 
       - name: Checkout OpenCL-SDK
         uses: actions/checkout@v3
@@ -333,7 +354,6 @@ jobs:
             -D BUILD_DOCS=ON `
             -D BUILD_TESTING=ON `
             -D OPENCL_SDK_BUILD_SAMPLES=ON `
-            -D OPENCL_ICD_LOADER_BUILD_TESTING=ON `
             -D CMAKE_C_STANDARD=${{matrix.STD.C}} `
             -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}} `
             -D CMAKE_INSTALL_PREFIX=${env:GITHUB_WORKSPACE}\install `
@@ -364,7 +384,6 @@ jobs:
             -D BUILD_DOCS=ON `
             -D BUILD_TESTING=ON `
             -D OPENCL_SDK_BUILD_SAMPLES=ON `
-            -D OPENCL_ICD_LOADER_BUILD_TESTING=ON `
             -D CMAKE_C_STANDARD=${{matrix.STD.C}} `
             -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}} `
             -D CMAKE_EXE_LINKER_FLAGS=/INCREMENTAL `
@@ -404,21 +423,16 @@ jobs:
               -j ${env:NUMBER_OF_PROCESSORS}
           }
 
-      # - name: Test
-      #   working-directory: ${{runner.workspace}}/OpenCL-SDK/build
-      #   shell: pwsh
-      #   run: |
-      #     $REG = if('${{matrix.BIN}}' -eq 'x64') {"reg"} else {"${env:SystemRoot}\Syswow64\reg.exe"}
-      #     $KEY_NAME = "HKEY_LOCAL_MACHINE\SOFTWARE\Khronos\OpenCL\Vendors"
-      #     foreach ($Config in 'Release','Debug') {
-      #       $VALUE_NAME = "${env:GITHUB_WORKSPACE}/build/$Config/OpenCLDriverStub.dll"
-      #       & $REG ADD $KEY_NAME /v $VALUE_NAME /t REG_DWORD /d 0
-      #       & ctest `
-      #         --build-config ${Config} `
-      #         --output-on-failure `
-      #         --parallel ${env:NUMBER_OF_PROCESSORS}
-      #       & $REG DELETE $KEY_NAME /v $VALUE_NAME /f
-      #     }
+      - name: Test
+        working-directory: ${{runner.workspace}}/OpenCL-SDK/build
+        shell: pwsh
+        run: |
+          foreach ($Config in 'Release','Debug') {
+            & ctest `
+              --build-config ${Config} `
+              --output-on-failure `
+              --parallel ${env:NUMBER_OF_PROCESSORS}
+          }
 
       - name: Install
         shell: pwsh
