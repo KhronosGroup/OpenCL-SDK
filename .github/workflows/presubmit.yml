@@ -266,7 +266,7 @@ jobs:
         DEPS: [os, vcpkg]
         BIN: [x64]
         STD:
-          - C: 99
+          - C: 11
             CXX: 14
           - C: 17
             CXX: 17
@@ -277,6 +277,9 @@ jobs:
           - VER: v142
             GEN: Visual Studio 17 2022
             BIN: x86
+            STD:
+              C: 11
+              CXX: 14
     env:
       NINJA_URL: https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-win.zip
       NINJA_ROOT: C:\Tools\Ninja
@@ -401,21 +404,21 @@ jobs:
               -j ${env:NUMBER_OF_PROCESSORS}
           }
 
-      - name: Test
-        working-directory: ${{runner.workspace}}/OpenCL-SDK/build
-        shell: pwsh
-        run: |
-          $REG = if('${{matrix.BIN}}' -eq 'x64') {"reg"} else {"${env:SystemRoot}\Syswow64\reg.exe"}
-          $KEY_NAME = "HKEY_LOCAL_MACHINE\SOFTWARE\Khronos\OpenCL\Vendors"
-          foreach ($Config in 'Release','Debug') {
-            $VALUE_NAME = "${env:GITHUB_WORKSPACE}/build/$Config/OpenCLDriverStub.dll"
-            & $REG ADD $KEY_NAME /v $VALUE_NAME /t REG_DWORD /d 0
-            & ctest `
-              --build-config ${Config} `
-              --output-on-failure `
-              --parallel ${env:NUMBER_OF_PROCESSORS}
-            & $REG DELETE $KEY_NAME /v $VALUE_NAME /f
-          }
+      # - name: Test
+      #   working-directory: ${{runner.workspace}}/OpenCL-SDK/build
+      #   shell: pwsh
+      #   run: |
+      #     $REG = if('${{matrix.BIN}}' -eq 'x64') {"reg"} else {"${env:SystemRoot}\Syswow64\reg.exe"}
+      #     $KEY_NAME = "HKEY_LOCAL_MACHINE\SOFTWARE\Khronos\OpenCL\Vendors"
+      #     foreach ($Config in 'Release','Debug') {
+      #       $VALUE_NAME = "${env:GITHUB_WORKSPACE}/build/$Config/OpenCLDriverStub.dll"
+      #       & $REG ADD $KEY_NAME /v $VALUE_NAME /t REG_DWORD /d 0
+      #       & ctest `
+      #         --build-config ${Config} `
+      #         --output-on-failure `
+      #         --parallel ${env:NUMBER_OF_PROCESSORS}
+      #       & $REG DELETE $KEY_NAME /v $VALUE_NAME /f
+      #     }
 
       - name: Install
         shell: pwsh

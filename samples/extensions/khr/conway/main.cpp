@@ -46,17 +46,13 @@ public:
     explicit Conway(int width, int height, bool fullscreen,
                     cl_uint platform_id = 0, cl_uint device_id = 0,
                     cl_bitfield device_type = CL_DEVICE_TYPE_DEFAULT)
-        : InteropWindow{ sf::VideoMode(width, height),
-                         "Conway's Game of Life",
-                         fullscreen ? sf::Style::Fullscreen
-                                    : sf::Style::Default,
-                         sf::ContextSettings{
-                             0, 0, 0, // Depth, Stencil, AA
-                             3, 3, // OpenGL version
-                             sf::ContextSettings::Attribute::Core },
-                         platform_id,
-                         device_id,
-                         device_type },
+        : InteropWindow(
+            sf::VideoMode(width, height), "Conway's Game of Life",
+            fullscreen ? sf::Style::Fullscreen : sf::Style::Default,
+            sf::ContextSettings{ 0, 0, 0, // Depth, Stencil, AA
+                                 3, 3, // OpenGL version
+                                 sf::ContextSettings::Attribute::Core },
+            platform_id, device_id, device_type),
           animating(true)
     {}
 
