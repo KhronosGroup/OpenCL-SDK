@@ -565,6 +565,13 @@ jobs:
           cmake --version &&
           brew install tclap glm glew sfml mesa-glu
 
+        # We need to provide an OpenCL driver for Intel CPU on mac
+      - name: Install PoCL
+        shell: bash
+        run: |
+          brew install pocl &&
+          sudo ls /usr/local/etc/OpenCL/vendors
+
       - name: Configure
         shell: bash
         run: git clone https://github.com/Microsoft/vcpkg.git vcpkg &&
@@ -578,7 +585,6 @@ jobs:
           -D BUILD_TESTING=ON
           -D BUILD_EXAMPLES=ON
           -D OPENCL_SDK_BUILD_SAMPLES=ON
-          -D OPENCL_ICD_LOADER_BUILD_TESTING=ON
           -D CMAKE_C_STANDARD=${{matrix.STD.C}}
           -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}}
           -D CMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/install
@@ -588,15 +594,15 @@ jobs:
       - name: Build
         shell: bash
         run: |
-          cmake --build $GITHUB_WORKSPACE/build --config Release --parallel `sysctl -n hw.logicalcpu`
           cmake --build $GITHUB_WORKSPACE/build --config Debug --parallel `sysctl -n hw.logicalcpu`
+          cmake --build $GITHUB_WORKSPACE/build --config Release --parallel `sysctl -n hw.logicalcpu`
 
-      # - name: Test
-      #   working-directory: ${{runner.workspace}}/OpenCL-SDK/build
-      #   shell: bash
-      #   run: |
-      #     ctest -C Release --output-on-failure --parallel `sysctl -n hw.logicalcpu`
-      #     ctest -C Debug --output-on-failure --parallel `sysctl -n hw.logicalcpu`
+      - name: Test
+        working-directory: ${{runner.workspace}}/OpenCL-SDK/build
+        shell: bash
+        run: |
+          OCL_ICD_VENDORS=/usr/local/etc/OpenCL/vendors ctest -C Debug --output-on-failure --parallel `sysctl -n hw.logicalcpu`
+          OCL_ICD_VENDORS=/usr/local/etc/OpenCL/vendors ctest -C Release --output-on-failure --parallel `sysctl -n hw.logicalcpu`
 
       - name: Test install
         shell: bash
@@ -612,8 +618,10 @@ jobs:
           -D CMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/install"
           -S $GITHUB_WORKSPACE/test/cmake/pkgconfig/useutil
           -B $GITHUB_WORKSPACE/build_install &&
+          cmake --build $GITHUB_WORKSPACE/build_install --config Debug --parallel `sysctl -n hw.logicalcpu` `if [[ "${{matrix.GEN}}" == "Xcode" ]]; then echo "-- -quiet"; fi;` &&
           cmake --build $GITHUB_WORKSPACE/build_install --config Release --parallel `sysctl -n hw.logicalcpu` `if [[ "${{matrix.GEN}}" == "Xcode" ]]; then echo "-- -quiet"; fi;` &&
-          cmake --build $GITHUB_WORKSPACE/build_install --config Debug --parallel `sysctl -n hw.logicalcpu` `if [[ "${{matrix.GEN}}" == "Xcode" ]]; then echo "-- -quiet"; fi;`
+          OCL_ICD_VENDORS=/usr/local/etc/OpenCL/vendors ctest -C Debug --output-on-failure --parallel `sysctl -n hw.logicalcpu` &&
+          OCL_ICD_VENDORS=/usr/local/etc/OpenCL/vendors ctest -C Release --output-on-failure --parallel `sysctl -n hw.logicalcpu`
 
   python:
     name: Exercise Python examples on ${{matrix.os}}

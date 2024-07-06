@@ -503,6 +503,11 @@ std::tuple<bool, bool, bool> BlurCppExample::query_capabilities()
                            use_subgroup_exchange_relative);
 }
 
+bool BlurCppExample::query_opencl_2_0_support()
+{
+    return cl::util::opencl_c_version_contains(device, "2.0");
+}
+
 void BlurCppExample::create_image_buffers()
 {
     input_image_buf = cl::Image2D(

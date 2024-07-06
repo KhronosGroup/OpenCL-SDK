@@ -1048,6 +1048,18 @@ int main(int argc, char *argv[])
         free(name);
     }
 
+    // 5) query if OpenCL driver version is 2.0
+    bool opencl_version_2_0 = false;
+    {
+        char *driver_version = NULL;
+        OCLERROR_PAR(
+            driver_version = cl_util_get_device_info(s.device, CL_DRIVER_VERSION, &error),
+            error, clean);
+        opencl_version_2_0 = strcmp("2.0", driver_version) ? 0 : 1;
+    clean:
+        free(driver_version);
+    }
+
     /// Create image buffers
     const cl_image_desc desc = { .image_type = CL_MEM_OBJECT_IMAGE2D,
                                  .image_width = s.input_image.width,
@@ -1113,7 +1125,7 @@ int main(int argc, char *argv[])
                          error, prg);
 
         /// Subgroup exchange in dual-pass blur
-        if (use_subgroup_exchange_relative)
+        if (use_subgroup_exchange_relative && opencl_version_2_0)
         {
             printf("Dual-pass subgroup relative exchange blur\n");
 
@@ -1125,7 +1137,7 @@ int main(int argc, char *argv[])
                              &s, (cl_int)blur_opts.size),
                          error, prg);
         }
-        if (use_subgroup_exchange)
+        if (use_subgroup_exchange && opencl_version_2_0)
         {
             printf("Dual-pass subgroup exchange blur\n");
 
@@ -1170,7 +1182,7 @@ int main(int argc, char *argv[])
         }
 
         /// Subgroup exchange in dual-pass Gaussian blur
-        if (use_subgroup_exchange_relative)
+        if (use_subgroup_exchange_relative && opencl_version_2_0)
         {
             printf("Dual-pass subgroup relative exchange Gaussian blur\n");
 
@@ -1183,7 +1195,7 @@ int main(int argc, char *argv[])
                                                                  gauss_kern),
                          error, gkrn);
         }
-        if (use_subgroup_exchange)
+        if (use_subgroup_exchange && opencl_version_2_0)
         {
             printf("Dual-pass subgroup exchange Gaussian blur\n");
 
