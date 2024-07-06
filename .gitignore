@@ -8,6 +8,9 @@
 [Pp]ackage/
 [Pp]ackage-deb/
 
+# Cmake
+CMakeFiles/
+
 # vim
 *~
 .*.sw[op]
