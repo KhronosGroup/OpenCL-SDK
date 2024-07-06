@@ -72,6 +72,7 @@ set(config_package_location ${CMAKE_INSTALL_DATADIR}/cmake/OpenCL)
 install(
   FILES ${PROJECT_BINARY_DIR}/OpenCL/OpenCLConfig.cmake
   DESTINATION ${config_package_location}
+  COMPONENT binary
 )
 
 unset(CMAKE_SIZEOF_VOID_P)
@@ -84,6 +85,7 @@ write_basic_package_version_file(
 install(
   FILES ${CMAKE_CURRENT_BINARY_DIR}/OpenCL/OpenCLConfigVersion.cmake
   DESTINATION ${config_package_location}
+  COMPONENT binary
 )
 
 include(CPack)

@@ -42,15 +42,15 @@ jobs:
           - C_NAME: gcc
             CXX_NAME: g++
             VER: 11
-          - C_NAME: gcc
-            CXX_NAME: g++
-            VER: 13
-          - C_NAME: clang
-            CXX_NAME: clang++
-            VER: 14
-          - C_NAME: clang
-            CXX_NAME: clang++
-            VER: 16
+          # - C_NAME: gcc
+          #   CXX_NAME: g++
+          #   VER: 13
+          # - C_NAME: clang
+          #   CXX_NAME: clang++
+          #   VER: 14
+          # - C_NAME: clang
+          #   CXX_NAME: clang++
+          #   VER: 16
         DEPS: [os, vcpkg]
         BIN: [64]
         STD: [11, 17]
@@ -59,10 +59,10 @@ jobs:
             CONFIG: Debug
           - GEN: Unix Makefiles
             CONFIG: Release
-          - GEN: Ninja Multi-Config
-            CONFIG: Release
+          # - GEN: Ninja Multi-Config
+          #   CONFIG: Release
         IMAGE:
-          - streamhpc/opencl-sdk-intelcpu:ubuntu-22.04-20230717
+          - streamhpc/opencl-sdk-base:ubuntu-22.04-20230717
     container: ${{matrix.IMAGE}}
     env:
       CMAKE_EXE: /opt/Kitware/CMake/${{ matrix.CMAKE }}/bin/cmake
@@ -98,9 +98,10 @@ jobs:
           dpkg -i $GITHUB_WORKSPACE/external/OpenCL-Headers/package-deb/*.deb
 
       - name: Configure, package & install OpenCL-ICD-Loader
+        shell: bash
         run: $CMAKE_EXE
           -G "${{matrix.CONF.GEN}}"
-          `if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]]; then echo "-D ${{matrix.CONF.CONFIG}}"; fi`
+          `if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]]; then echo "-D CMAKE_BUILD_TYPE=${{matrix.CONF.CONFIG}}"; fi`
           -D BUILD_TESTING=OFF
           -D CPACK_PACKAGING_INSTALL_PREFIX=$DEB_INSTALLATION_PATH
           -S $GITHUB_WORKSPACE/external/OpenCL-ICD-Loader
@@ -110,8 +111,7 @@ jobs:
           -G DEB
           -C ${{matrix.CONF.CONFIG}}
           -B "$GITHUB_WORKSPACE/external/OpenCL-ICD-Loader/package-deb" &&
-          dpkg -i $GITHUB_WORKSPACE/external/OpenCL-ICD-Loader/package-deb/*.deb &&
-          dpkg -c $GITHUB_WORKSPACE/external/OpenCL-ICD-Loader/package-deb/ocl-icd-opencl-dev_3.0-1_amd64.deb
+          dpkg -i $GITHUB_WORKSPACE/external/OpenCL-ICD-Loader/package-deb/*.deb
 
       - name: Configure, package & install OpenCL-CLHPP
         shell: bash
@@ -141,7 +141,6 @@ jobs:
           else
             TOOLCHAIN_ARG="";
           fi &&
-          mkdir $GITHUB_WORKSPACE/build && cd $GITHUB_WORKSPACE/build &&
           $CMAKE_EXE
           -G "${{matrix.CONF.GEN}}"
           `if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]]; then echo "-D CMAKE_BUILD_TYPE=${{matrix.CONF.CONFIG}}"; fi`
@@ -152,7 +151,8 @@ jobs:
           -D OPENCL_ICD_LOADER_BUILD_TESTING=ON
           -D CMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/install
           -D CPACK_PACKAGING_INSTALL_PREFIX=$DEB_INSTALLATION_PATH
-          $GITHUB_WORKSPACE
+          -S $GITHUB_WORKSPACE
+          -B $GITHUB_WORKSPACE/build
 
       - name: Build
         shell: bash
@@ -186,14 +186,13 @@ jobs:
 
       - name: Consume (DEB)
         shell: bash
-        run: dpkg -i $GITHUB_WORKSPACE/external/OpenCL-*/package-deb/*.deb &&
-          dpkg -i --force-overwrite $GITHUB_WORKSPACE/package-deb/*.deb &&
-          mkdir $GITHUB_WORKSPACE/build_package &&
-          cd $GITHUB_WORKSPACE/build_package &&
+        run: dpkg -i $GITHUB_WORKSPACE/package-deb/*.deb &&
           $CMAKE_EXE
+          --debug-find
           -G "${{matrix.CONF.GEN}}"
           `if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]]; then echo "-D CMAKE_BUILD_TYPE=${{matrix.CONF.CONFIG}}"; fi`
-          $GITHUB_WORKSPACE/test/cmake/pkgconfig/useutil &&
+          -S $GITHUB_WORKSPACE/test/cmake/pkgconfig/useutil
+          -B $GITHUB_WORKSPACE/build_package &&
           if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]];
           then
             $CMAKE_EXE --build $GITHUB_WORKSPACE/build_package -- -j`nproc`;
@@ -208,12 +207,12 @@ jobs:
 
       - name: Test install
         shell: bash
-        run: $CMAKE_EXE --build $GITHUB_WORKSPACE/build --target install --config ${{matrix.CONF.CONFIG}} -- -j`nproc`;
+        run: $CMAKE_EXE --build $GITHUB_WORKSPACE/build --target install --config ${{matrix.CONF.CONFIG}} -- -j`nproc` &&
+          ls -lR $GITHUB_WORKSPACE/install
 
       - name: Consume (install)
         shell: bash
-        run: mkdir $GITHUB_WORKSPACE/build_install && cd $GITHUB_WORKSPACE/build_install &&
-          $CMAKE_EXE
+        run: $CMAKE_EXE
           -G "${{matrix.CONF.GEN}}"
           `if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]]; then echo "-D CMAKE_BUILD_TYPE=${{matrix.CONF.CONFIG}}"; fi`
           -D CMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/install

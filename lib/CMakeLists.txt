@@ -66,14 +66,17 @@ foreach(UTIL_LIB_NAME IN ITEMS Utils UtilsCpp)
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    COMPONENT binary
   )
   install(
     DIRECTORY include/CL/Utils
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/CL
+    COMPONENT binary
   )
   install(
     FILES "${CMAKE_CURRENT_BINARY_DIR}/OpenCL${UTIL_LIB_NAME}_Export.h"
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/CL/Utils
+    COMPONENT binary
   )
   export(
     EXPORT OpenCL${UTIL_LIB_NAME}Targets
@@ -91,10 +94,12 @@ foreach(UTIL_LIB_NAME IN ITEMS Utils UtilsCpp)
     FILE OpenCL${UTIL_LIB_NAME}Targets.cmake
     NAMESPACE OpenCL::
     DESTINATION ${config_package_location}
+    COMPONENT binary
   )
   install(
     FILES ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_DATADIR}/cmake/OpenCL${UTIL_LIB_NAME}/OpenCL${UTIL_LIB_NAME}Config.cmake
     DESTINATION ${config_package_location}
+    COMPONENT binary
   )
 
   unset(CMAKE_SIZEOF_VOID_P)
@@ -107,6 +112,14 @@ foreach(UTIL_LIB_NAME IN ITEMS Utils UtilsCpp)
   install(
     FILES ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_DATADIR}/cmake/OpenCL${UTIL_LIB_NAME}/OpenCL${UTIL_LIB_NAME}ConfigVersion.cmake
     DESTINATION ${config_package_location}
+    COMPONENT binary
+  )
+
+  # For packaging the utils libraries
+  install(
+    TARGETS ${UTIL_LIB_TARGET}
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    COMPONENT binary
   )
 endforeach()
 
