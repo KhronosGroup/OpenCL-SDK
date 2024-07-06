@@ -447,8 +447,8 @@ jobs:
     - name: Checkout OpenCL-SDK
       uses: actions/checkout@v3
       with:
-          fetch-depth: 0
-          submodules: recursive
+        fetch-depth: 0
+        submodules: recursive
 
     - name: Configure (MSBuild)
       if: matrix.GEN == 'Visual Studio 17 2022'
@@ -657,6 +657,17 @@ jobs:
             CXX_NAME: /usr/local/bin/g++-13
             EXCLUSIVE_C_FLAGS: -Wno-maybe-uninitialized
           GEN: Xcode
+        # The gnu binaries are not compatible with the Homebrew installed binaries
+        - COMPILER:
+            C_NAME: /usr/local/bin/gcc-11
+            CXX_NAME: /usr/local/bin/g++-11
+            EXCLUSIVE_C_FLAGS: -Wno-maybe-uninitialized
+          DEPS: system
+        - COMPILER:
+            C_NAME: /usr/local/bin/gcc-13
+            CXX_NAME: /usr/local/bin/g++-13
+            EXCLUSIVE_C_FLAGS: -Wno-maybe-uninitialized
+          DEPS: system
     env:
       CC: ${{matrix.COMPILER.C_NAME}}
       CXX: ${{matrix.COMPILER.CXX_NAME}}

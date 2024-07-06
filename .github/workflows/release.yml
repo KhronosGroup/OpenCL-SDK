@@ -7,33 +7,28 @@ name: Create Release
 
 jobs:
   windows-binary:
+    if: false
     runs-on: windows-2022
+    defaults:
+      run:
+        shell: pwsh
     strategy:
       matrix:
         VER: [v143]
         GEN: [Visual Studio 17 2022]
         BIN: [x64, x86]
-
+    env:
+      UseMultiToolTask: true
+      EnforceProcessCountAcrossBuilds: true
+      MultiProcMaxCount: 3
     steps:
     - name: Checkout OpenCL-SDK
       uses: actions/checkout@v3
-
-    - name: Initialize git submodules
-      shell: pwsh
-      run: |
-        & git submodule init
-        & git submodule update
-
-    - name: Create Build Environment
-      shell: pwsh
-      run: |
-        # Parallelize MSBuild across projects
-        [Environment]::SetEnvironmentVariable('UseMultiToolTask', 'true', [EnvironmentVariableTarget]::User)
-        [Environment]::SetEnvironmentVariable('EnforceProcessCountAcrossBuilds', 'true', [EnvironmentVariableTarget]::User)
-        [Environment]::SetEnvironmentVariable('MultiProcMaxCount', "$env:NUMBER_OF_PROCESSORS", [EnvironmentVariableTarget]::User)
+      with:
+        fetch-depth: 0
+        submodules: recursive
 
     - name: Configure
-      shell: pwsh
       run: |
         $Bin = if('${{matrix.BIN}}' -eq 'x86') {'Win32'} else {'x64'}
         & cmake `
@@ -42,15 +37,16 @@ jobs:
           -T ${{matrix.VER}} `
           -S "${env:GITHUB_WORKSPACE}" `
           -B "${env:GITHUB_WORKSPACE}\build" `
+          -D CMAKE_INSTALL_PREFIX="${env:GITHUB_WORKSPACE}\install" `
           -D BUILD_DOCS=OFF `
           -D BUILD_TESTING=OFF `
           -D BUILD_EXAMPLES=OFF `
           -D OPENCL_SDK_BUILD_SAMPLES=OFF `
           -D OPENCL_ICD_LOADER_BUILD_TESTING=OFF `
           -D CMAKE_POLICY_DEFAULT_CMP0096=NEW
+        if ($LASTEXITCODE -ne 0) { throw "Configuring OpenCL-SDK failed." }
 
     - name: Check version number
-      shell: pwsh
       run: |
         if ( -not (`
           Get-Content ${env:GITHUB_WORKSPACE}\build\CMakeCache.txt | `
@@ -59,7 +55,6 @@ jobs:
         { throw 'CMake project version mismatches Git tag name (without leading "v")'}
 
     - name: Build
-      shell: pwsh
       run: |
         foreach ($Config in "Debug","Release") { `
           & cmake `
@@ -67,11 +62,11 @@ jobs:
             --config $Config `
             -- `
             /verbosity:minimal `
-            /noLogo `
+            /noLogo
+          if ($LASTEXITCODE -ne 0) { throw "Building OpenCL-SDK in $Config failed." }
         }
 
     - name: Package Binary
-      shell: pwsh
       run: |
         & cpack `
           --config "${env:GITHUB_WORKSPACE}\build\CPackConfig.cmake" `
@@ -79,18 +74,22 @@ jobs:
           -C 'Debug;Release' `
           -D CPACK_PACKAGE_FILE_NAME='OpenCL-SDK-${{github.ref_name}}-Win-${{matrix.BIN}}' `
           -B "${env:GITHUB_WORKSPACE}\package"
+        if ($LASTEXITCODE -ne 0) { throw "Packaging OpenCL-SDK failed." }
 
     - name: Upload Package
       uses: softprops/action-gh-release@v1
-      if: startsWith(github.ref, 'refs/tags/')
       with:
         draft: true
         files: |
           package/OpenCL-SDK-${{github.ref_name}}-Win-${{matrix.BIN}}.zip
 
   source:
+    if: false
     name: Source Release (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: pwsh
     strategy:
       matrix:
         OS: [ubuntu-20.04, windows-2022]
@@ -101,15 +100,11 @@ jobs:
     steps:
     - name: Checkout OpenCL-SDK
       uses: actions/checkout@v3
-
-    - name: Initialize git submodules
-      shell: pwsh
-      run: |
-        & git submodule init
-        & git submodule update
+      with:
+        fetch-depth: 0
+        submodules: recursive
 
     - name: Configure
-      shell: pwsh
       run: |
         & cmake `
           -S "${env:GITHUB_WORKSPACE}" `
@@ -119,11 +114,11 @@ jobs:
           -D BUILD_EXAMPLES=OFF `
           -D OPENCL_SDK_BUILD_SAMPLES=OFF `
           -D OPENCL_ICD_LOADER_BUILD_TESTING=OFF `
-          -D CMAKE_POLICY_DEFAULT_CMP0096=NEW
+          -D CMAKE_POLICY_DEFAULT_CMP0096=NEW `
           -D CPACK_PACKAGING_INSTALL_PREFIX=$DEB_INSTALLATION_PATH
+        if ($LASTEXITCODE -ne 0) { throw "Configuring OpenCL-SDK failed." }
 
     - name: Check version number
-      shell: pwsh
       run: |
         if ( -not (`
           Get-Content ${env:GITHUB_WORKSPACE}/build/CMakeCache.txt | `
@@ -132,17 +127,16 @@ jobs:
         { throw 'CMake project version mismatches Git tag name (without leading "v")'}
 
     - name: Package DEB
-      shell: pwsh
       if: ${{ contains(matrix.OS, 'ubuntu') }}
       run: |
-        cpack
+        cpack `
         --config "${env:GITHUB_WORKSPACE}/build/CPackSourceConfig.cmake" `
-        -G DEB
-        -C Release
+        -G DEB `
+        -C Release `
         "${env:GITHUB_WORKSPACE}/package-deb"
+        if ($LASTEXITCODE -ne 0) { throw "Packaging OpenCL-SDK deb failed." }
 
     - name: Package Source
-      shell: pwsh
       run: |
         $Generator = if('${{matrix.OS}}' -match 'windows') {'ZIP'} else {'TGZ'}
         & cpack `
@@ -152,11 +146,101 @@ jobs:
           -D CPACK_SOURCE_IGNORE_FILES="/\\.git/;/\\.gitignore;/\\.gitmodules;/\\.gitlab/;/\\.github/;/\\.reuse/;/\\.appveyor.yml;/build/;/install/;/package/" `
           -D CPACK_PACKAGE_FILE_NAME='OpenCL-SDK-${{github.ref_name}}-Source' `
           -B "${env:GITHUB_WORKSPACE}/package"
+        if ($LASTEXITCODE -ne 0) { throw "Packaging OpenCL-SDK source failed." }
 
     - name: Release Source
       uses: softprops/action-gh-release@v1
-      if: startsWith(github.ref, 'refs/tags/')
       with:
         draft: true
         files: |
           package/OpenCL-SDK-${{github.ref_name}}-Source.*
+
+  ppa:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      OPENCL_HEADERS_REPOSITORY: mfep/OpenCL-Headers
+      OPENCL_ICD_LOADER_REPOSITORY: mfep/OpenCL-ICD-Loader
+      OPENCL_CLHPP_REPOSITORY: mfep/OpenCL-CLHPP
+      distroseries: jammy
+    steps:
+    - name: Add PPA
+      run: sudo add-apt-repository -y ppa:${{ vars.PPA }}
+
+    - name: Install prerequisites
+      run: sudo apt-get update -qq && sudo apt-get install -y
+        cmake
+        devscripts
+        debhelper-compat=13
+        opencl-c-headers
+        opencl-clhpp-headers
+        khronos-opencl-loader-libopencl1
+        khronos-opencl-loader-opencl-dev
+
+    - name: Import GPG signing key
+      run: echo "${{ secrets.DEB_SIGNING_KEY }}" | gpg --import
+
+    - name: Download and extract source code (OpenCL-SDK)
+      run: |
+        wget -O $GITHUB_WORKSPACE/source.orig.tar.gz https://github.com/$GITHUB_REPOSITORY/archive/refs/tags/$GITHUB_REF_NAME.tar.gz
+        tar -xvf $GITHUB_WORKSPACE/source.orig.tar.gz -C $GITHUB_WORKSPACE
+        mv $GITHUB_WORKSPACE/OpenCL-SDK-* $GITHUB_WORKSPACE/OpenCL-SDK
+
+    - name: Download and extract source code (OpenCL-Headers)
+      run: |
+        # ToDo remove
+        export GITHUB_REF_NAME=v2023.02.01  
+        wget -O $GITHUB_WORKSPACE/opencl-headers.tar.gz https://github.com/$OPENCL_HEADERS_REPOSITORY/archive/refs/tags/$GITHUB_REF_NAME.tar.gz
+        tar -xvf $GITHUB_WORKSPACE/opencl-headers.tar.gz -C $GITHUB_WORKSPACE/OpenCL-SDK/external
+        rm -rf $GITHUB_WORKSPACE/OpenCL-SDK/external/OpenCL-Headers
+        mv $GITHUB_WORKSPACE/OpenCL-SDK/external/OpenCL-Headers-* $GITHUB_WORKSPACE/OpenCL-SDK/external/OpenCL-Headers
+
+    - name: Download and extract source code (OpenCL-ICD-Loader)
+      run: |
+        # ToDo remove
+        export GITHUB_REF_NAME=v2023.02.01  
+        wget -O $GITHUB_WORKSPACE/opencl-icd-loader.tar.gz https://github.com/$OPENCL_ICD_LOADER_REPOSITORY/archive/refs/tags/$GITHUB_REF_NAME.tar.gz
+        tar -xvf $GITHUB_WORKSPACE/opencl-icd-loader.tar.gz -C $GITHUB_WORKSPACE/OpenCL-SDK/external
+        rm -rf $GITHUB_WORKSPACE/OpenCL-SDK/external/OpenCL-ICD-Loader
+        mv $GITHUB_WORKSPACE/OpenCL-SDK/external/OpenCL-ICD-Loader-* $GITHUB_WORKSPACE/OpenCL-SDK/external/OpenCL-ICD-Loader
+
+    - name: Download and extract source code (OpenCL-CLHPP)
+      run: |
+        # ToDo remove
+        export GITHUB_REF_NAME=v2023.02.01  
+        wget -O $GITHUB_WORKSPACE/opencl-clhpp.tar.gz https://github.com/$OPENCL_CLHPP_REPOSITORY/archive/refs/tags/$GITHUB_REF_NAME.tar.gz
+        tar -xvf $GITHUB_WORKSPACE/opencl-clhpp.tar.gz -C $GITHUB_WORKSPACE/OpenCL-SDK/external
+        rm -rf $GITHUB_WORKSPACE/OpenCL-SDK/external/OpenCL-CLHPP
+        mv $GITHUB_WORKSPACE/OpenCL-SDK/external/OpenCL-CLHPP-* $GITHUB_WORKSPACE/OpenCL-SDK/external/OpenCL-CLHPP
+
+    - name: Configure project out-of-tree
+      run: cmake
+        -S $GITHUB_WORKSPACE/OpenCL-SDK*
+        -B $GITHUB_WORKSPACE/../build
+        -D CMAKE_BUILD_TYPE=Release
+        -D CMAKE_INSTALL_PREFIX=/usr
+        -D BUILD_TESTING=OFF
+        -D OPENCL_SDK_BUILD_SAMPLES=OFF
+        -D LATEST_RELEASE_VERSION=$GITHUB_REF_NAME
+        -D CPACK_DEBIAN_PACKAGE_MAINTAINER="${{ vars.DEB_MAINTAINER }}"
+        -D DEBIAN_VERSION_SUFFIX=${{ vars.DEB_VERSION_SUFFIX }}
+
+    - name: Generate packaging scripts
+      run: cmake
+        -D CMAKE_CACHE_PATH=$GITHUB_WORKSPACE/../build/CMakeCache.txt
+        -D ORIG_ARCHIVE=$GITHUB_WORKSPACE/source.orig.tar.gz
+        -D LATEST_RELEASE_VERSION=$GITHUB_REF_NAME
+        -D DEBIAN_DISTROSERIES=${{ env.distroseries }}
+        -D DEBIAN_PACKAGE_MAINTAINER="${{ vars.DEB_MAINTAINER }}"
+        -D DEBIAN_VERSION_SUFFIX=${{ vars.DEB_VERSION_SUFFIX }}
+        -P $GITHUB_WORKSPACE/OpenCL-SDK*/cmake/DebSourcePkg.cmake
+
+    - name: Build source package
+      run: |
+        cd $GITHUB_WORKSPACE/OpenCL-SDK*/
+        debuild -S -sa
+
+    - name: Push source package to the PPA
+      run: dput ppa:${{ vars.PPA }} $GITHUB_WORKSPACE/*source.changes
