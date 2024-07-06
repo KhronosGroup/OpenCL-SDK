@@ -198,7 +198,7 @@ int main(int argc, char *argv[])
         OCLERROR_PAR(kernel = cl_util_read_exe_relative_text_file(
                          "Collatz.cl", &program_size, &error),
                      error, cont);
-        printf("OpenCL file red... ");
+        printf("OpenCL file read... ");
 
         OCLERROR_PAR(program = clCreateProgramWithSource(context, 1,
                                                          (const char **)&kernel,

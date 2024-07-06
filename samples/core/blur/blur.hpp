@@ -41,6 +41,9 @@ public:
     // Query device and runtime capabilities
     std::tuple<bool, bool, bool> query_capabilities();
 
+    // Query device support for OpenCL 2.0
+    bool query_opencl_2_0_support();
+
     void create_image_buffers();
 
     void build_program(std::string kernel_op);
