@@ -189,8 +189,6 @@ jobs:
 
     - name: Download and extract source code (OpenCL-Headers)
       run: |
-        # ToDo remove
-        export GITHUB_REF_NAME=v2023.02.11
         wget -O $GITHUB_WORKSPACE/opencl-headers.tar.gz https://github.com/$OPENCL_HEADERS_REPOSITORY/archive/refs/tags/$GITHUB_REF_NAME.tar.gz
         tar -xvf $GITHUB_WORKSPACE/opencl-headers.tar.gz -C $GITHUB_WORKSPACE/OpenCL-SDK/external
         rm -rf $GITHUB_WORKSPACE/OpenCL-SDK/external/OpenCL-Headers
@@ -198,8 +196,6 @@ jobs:
 
     - name: Download and extract source code (OpenCL-ICD-Loader)
       run: |
-        # ToDo remove
-        export GITHUB_REF_NAME=v2023.02.11
         wget -O $GITHUB_WORKSPACE/opencl-icd-loader.tar.gz https://github.com/$OPENCL_ICD_LOADER_REPOSITORY/archive/refs/tags/$GITHUB_REF_NAME.tar.gz
         tar -xvf $GITHUB_WORKSPACE/opencl-icd-loader.tar.gz -C $GITHUB_WORKSPACE/OpenCL-SDK/external
         rm -rf $GITHUB_WORKSPACE/OpenCL-SDK/external/OpenCL-ICD-Loader
@@ -207,8 +203,6 @@ jobs:
 
     - name: Download and extract source code (OpenCL-CLHPP)
       run: |
-        # ToDo remove
-        export GITHUB_REF_NAME=v2023.02.11
         wget -O $GITHUB_WORKSPACE/opencl-clhpp.tar.gz https://github.com/$OPENCL_CLHPP_REPOSITORY/archive/refs/tags/$GITHUB_REF_NAME.tar.gz
         tar -xvf $GITHUB_WORKSPACE/opencl-clhpp.tar.gz -C $GITHUB_WORKSPACE/OpenCL-SDK/external
         rm -rf $GITHUB_WORKSPACE/OpenCL-SDK/external/OpenCL-CLHPP
