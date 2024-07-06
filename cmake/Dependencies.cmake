@@ -1,3 +1,10 @@
+if(OPENCL_SDK_BUILD_UTILITY_LIBRARIES)
+  foreach(DEP IN ITEMS whereami)
+    list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/Dependencies/${DEP}")
+    include(${DEP})
+  endforeach()
+endif()
+
 # Save global flags and strip diagnostics locally
 set(USER_C_FLAGS ${CMAKE_C_FLAGS})
 set(USER_CXX_FLAGS ${CMAKE_CXX_FLAGS})
