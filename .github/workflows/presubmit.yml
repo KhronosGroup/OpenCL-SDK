@@ -59,7 +59,7 @@ jobs:
         BIN: [64]
         STD:
           - C: 11 # Utils C library uses C11 functions (e.g. timespec_get)
-            CXX: 14
+            CXX: 14 # Utils C++ library uses C14 types (e.g. integer_sequence)
           - C: 17
             CXX: 17
         CONF:
@@ -616,7 +616,6 @@ jobs:
           cmake --build $GITHUB_WORKSPACE/build_install --config Debug --parallel `sysctl -n hw.logicalcpu` `if [[ "${{matrix.GEN}}" == "Xcode" ]]; then echo "-- -quiet"; fi;`
 
   python:
-    if: false
     name: Exercise Python examples on ${{matrix.os}}
     strategy:
       matrix:
@@ -654,7 +653,6 @@ jobs:
           done
 
   checkruby:
-    if: false
     name: Check Ruby Samples ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -681,7 +679,6 @@ jobs:
         working-directory: ruby
 
   android:
-    if: false
     runs-on: ubuntu-latest
     needs: format
     strategy:
