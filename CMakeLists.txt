@@ -29,6 +29,9 @@ cmake_dependent_option(OPENCL_SDK_BUILD_OPENGL_SAMPLES "Build OpenCL-OpenGL inte
 cmake_dependent_option(OPENCL_SDK_TEST_SAMPLES "Add CTest to samples (where applicable)" ON OPENCL_SDK_BUILD_SAMPLES OFF)
 
 option(OPENCL_SDK_BUILD_CLINFO "Build clinfo utility" ON)
+if (("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin") AND ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU"))
+  string(APPEND CMAKE_CXX_FLAGS " -stdlib=libstdc++")
+endif()
 
 include(CTest)
 
