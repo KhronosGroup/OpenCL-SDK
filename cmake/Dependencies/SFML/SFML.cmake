@@ -36,4 +36,18 @@ if(NOT (SFML_FOUND OR TARGET SFML::Graphics))
       INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}"
       FOLDER "Dependencies"
   )
+  target_compile_options (sfml-window
+      PRIVATE
+        -Wno-implicit-fallthrough
+        -Wno-sign-compare
+        -Wno-unused-parameter)
+    target_compile_options (sfml-graphics
+      PRIVATE
+        -Wno-implicit-fallthrough
+        -Wno-unused-but-set-variable
+        -Wno-unused-parameter)
+    target_compile_options (sfml-system
+      PRIVATE
+        -Wno-implicit-fallthrough
+        -Wno-maybe-uninitialized)
 endif()

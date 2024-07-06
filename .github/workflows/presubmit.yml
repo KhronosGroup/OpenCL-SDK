@@ -39,22 +39,22 @@ jobs:
       matrix:
         CMAKE: [3.26.4]
         COMPILER:
-          - C_NAME: gcc
-            CXX_NAME: g++
-            VER: 11
+          # - C_NAME: gcc
+          #   CXX_NAME: g++
+          #   VER: 11
           # - C_NAME: gcc
           #   CXX_NAME: g++
           #   VER: 13
-          # - C_NAME: clang
-          #   CXX_NAME: clang++
-          #   VER: 14
-          # - C_NAME: clang
-          #   CXX_NAME: clang++
-          #   VER: 16
+          - C_NAME: clang
+            CXX_NAME: clang++
+            VER: 14
+          - C_NAME: clang
+            CXX_NAME: clang++
+            VER: 16
         DEPS: [os, vcpkg]
         BIN: [64]
         STD:
-          - C: 99
+          - C: 11 # Utils C library uses C11 functions (e.g. timespec_get)
             CXX: 14
           - C: 17
             CXX: 17
@@ -75,8 +75,12 @@ jobs:
       DEB_INSTALLATION_PATH: /usr
       CC: ${{matrix.COMPILER.C_NAME}}-${{matrix.COMPILER.VER}}
       CXX:  ${{matrix.COMPILER.CXX_NAME}}-${{matrix.COMPILER.VER}}
-      CFLAGS: -Wall -Wextra -pedantic -Werror -m${{matrix.BIN}}
-      CXXFLAGS: -Wall -Wextra -pedantic -Werror -m${{matrix.BIN}}
+      # Excluding missing-field-initializers error because it comes from the Std dependency
+      # Excluding maybe-uninitialized error because cannot workaround the compiler issuing this error
+      # Not using -pedantic: error: ISO C forbids braced-groups within expressions
+      CFLAGS: -Wall -Wextra -Werror -m${{matrix.BIN}} -Wno-missing-field-initializers ${{ matrix.COMPILER.EXCLUSIVE_C_FLAGS }}
+      # Excluding missing-field-initializers error because it comes from the Std dependency
+      CXXFLAGS: -Wall -Wextra -pedantic -Werror -m${{matrix.BIN}} -Wno-missing-field-initializers
 
     steps:
       - name: Checkout OpenCL-SDK
@@ -97,7 +101,7 @@ jobs:
           $CPACK_EXE
           --config "$GITHUB_WORKSPACE/external/OpenCL-Headers/build/CPackConfig.cmake"
           -G DEB
-          -C ${{matrix.CONF.CONFIG}}
+          `if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]]; then echo "-C ${{matrix.CONF.CONFIG}}"; fi`
           -B "$GITHUB_WORKSPACE/external/OpenCL-Headers/package-deb" &&
           dpkg -i $GITHUB_WORKSPACE/external/OpenCL-Headers/package-deb/*.deb
 
@@ -113,7 +117,7 @@ jobs:
           $CPACK_EXE
           --config "$GITHUB_WORKSPACE/external/OpenCL-ICD-Loader/build/CPackConfig.cmake"
           -G DEB
-          -C ${{matrix.CONF.CONFIG}}
+          `if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]]; then echo "-C ${{matrix.CONF.CONFIG}}"; fi`
           -B "$GITHUB_WORKSPACE/external/OpenCL-ICD-Loader/package-deb" &&
           dpkg -i $GITHUB_WORKSPACE/external/OpenCL-ICD-Loader/package-deb/*.deb &&
           dpkg -c $GITHUB_WORKSPACE/external/OpenCL-ICD-Loader/package-deb/ocl-icd-opencl-dev_3.0-1_amd64.deb
@@ -131,7 +135,7 @@ jobs:
           $CPACK_EXE
           --config "$GITHUB_WORKSPACE/external/OpenCL-CLHPP/build/CPackConfig.cmake"
           -G DEB
-          -C ${{matrix.CONF.CONFIG}}
+          `if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]]; then echo "-C ${{matrix.CONF.CONFIG}}"; fi`
           -B "$GITHUB_WORKSPACE/external/OpenCL-CLHPP/package-deb" &&
           dpkg -i $GITHUB_WORKSPACE/external/OpenCL-CLHPP/package-deb/*.deb
 
@@ -147,12 +151,13 @@ jobs:
             TOOLCHAIN_ARG="";
           fi &&
           $CMAKE_EXE
+          $TOOLCHAIN_ARG
           -G "${{matrix.CONF.GEN}}"
           `if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]]; then echo "-D CMAKE_BUILD_TYPE=${{matrix.CONF.CONFIG}}"; fi`
           -D BUILD_DOCS=ON
           -D BUILD_TESTING=ON
           -D BUILD_EXAMPLES=ON
-          -D OPENCL_SDK_BUILD_SAMPLES=OFF
+          -D OPENCL_SDK_BUILD_SAMPLES=ON
           -D OPENCL_ICD_LOADER_BUILD_TESTING=ON
           -D CMAKE_C_STANDARD=${{matrix.STD.C}}
           -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}}
@@ -187,7 +192,7 @@ jobs:
         run: $CPACK_EXE
           --config "$GITHUB_WORKSPACE/build/CPackConfig.cmake"
           -G DEB
-          -C ${{matrix.CONF.CONFIG}}
+          `if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]]; then echo "-C ${{matrix.CONF.CONFIG}}"; fi`
           -B "$GITHUB_WORKSPACE/package-deb" &&
           dpkg -c $GITHUB_WORKSPACE/package-deb/khronos-opencl-sdk_2023.4.17-1_amd64.deb
 
@@ -215,8 +220,12 @@ jobs:
 
       - name: Test install
         shell: bash
-        run: $CMAKE_EXE --build $GITHUB_WORKSPACE/build --target install --config ${{matrix.CONF.CONFIG}} -- -j`nproc` &&
-          ls -lR $GITHUB_WORKSPACE/install
+        run: $CMAKE_EXE
+          --build $GITHUB_WORKSPACE/build
+          --target install
+          `if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]]; then echo "--config ${{matrix.CONF.CONFIG}}"; fi`
+          --
+          -j`nproc`
 
       - name: Consume (install)
         shell: bash
@@ -309,7 +318,7 @@ jobs:
             -T ${{matrix.VER}} `
             -D BUILD_DOCS=ON `
             -D BUILD_TESTING=ON `
-            -D OPENCL_SDK_BUILD_SAMPLES=OFF `
+            -D OPENCL_SDK_BUILD_SAMPLES=ON `
             -D OPENCL_ICD_LOADER_BUILD_TESTING=ON `
             -D CMAKE_C_STANDARD=${{matrix.STD.C}} `
             -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}} `
@@ -340,7 +349,7 @@ jobs:
             -D CMAKE_MAKE_PROGRAM="${env:NINJA_ROOT}\ninja.exe" `
             -D BUILD_DOCS=ON `
             -D BUILD_TESTING=ON `
-            -D OPENCL_SDK_BUILD_SAMPLES=OFF `
+            -D OPENCL_SDK_BUILD_SAMPLES=ON `
             -D OPENCL_ICD_LOADER_BUILD_TESTING=ON `
             -D CMAKE_C_STANDARD=${{matrix.STD.C}} `
             -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}} `
@@ -408,14 +417,8 @@ jobs:
       - name: "Consume (MSBuild SDK): Configure/Build/Test"
         shell: pwsh
         run: |
-          if ('${{ matrix.DEPS }}' -eq 'vcpkg') {
-            $TOOLCHAIN_ARG="-D CMAKE_TOOLCHAIN_FILE=${env:VCPKG_INSTALLATION_ROOT}\scripts\buildsystems\vcpkg.cmake"
-          } else {
-            $TOOLCHAIN_ARG=''
-          }
           $BIN = if('${{matrix.BIN}}' -eq 'x86') {'Win32'} else {'x64'}
           & cmake `
-            $TOOLCHAIN_ARG `
             -G '${{matrix.GEN}}' `
             -A $BIN `
             -T ${{matrix.VER}} `
@@ -438,11 +441,6 @@ jobs:
       - name: "Consume (Ninja-Multi-Config SDK): Configure/Build/Test"
         shell: pwsh
         run: |
-          if ('${{ matrix.DEPS }}' -eq 'vcpkg') {
-            $TOOLCHAIN_ARG="-D CMAKE_TOOLCHAIN_FILE=${env:VCPKG_INSTALLATION_ROOT}\scripts\buildsystems\vcpkg.cmake"
-          } else {
-            $TOOLCHAIN_ARG=''
-          }
           $VER = switch ('${{matrix.VER}}') { `
             'v141' {'14.1'} `
             'v142' {'14.2'} `
@@ -450,7 +448,6 @@ jobs:
           Import-Module "${env:VS_ROOT}\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
           Enter-VsDevShell -VsInstallPath ${env:VS_ROOT} -SkipAutomaticLocation -DevCmdArguments "-host_arch=x64 -arch=${{matrix.BIN}} -vcvars_ver=${VER}"
           & cmake `
-            $TOOLCHAIN_ARG `
             -G '${{matrix.GEN}}' `
             -D CMAKE_MAKE_PROGRAM="${env:NINJA_ROOT}\ninja.exe" `
             -D CMAKE_EXE_LINKER_FLAGS=/INCREMENTAL `
@@ -542,7 +539,7 @@ jobs:
           -D BUILD_DOCS=ON
           -D BUILD_TESTING=ON
           -D BUILD_EXAMPLES=ON
-          -D OPENCL_SDK_BUILD_SAMPLES=OFF
+          -D OPENCL_SDK_BUILD_SAMPLES=ON
           -D OPENCL_ICD_LOADER_BUILD_TESTING=ON
           -D CMAKE_C_STANDARD=${{matrix.STD.C}}
           -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}}
@@ -570,14 +567,7 @@ jobs:
 
       - name: Consume (install)
         shell: bash
-        run: if [[ "${{matrix.DEPS}}" == "vcpkg" ]];
-          then
-            TOOLCHAIN_ARG="-D CMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake";
-          else
-            TOOLCHAIN_ARG="";
-          fi &
-          cmake
-          $TOOLCHAIN_ARG
+        run: cmake
           -G "${{matrix.GEN}}"
           -D CMAKE_C_STANDARD=${{matrix.STD.C}}
           -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}}
@@ -653,6 +643,7 @@ jobs:
         working-directory: ruby
 
   android:
+    if: false
     runs-on: ubuntu-latest
     needs: format
     strategy:

@@ -10,8 +10,6 @@
 // cargs includes
 #include <cargs.h>
 
-typedef struct cag_option cag_option;
-
 SDK_EXPORT cag_option *add_CLI_options(cag_option *opts, size_t *const num_opts,
                                        cag_option *add_opts,
                                        size_t add_num_opts);
