@@ -2,15 +2,32 @@ name: Presubmit
 on: [push, pull_request]
 
 jobs:
+  get-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get working branch
+        id: get-branch
+        run: |
+          if [[ ${{ github.event_name }} == "push" ]]; then
+            echo "branch=main" >> $GITHUB_OUTPUT
+          else
+            echo "branch=${{ github.base_ref }}" >> $GITHUB_OUTPUT
+          fi ;
+          echo $GITHUB_OUTPUT
+    outputs:
+      branch: ${{ steps.get-branch.outputs.branch }}
+
   format:
     name: Code formatting
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    needs: get-branch
     steps:
       - uses: actions/checkout@v3
         with:
+          # repository: ${{ github.repository }} (default)
           fetch-depth: 0
       - name: Install clang-format
-        run: sudo apt-get install clang-format clang-format-9
+        run: sudo apt-get install clang-format
       - name: Check format
         run: ./scripts/check-format.sh
   build:
