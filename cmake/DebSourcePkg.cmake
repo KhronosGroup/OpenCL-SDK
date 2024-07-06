@@ -46,12 +46,15 @@ endif()
 set(PROJECT_VERSION "${CMAKE_MATCH_1}")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
+# Also get the package details for clinfo
+set(OPENCL_SDK_BUILD_CLINFO ON)
 # Package.cmake contains all details for packaging
 include(PackageSetup)
 
 # Append a space after every newline in the description. This format is required
 # in the control file.
 string(REPLACE "\n" "\n " CPACK_DEBIAN_DESCRIPTION "${CPACK_DEBIAN_DESCRIPTION}")
+string(REPLACE "\n" "\n " CPACK_DEBIAN_CLINFO_DESCRIPTION "${CPACK_DEBIAN_CLINFO_DESCRIPTION}")
 
 set(DEB_SOURCE_PKG_DIR "${CMAKE_CURRENT_LIST_DIR}/../debian")
 # Write debian/control
@@ -70,6 +73,16 @@ Architecture: any
 Multi-Arch: same
 Depends: ${CPACK_DEBIAN_BINARY_PACKAGE_DEPENDS}
 Description: ${CPACK_DEBIAN_DESCRIPTION}
+
+Package: ${CPACK_DEBIAN_CLINFO_PACKAGE_NAME}
+Architecture: any
+Multi-Arch: same
+Depends: ${CPACK_DEBIAN_CLINFO_PACKAGE_DEPENDS}
+Conflicts: ${CPACK_DEBIAN_CLINFO_PACKAGE_CONFLICTS}
+Replaces: ${CPACK_DEBIAN_CLINFO_PACKAGE_REPLACES}
+Provides: ${CPACK_DEBIAN_CLINFO_PACKAGE_PROVIDES}
+Section: ${CPACK_DEBIAN_CLINFO_PACKAGE_SECTION}
+Description: ${CPACK_DEBIAN_CLINFO_DESCRIPTION}
 "
 )
 # Write debian/changelog
@@ -94,6 +107,7 @@ override_dh_auto_install:
 
 override_dh_install:
 \tcmake --install obj-* --component binary --prefix ./debian/${CPACK_DEBIAN_BINARY_PACKAGE_NAME}/usr
+\tcmake --install obj-* --component clinfo --prefix ./debian/${CPACK_DEBIAN_CLINFO_PACKAGE_NAME}/usr
 ")
 
 if(DEFINED ORIG_ARCHIVE)

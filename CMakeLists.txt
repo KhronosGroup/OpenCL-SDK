@@ -28,6 +28,8 @@ cmake_dependent_option(OPENCL_SDK_BUILD_SAMPLES "Build sample code" ON OPENCL_SD
 cmake_dependent_option(OPENCL_SDK_BUILD_OPENGL_SAMPLES "Build OpenCL-OpenGL interop sample code" ON OPENCL_SDK_BUILD_SAMPLES OFF)
 cmake_dependent_option(OPENCL_SDK_TEST_SAMPLES "Add CTest to samples (where applicable)" ON OPENCL_SDK_BUILD_SAMPLES OFF)
 
+option(OPENCL_SDK_BUILD_CLINFO "Build clinfo utility" ON)
+
 include(CTest)
 
 if (NOT CMAKE_BUILD_TYPE)
