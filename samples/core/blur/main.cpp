@@ -89,8 +89,9 @@ int main(int argc, char* argv[])
             {
                 std::cout << "Dual-pass subgroup relative exchange blur"
                           << std::endl;
-
-                blur.build_program("-D USE_SUBGROUP_EXCHANGE_RELATIVE ");
+                // cl_khr_subgroup_shuffle_relative requires OpenCL 2.0
+                blur.build_program(
+                    "-D USE_SUBGROUP_EXCHANGE_RELATIVE -cl-std=CL2.0 ");
                 blur.dual_pass_subgroup_exchange_box_blur();
             }
 
@@ -99,8 +100,8 @@ int main(int argc, char* argv[])
             if (use_subgroup_exchange)
             {
                 std::cout << "Dual-pass subgroup exchange blur" << std::endl;
-
-                blur.build_program("-D USE_SUBGROUP_EXCHANGE ");
+                // cl_khr_subgroup_shuffle requires OpenCL 2.0
+                blur.build_program("-D USE_SUBGROUP_EXCHANGE -cl-std=CL2.0 ");
                 blur.dual_pass_subgroup_exchange_box_blur();
             }
         } // Box blur
@@ -137,8 +138,9 @@ int main(int argc, char* argv[])
                 std::cout
                     << "Dual-pass subgroup relative exchange Gaussian blur"
                     << std::endl;
-
-                blur.build_program("-D USE_SUBGROUP_EXCHANGE_RELATIVE ");
+                // cl_khr_subgroup_shuffle_relative requires OpenCL 2.0
+                blur.build_program(
+                    "-D USE_SUBGROUP_EXCHANGE_RELATIVE -cl-std=CL2.0 ");
                 blur.dual_pass_subgroup_exchange_kernel_blur();
             }
 
@@ -148,8 +150,8 @@ int main(int argc, char* argv[])
             {
                 std::cout << "Dual-pass subgroup exchange Gaussian blur"
                           << std::endl;
-
-                blur.build_program("-D USE_SUBGROUP_EXCHANGE ");
+                // cl_khr_subgroup_shuffle requires OpenCL 2.0
+                blur.build_program("-D USE_SUBGROUP_EXCHANGE -cl-std=CL2.0 ");
                 blur.dual_pass_subgroup_exchange_kernel_blur();
             }
         } // Gaussian blur
