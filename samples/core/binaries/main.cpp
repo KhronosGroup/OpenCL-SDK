@@ -93,7 +93,8 @@ int main(int argc, char* argv[])
         try
         {
             /// Try to read binary
-            binaries = cl::util::read_binary_files(devices, "Collatz", &error);
+            binaries =
+                cl::util::read_binary_files(devices, "Collatz-cpp", &error);
         } catch (cl::util::Error& e)
         {
             // if binary not present, compile and save
@@ -106,7 +107,7 @@ int main(int argc, char* argv[])
             program.build(devices.at(0));
 
             binaries = program.getInfo<CL_PROGRAM_BINARIES>(&error);
-            cl::util::write_binaries(binaries, devices, "Collatz");
+            cl::util::write_binaries(binaries, devices, "Collatz-cpp");
         }
 
         // if the binary is already present - calculate
