@@ -4,7 +4,7 @@
 
 # Note: cmake 3.7 is needed to use OpenCL::OpenCL.
 # Older versions may work by explicitly specifying OpenCL_INCLUDE_DIRS and OpenCL_LIBRARIES.
-cmake_minimum_required(VERSION 3.7 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 set(CMAKE_CXX_STANDARD 11)
