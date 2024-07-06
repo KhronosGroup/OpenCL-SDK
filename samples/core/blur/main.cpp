@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
         std::tie(use_local_mem, use_subgroup_exchange,
                  use_subgroup_exchange_relative) = blur.query_capabilities();
 
-        bool opencl_version_2_0 = blur.query_opencl_2_0_support();
+        bool opencl_c_version_2_0 = blur.query_opencl_c_2_0_support();
 
         // Create image buffers used for operation. In this example input,
         // output and temporary image buffers are used. Temporary buffer is used
@@ -87,11 +87,10 @@ int main(int argc, char* argv[])
             // file you can find 'USE_SUBGROUP_EXCHANGE_RELATIVE' C-like
             // definition switch for blur_box_horizontal_subgroup_exchange
             // function. In this case, 2 blur kernel functors are used.
-            if (use_subgroup_exchange_relative && opencl_version_2_0)
+            if (use_subgroup_exchange_relative && opencl_c_version_2_0)
             {
                 std::cout << "Dual-pass subgroup relative exchange blur"
                           << std::endl;
-                // cl_khr_subgroup_shuffle_relative requires OpenCL 2.0
                 blur.build_program(
                     "-D USE_SUBGROUP_EXCHANGE_RELATIVE -cl-std=CL2.0 ");
                 blur.dual_pass_subgroup_exchange_box_blur();
@@ -99,10 +98,9 @@ int main(int argc, char* argv[])
 
             // Same as the previous one, but with a different build switch. See
             // the blur.cl file for more info about the switch.
-            if (use_subgroup_exchange && opencl_version_2_0)
+            if (use_subgroup_exchange && opencl_c_version_2_0)
             {
                 std::cout << "Dual-pass subgroup exchange blur" << std::endl;
-                // cl_khr_subgroup_shuffle requires OpenCL 2.0
                 blur.build_program("-D USE_SUBGROUP_EXCHANGE -cl-std=CL2.0 ");
                 blur.dual_pass_subgroup_exchange_box_blur();
             }
@@ -135,12 +133,11 @@ int main(int argc, char* argv[])
 
             // Similar to dual_pass_subgroup_exchange_box_blur but with a gauss
             // kernel.
-            if (use_subgroup_exchange_relative && opencl_version_2_0)
+            if (use_subgroup_exchange_relative && opencl_c_version_2_0)
             {
                 std::cout
                     << "Dual-pass subgroup relative exchange Gaussian blur"
                     << std::endl;
-                // cl_khr_subgroup_shuffle_relative requires OpenCL 2.0
                 blur.build_program(
                     "-D USE_SUBGROUP_EXCHANGE_RELATIVE -cl-std=CL2.0 ");
                 blur.dual_pass_subgroup_exchange_kernel_blur();
@@ -148,11 +145,10 @@ int main(int argc, char* argv[])
 
             // Same as the previous one, but with a different build switch. See
             // the blur.cl file for more info about the switch.
-            if (use_subgroup_exchange && opencl_version_2_0)
+            if (use_subgroup_exchange && opencl_c_version_2_0)
             {
                 std::cout << "Dual-pass subgroup exchange Gaussian blur"
                           << std::endl;
-                // cl_khr_subgroup_shuffle requires OpenCL 2.0
                 blur.build_program("-D USE_SUBGROUP_EXCHANGE -cl-std=CL2.0 ");
                 blur.dual_pass_subgroup_exchange_kernel_blur();
             }

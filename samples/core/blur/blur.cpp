@@ -494,16 +494,19 @@ std::tuple<bool, bool, bool> BlurCppExample::query_capabilities()
         (device.getInfo<CL_DEVICE_LOCAL_MEM_TYPE>() == CL_LOCAL);
 
     // 4) query if device allow subgroup shuffle operations
+    bool use_subgroups =
+        cl::util::supports_extension(device, "cl_khr_subgroups");
     bool use_subgroup_exchange =
         cl::util::supports_extension(device, "cl_khr_subgroup_shuffle");
     bool use_subgroup_exchange_relative = cl::util::supports_extension(
         device, "cl_khr_subgroup_shuffle_relative");
 
-    return std::make_tuple(use_local_mem, use_subgroup_exchange,
-                           use_subgroup_exchange_relative);
+    return std::make_tuple(use_local_mem,
+                           use_subgroups && use_subgroup_exchange,
+                           use_subgroups && use_subgroup_exchange_relative);
 }
 
-bool BlurCppExample::query_opencl_2_0_support()
+bool BlurCppExample::query_opencl_c_2_0_support()
 {
     return cl::util::opencl_c_version_contains(device, "2.0");
 }
