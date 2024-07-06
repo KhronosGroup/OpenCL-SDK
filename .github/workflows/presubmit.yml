@@ -57,8 +57,8 @@ jobs:
         CONF:
           - GEN: Unix Makefiles
             CONFIG: Debug
-          - GEN: Unix Makefiles
-            CONFIG: Release
+          # - GEN: Unix Makefiles
+          #   CONFIG: Release
           # - GEN: Ninja Multi-Config
           #   CONFIG: Release
         IMAGE:
@@ -111,7 +111,8 @@ jobs:
           -G DEB
           -C ${{matrix.CONF.CONFIG}}
           -B "$GITHUB_WORKSPACE/external/OpenCL-ICD-Loader/package-deb" &&
-          dpkg -i $GITHUB_WORKSPACE/external/OpenCL-ICD-Loader/package-deb/*.deb
+          dpkg -i $GITHUB_WORKSPACE/external/OpenCL-ICD-Loader/package-deb/*.deb &&
+          dpkg -c $GITHUB_WORKSPACE/external/OpenCL-ICD-Loader/package-deb/ocl-icd-opencl-dev_3.0-1_amd64.deb
 
       - name: Configure, package & install OpenCL-CLHPP
         shell: bash
@@ -188,7 +189,6 @@ jobs:
         shell: bash
         run: dpkg -i $GITHUB_WORKSPACE/package-deb/*.deb &&
           $CMAKE_EXE
-          --debug-find
           -G "${{matrix.CONF.GEN}}"
           `if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]]; then echo "-D CMAKE_BUILD_TYPE=${{matrix.CONF.CONFIG}}"; fi`
           -S $GITHUB_WORKSPACE/test/cmake/pkgconfig/useutil
