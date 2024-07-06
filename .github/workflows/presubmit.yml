@@ -33,7 +33,6 @@ jobs:
         run: $GITHUB_WORKSPACE/scripts/check-format.sh origin/${{ needs.get-branch.outputs.branch }} --binary clang-format
 
   linux:
-    if: false
     runs-on: ubuntu-latest
     needs: format
     strategy:
@@ -455,62 +454,119 @@ jobs:
               --output-on-failure -C ${Config}
           }
 
-  build:
-    if: false
+  macos:
+    runs-on: macos-latest
     needs: format
-    name: Build ${{ matrix.os }} ${{ matrix.compiler }} ${{ matrix.deps }}
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-latest]
-        compiler: [gcc, clang]
-        deps: [os, fetch, vcpkg]
+        COMPILER:
+          - C_NAME: /usr/bin/gcc
+            CXX_NAME: /usr/bin/g++
+          - C_NAME: /usr/local/bin/gcc-11
+            CXX_NAME: /usr/local/bin/g++-11
+          - C_NAME: /usr/local/bin/gcc-13
+            CXX_NAME: /usr/local/bin/g++-13
+        GEN:
+        - Xcode
+        - Ninja Multi-Config
+        STD: [14, 17]
+        DEPS: [os, vcpkg]
+        exclude:
+          - COMPILER:
+              C_NAME: /usr/bin/gcc
+              CXX_NAME: /usr/bin/g++
+            GEN: Ninja Multi-Config
+          - COMPILER:
+              C_NAME: /usr/local/bin/gcc-11
+              CXX_NAME: /usr/local/bin/g++-11
+            GEN: Xcode
+          - COMPILER:
+              C_NAME: /usr/local/bin/gcc-13
+              CXX_NAME: /usr/local/bin/g++-13
+            GEN: Xcode
+    env:
+      CC: ${{matrix.COMPILER.C_NAME}}
+      CCX: ${{matrix.COMPILER.CXX_NAME}}
+      CFLAGS: -Wall -Wextra -pedantic -Werror
+      CXXFLAGS: -Wall -Wextra -pedantic -Wno-format -Werror
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout OpenCL-SDK
+        uses: actions/checkout@v3
         with:
-          fetch-depth: 0
-          submodules: recursive
-      - name: Build
+            fetch-depth: 0
+            submodules: recursive
+
+      - name: Create Build Environment
+        shell: bash
         run: |
-            if [[ "${{ matrix.os }}" == "ubuntu-20.04" ]]; then
-              sudo apt update
-              sudo apt install -y libidn11 libx11-dev libxrandr-dev libxi-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libudev-dev \
-              `if [[ "${{matrix.deps}}" == "os" ]]; then echo libtclap-dev libglm-dev libglew-dev libsfml-dev libstb-dev; fi;` \
-              `if [[ "${{matrix.deps}}" == "vcpkg" ]]; then echo autoconf libtool libxcursor-dev; fi;`
-              if [[ "${{matrix.deps}}" == "vcpkg" ]]; then
-                git clone https://github.com/Microsoft/vcpkg.git
-                ./vcpkg/bootstrap-vcpkg.sh
-                ./vcpkg/vcpkg install sfml tclap glm glew stb
-                TOOLCHAIN_ARG="-D CMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake"
-              else
-                TOOLCHAIN_ARG=""
-              fi
-              if [[ "${{matrix.deps}}" == "fetch" ]]; then
-                sudo apt remove -y libtclap-dev libglm-dev libglew-dev libsfml-dev libstb-dev libfreetype6-dev
-              fi
-            elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-              brew install tclap glm glew sfml mesa-glu
-              git clone https://github.com/Microsoft/vcpkg.git
-              ./vcpkg/bootstrap-vcpkg.sh
-              ./vcpkg/vcpkg install stb
-              TOOLCHAIN_ARG="-D CMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake"
-            fi
-            if [[ "${{ matrix.compiler }}" == "gcc" ]]; then
-              CC=gcc
-              CXX=g++
-            elif [[ "${{ matrix.compiler }}" == "clang" ]]; then
-              CC=clang
-              CXX=clang++
-            fi
-            cmake \
-              -D CMAKE_C_COMPILER=$CC \
-              -D CMAKE_CXX_COMPILER=$CXX \
-              $TOOLCHAIN_ARG \
-              -S . -B build
-            cmake \
-              --build ./build \
-              --verbose \
-              --parallel `numproc`
+          cmake -E make_directory $GITHUB_WORKSPACE/build &&
+          cmake -E make_directory $GITHUB_WORKSPACE/install &&
+          if [[ "${{matrix.GEN}}" == "Ninja Multi-Config" && ! `which ninja` ]]; then brew install ninja; fi &&
+          # Install Ninja only if it's the selected generator and it's not available.
+          cmake --version
+
+      - name: Configure
+        shell: bash
+        run: if [[ "${{matrix.DEPS}}" == "vcpkg" ]];
+          then
+            git clone https://github.com/Microsoft/vcpkg.git;
+            ./vcpkg/bootstrap-vcpkg.sh;
+            ./vcpkg/vcpkg install sfml tclap glm glew stb;
+            TOOLCHAIN_ARG="-D CMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake";
+          else
+            TOOLCHAIN_ARG="";
+          fi &&
+          cmake
+          $TOOLCHAIN_ARG
+          -G "${{matrix.GEN}}"
+          -D BUILD_DOCS=ON
+          -D BUILD_TESTING=ON
+          -D BUILD_EXAMPLES=ON
+          -D OPENCL_SDK_BUILD_SAMPLES=OFF
+          -D OPENCL_ICD_LOADER_BUILD_TESTING=ON
+          -D CMAKE_C_STANDARD=${{matrix.STD}}
+          -D CMAKE_CXX_STANDARD=${{matrix.STD}}
+          -D CMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/install
+          -S $GITHUB_WORKSPACE
+          -B $GITHUB_WORKSPACE/build
+
+      - name: Build
+        shell: bash
+        run: |
+          cmake --build $GITHUB_WORKSPACE/build --config Release --parallel `sysctl -n hw.logicalcpu`
+          cmake --build $GITHUB_WORKSPACE/build --config Debug --parallel `sysctl -n hw.logicalcpu`
+
+      - name: Test
+        working-directory: ${{runner.workspace}}/OpenCL-SDK/build
+        shell: bash
+        run: |
+          ctest -C Release --output-on-failure --parallel `sysctl -n hw.logicalcpu`
+          ctest -C Debug --output-on-failure --parallel `sysctl -n hw.logicalcpu`
+
+      - name: Test install
+        shell: bash
+        run: |
+          cmake --build $GITHUB_WORKSPACE/build --config Release --target install
+
+      - name: Consume (install)
+        shell: bash
+        run: if [[ "${{matrix.DEPS}}" == "vcpkg" ]];
+          then
+            TOOLCHAIN_ARG="-D CMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake";
+          else
+            TOOLCHAIN_ARG="";
+          fi &
+          cmake
+          $TOOLCHAIN_ARG
+          -G "${{matrix.GEN}}"
+          -D CMAKE_C_STANDARD=${{matrix.STD}}
+          -D CMAKE_CXX_STANDARD=${{matrix.STD}}
+          -D CMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/install"
+          -S $GITHUB_WORKSPACE/test/cmake/pkgconfig/useutil
+          -B $GITHUB_WORKSPACE/build_install &&
+          cmake --build $GITHUB_WORKSPACE/build_install --config Release --parallel `sysctl -n hw.logicalcpu` `if [[ "${{matrix.GEN}}" == "Xcode" ]]; then echo "-- -quiet"; fi;` &&
+          cmake --build $GITHUB_WORKSPACE/build_install --config Debug --parallel `sysctl -n hw.logicalcpu` `if [[ "${{matrix.GEN}}" == "Xcode" ]]; then echo "-- -quiet"; fi;`
 
   python:
     if: false
