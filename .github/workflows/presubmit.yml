@@ -62,7 +62,7 @@ jobs:
         - GEN: Ninja Multi-Config
           CONFIG: Release
         IMAGE:
-        - streamhpc/opencl-sdk-intelcpu:ubuntu-22.04-20230717
+        - khronosgroup/docker-images:opencl-sdk-intelcpu-ubuntu-22.04.20230717
         include:
         - CMAKE: system
           COMPILER:
@@ -80,7 +80,7 @@ jobs:
           CONF:
             GEN: Unix Makefiles
             CONFIG: Debug
-          IMAGE: streamhpc/opencl-sdk-intelcpu:ubuntu-20.04-20230717
+          IMAGE: khronosgroup/docker-images:opencl-sdk-intelcpu-ubuntu-20.04.20230717
         - CMAKE: system
           COMPILER:
             C_NAME: gcc
@@ -97,7 +97,7 @@ jobs:
           CONF:
             GEN: Unix Makefiles
             CONFIG: Release
-          IMAGE: streamhpc/opencl-sdk-intelcpu:ubuntu-20.04-20230717
+          IMAGE: khronosgroup/docker-images:opencl-sdk-intelcpu-ubuntu-20.04.20230717
         - CMAKE: system
           COMPILER:
             C_NAME: gcc
@@ -112,7 +112,7 @@ jobs:
           CONF:
             GEN: Unix Makefiles
             CONFIG: Debug
-          IMAGE: streamhpc/opencl-sdk-intelcpu:ubuntu-20.04-20230717
+          IMAGE: khronosgroup/docker-images:opencl-sdk-intelcpu-ubuntu-20.04.20230717
         - CMAKE: system
           COMPILER:
             C_NAME: gcc
@@ -127,7 +127,7 @@ jobs:
           CONF:
             GEN: Unix Makefiles
             CONFIG: Release
-          IMAGE: streamhpc/opencl-sdk-intelcpu:ubuntu-20.04-20230717
+          IMAGE: khronosgroup/docker-images:opencl-sdk-intelcpu-ubuntu-20.04.20230717
     container: ${{matrix.IMAGE}}
     env:
       CMAKE_EXE: /opt/Kitware/CMake/${{ matrix.CMAKE }}/bin/cmake
