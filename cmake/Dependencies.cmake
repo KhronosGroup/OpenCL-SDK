@@ -47,6 +47,10 @@ if(OPENCL_SDK_BUILD_SAMPLES)
   endif(OPENCL_SDK_BUILD_OPENGL_SAMPLES)
 endif(OPENCL_SDK_BUILD_SAMPLES)
 
+if(OPENCL_SDK_BUILD_CLINFO)
+  include("${CMAKE_CURRENT_LIST_DIR}/Dependencies/clinfo/clinfo.cmake")
+endif()
+
 # Restore user global state
 set(CMAKE_C_FLAGS ${USER_C_FLAGS})
 set(CMAKE_CXX_FLAGS ${USER_CXX_FLAGS})

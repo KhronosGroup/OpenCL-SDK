@@ -30,9 +30,9 @@ execute_process(COMMAND dpkg "--print-architecture" OUTPUT_VARIABLE CPACK_DEBIAN
 string(STRIP "${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}" CPACK_DEBIAN_PACKAGE_ARCHITECTURE)
 
 ## Package runtime component
-set(DEBIAN_PACKAGE_NAME "opencl-sdk")
+set(CPACK_DEBIAN_PACKAGE_NAME "opencl-sdk")
 
-set(CPACK_DEBIAN_BINARY_PACKAGE_NAME "${DEBIAN_PACKAGE_NAME}")
+set(CPACK_DEBIAN_BINARY_PACKAGE_NAME "${CPACK_DEBIAN_PACKAGE_NAME}")
 
 # Package file name in deb format:
 # <PackageName>_<VersionNumber>-<DebianRevisionNumber>_<DebianArchitecture>.deb
@@ -43,3 +43,23 @@ set(CPACK_DEBIAN_BINARY_FILE_NAME "${CPACK_DEBIAN_BINARY_PACKAGE_NAME}_${PACKAGE
 # set(CPACK_DEBIAN_BINARY_PACKAGE_DEPENDS "opencl-c-headers (>= 3.0~${PROJECT_VERSION}), opencl-clhpp-headers (>= 3.0~${PROJECT_VERSION}), khronos-opencl-loader-libopencl1 (>= 3.0~${PROJECT_VERSION}), khronos-opencl-loader-opencl-dev (>= 3.0~${PROJECT_VERSION})")
 set(CPACK_DEBIAN_BINARY_PACKAGE_DEPENDS "opencl-c-headers, opencl-clhpp-headers, khronos-opencl-loader-libopencl1, khronos-opencl-loader-opencl-dev")
 set(CPACK_DEBIAN_BINARY_PACKAGE_SECTION "libdevel")
+
+# Package clinfo, if enabled
+if(OPENCL_SDK_BUILD_CLINFO)
+  list(APPEND CPACK_COMPONENTS_ALL "clinfo")
+  set(CPACK_DEBIAN_CLINFO_PACKAGE_NAME "clinfo")
+  set(CPACK_DEBIAN_CLINFO_FILE_NAME "clinfo_${PACKAGE_VERSION_REVISION}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}.deb")
+  set(CPACK_DEBIAN_CLINFO_DESCRIPTION
+"Query OpenCL system information
+OpenCL (Open Computing Language) is a multivendor open standard for
+general-purpose parallel programming of heterogeneous systems that include
+CPUs, GPUs and other processors.
+.
+This package contains a tool that queries the capabilities of the available
+OpenCL drivers.")
+  set(CPACK_DEBIAN_CLINFO_PACKAGE_DEPENDS "libc6 (>= 2.14), khronos-opencl-loader-libopencl1 (>= 3.0~${CPACK_DEBIAN_PACKAGE_VERSION}) | libopencl1")
+  set(CPACK_DEBIAN_CLINFO_PACKAGE_CONFLICTS "amd-clinfo, clinfo, fglrx-updates-core")
+  set(CPACK_DEBIAN_CLINFO_PACKAGE_REPLACES "amd-clinfo, clinfo, fglrx-updates-core")
+  set(CPACK_DEBIAN_CLINFO_PACKAGE_PROVIDES "clinfo")
+  set(CPACK_DEBIAN_CLINFO_PACKAGE_SECTION "admin")
+endif()
