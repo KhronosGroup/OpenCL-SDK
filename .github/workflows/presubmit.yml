@@ -494,7 +494,7 @@ jobs:
         }
         $VER = switch ('${{matrix.VER}}') { `
           'v142' {'14.2'} `
-          'v143' {'14.3'} }
+          'v143' {'14.4'} }
         Import-Module "${env:VS_ROOT}\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
         Enter-VsDevShell -VsInstallPath ${env:VS_ROOT} -SkipAutomaticLocation -DevCmdArguments "-host_arch=x64 -arch=${{matrix.BIN}} -vcvars_ver=$VER"
         & cmake `
@@ -531,7 +531,7 @@ jobs:
       run: |
         $VER = switch ('${{matrix.VER}}') { `
           'v142' {'14.2'} `
-          'v143' {'14.3'} }
+          'v143' {'14.4'} }
         Import-Module "${env:VS_ROOT}\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
         Enter-VsDevShell -VsInstallPath ${env:VS_ROOT} -SkipAutomaticLocation -DevCmdArguments "-host_arch=x64 -arch=${{matrix.BIN}} -vcvars_ver=$VER"
         foreach ($Config in 'Release','Debug') { `
@@ -589,7 +589,7 @@ jobs:
       run: |
         $VER = switch ('${{matrix.VER}}') { `
           'v142' {'14.2'} `
-          'v143' {'14.3'} }
+          'v143' {'14.4'} }
         Import-Module "${env:VS_ROOT}\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
         Enter-VsDevShell -VsInstallPath ${env:VS_ROOT} -SkipAutomaticLocation -DevCmdArguments "-host_arch=x64 -arch=${{matrix.BIN}} -vcvars_ver=${VER}"
         & cmake `
