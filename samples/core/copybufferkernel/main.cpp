@@ -111,7 +111,7 @@ int main(int argc, char** argv)
             if (!strcmp(argv[i], "-d"))
             {
                 ++i;
-                if (i < static_cast<size_t>(argc))
+                if (i < argc)
                 {
                     deviceIndex =
                         static_cast<cl_uint>(strtoul(argv[i], NULL, 10));
@@ -120,7 +120,7 @@ int main(int argc, char** argv)
             else if (!strcmp(argv[i], "-p"))
             {
                 ++i;
-                if (i < static_cast<size_t>(argc))
+                if (i < argc)
                 {
                     platformIndex =
                         static_cast<cl_uint>(strtoul(argv[i], NULL, 10));
