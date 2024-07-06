@@ -47,7 +47,7 @@ jobs:
           CXX_NAME: clang++
           VER: 16
           EXCLUSIVE_C_FLAGS: ""
-        DEPS: [os, vcpkg]
+        DEPS: [system, vcpkg, fetch]
         BIN: [64]
         STD:
         - C: 11 # Utils C library uses C11 functions (e.g. timespec_get)
@@ -69,7 +69,9 @@ jobs:
             C_NAME: gcc
             CXX_NAME: g++
             VER: 9
-            EXCLUSIVE_C_FLAGS: ""
+            # A warning in libstb-dev
+            EXCLUSIVE_C_FLAGS: "-Wno-type-limits"
+            EXCLUSIVE_CXX_FLAGS: "-Wno-type-limits"
           DEPS: system
           BIN: 64
           STD:
@@ -84,7 +86,9 @@ jobs:
             C_NAME: gcc
             CXX_NAME: g++
             VER: 9
-            EXCLUSIVE_C_FLAGS: ""
+            # A warning in libstb-dev
+            EXCLUSIVE_C_FLAGS: "-Wno-type-limits"
+            EXCLUSIVE_CXX_FLAGS: "-Wno-type-limits"
           DEPS: system
           BIN: 64
           STD:
@@ -148,6 +152,10 @@ jobs:
         echo "CTEST_EXE=ctest" >> "$GITHUB_ENV" &&
         echo "CPACK_EXE=cpack" >> "$GITHUB_ENV"
 
+    - name: Install dependencies (system)
+      if: matrix.DEPS == 'system'
+      run: apt-get update -qq && apt-get install -y libfreetype-dev libsfml-dev libglm-dev libglew-dev libtclap-dev libstb-dev
+  
     - name: Cache dependencies (vcpkg)
       if: matrix.DEPS == 'vcpkg'
       id: vcpkg-install
@@ -176,7 +184,7 @@ jobs:
         # Not using -pedantic: error: ISO C forbids braced-groups within expressions
         echo "CFLAGS=-Wall -Wextra -Werror -m${{matrix.BIN}} -Wno-missing-field-initializers ${{ matrix.COMPILER.EXCLUSIVE_C_FLAGS }}" >> $GITHUB_ENV;
         # Excluding missing-field-initializers error because it comes from the Std dependency
-        echo "CXXFLAGS=-Wall -Wextra -pedantic -Werror -m${{matrix.BIN}} -Wno-missing-field-initializers" >> $GITHUB_ENV;
+        echo "CXXFLAGS=-Wall -Wextra -pedantic -Werror -m${{matrix.BIN}} -Wno-missing-field-initializers ${{ matrix.COMPILER.EXCLUSIVE_CXX_FLAGS }}" >> $GITHUB_ENV;
 
     - name: Checkout OpenCL-SDK
       uses: actions/checkout@v4
