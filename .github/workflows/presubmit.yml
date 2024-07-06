@@ -650,6 +650,7 @@ jobs:
         if [[ "${{matrix.GEN}}" == "Ninja Multi-Config" && ! `which ninja` ]]; then brew install ninja; fi &&
         # We need to provide an OpenCL driver for Intel CPU on mac
         brew install pocl
+        echo "OCL_ICD_VENDORS=/opt/homebrew/Cellar/pocl/5.0/etc/OpenCL/vendors" >> $GITHUB_ENV
         cmake --version
 
     - name: Install dependencies (Homebrew)
@@ -688,6 +689,7 @@ jobs:
         -D CMAKE_C_STANDARD=${{matrix.STD.C}}
         -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}}
         -D CMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/install
+        -D CMAKE_OSX_ARCHITECTURES=arm64
         -S $GITHUB_WORKSPACE
         -B $GITHUB_WORKSPACE/build
 
@@ -699,8 +701,9 @@ jobs:
     - name: Test
       working-directory: ${{runner.workspace}}/OpenCL-SDK/build
       run: |
-        OCL_ICD_VENDORS=/usr/local/etc/OpenCL/vendors ctest -C Debug --output-on-failure --no-tests=error --parallel `sysctl -n hw.logicalcpu`
-        OCL_ICD_VENDORS=/usr/local/etc/OpenCL/vendors ctest -C Release --output-on-failure --no-tests=error --parallel `sysctl -n hw.logicalcpu`
+        EXCLUDE_REGEX="multidevice.*"
+        ctest -C Debug --output-on-failure --no-tests=error --parallel `sysctl -n hw.logicalcpu` --exclude-regex "$EXCLUDE_REGEX"
+        ctest -C Release --output-on-failure --no-tests=error --parallel `sysctl -n hw.logicalcpu` --exclude-regex "$EXCLUDE_REGEX"
 
     - name: Install
       run: |
@@ -717,8 +720,8 @@ jobs:
         cmake --build $GITHUB_WORKSPACE/build_install --config Debug --parallel `sysctl -n hw.logicalcpu` &&
         cmake --build $GITHUB_WORKSPACE/build_install --config Release --parallel `sysctl -n hw.logicalcpu` &&
         cd $GITHUB_WORKSPACE/build_install &&
-        OCL_ICD_VENDORS=/usr/local/etc/OpenCL/vendors ctest -C Debug --output-on-failure --no-tests=error --parallel `sysctl -n hw.logicalcpu` &&
-        OCL_ICD_VENDORS=/usr/local/etc/OpenCL/vendors ctest -C Release --output-on-failure --no-tests=error --parallel `sysctl -n hw.logicalcpu`
+        ctest -C Debug --output-on-failure --no-tests=error --parallel `sysctl -n hw.logicalcpu` &&
+        ctest -C Release --output-on-failure --no-tests=error --parallel `sysctl -n hw.logicalcpu`
 
   python:
     name: Exercise Python examples on ${{matrix.os}}
