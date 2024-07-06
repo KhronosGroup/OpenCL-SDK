@@ -138,7 +138,7 @@ macro(add_sample)
               NAME "${OPENCL_SAMPLE_TARGET}_${CONFIG}"
               COMMAND ${OPENCL_SAMPLE_TARGET}
               CONFIGURATIONS ${CONFIG}
-              WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+              WORKING_DIRECTORY "$<TARGET_FILE_DIR:${OPENCL_SAMPLE_TARGET}>"
             )
         endif()
     endforeach()

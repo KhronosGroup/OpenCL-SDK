@@ -9,16 +9,6 @@ target_compile_definitions(clinfo PRIVATE
 )
 add_test(NAME clinfo COMMAND $<TARGET_FILE:clinfo>)
 
-# if (APPLE)
-#     set(RBASE "@loader_path")
-# else ()
-#     set(RBASE "$ORIGIN")
-# endif ()
-# file(RELATIVE_PATH REL_LIB_DIR
-#     "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}"
-#     "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}"
-# )
-# set_target_properties(clinfo PROPERTIES INSTALL_RPATH "${RBASE}/${REL_LIB_DIR}")
 install(
     TARGETS clinfo
     RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"

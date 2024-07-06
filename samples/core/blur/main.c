@@ -923,6 +923,7 @@ end:
 
 int main(int argc, char *argv[])
 {
+    srand((unsigned int)time(NULL));
     cl_int error = CL_SUCCESS, end_error = CL_SUCCESS;
     state s;
     cl_platform_id platform;
@@ -934,7 +935,7 @@ int main(int argc, char *argv[])
         .triplet = { 0, 0, CL_DEVICE_TYPE_ALL }
     };
     struct options_Blur blur_opts = {
-        .size = 1, .op = "box", .in = NULL, .out = "out.png"
+        .size = 1, .op = "box", .in = NULL, .out = "blur_out.png"
     };
 
     OCLERROR_RET(parse_options(argc, argv, &diag_opts, &dev_opts, &blur_opts),
@@ -969,9 +970,11 @@ int main(int argc, char *argv[])
     if (!diag_opts.quiet) cl_util_print_device_info(s.device);
 
     /// Read input image and prepare output image
-    const char fname[] = "andrew_svk_7oJ4D_ewB7c_unsplash.png";
+    char fname[FILENAME_MAX];
+    memset(fname, 0, FILENAME_MAX);
     if (!blur_opts.in)
     {
+        sprintf(fname, "andrew_svk_7oJ4D_ewB7c_unsplash_%x.png", rand());
         printf("No file given, use standard image %s\n", fname);
         const unsigned char *fcont = andrew_svk_7oJ4D_ewB7c_unsplash_png;
         const size_t fsize = andrew_svk_7oJ4D_ewB7c_unsplash_png_size;

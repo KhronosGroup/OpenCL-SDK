@@ -41,7 +41,7 @@ set(CPACK_DEBIAN_BINARY_FILE_NAME "${CPACK_DEBIAN_BINARY_PACKAGE_NAME}_${PACKAGE
 # Replacements
 # ToDo
 # set(CPACK_DEBIAN_BINARY_PACKAGE_DEPENDS "opencl-c-headers (>= 3.0~${PROJECT_VERSION}), opencl-clhpp-headers (>= 3.0~${PROJECT_VERSION}), khronos-opencl-loader-libopencl1 (>= 3.0~${PROJECT_VERSION}), khronos-opencl-loader-opencl-dev (>= 3.0~${PROJECT_VERSION})")
-set(CPACK_DEBIAN_BINARY_PACKAGE_DEPENDS "opencl-c-headers, opencl-clhpp-headers, khronos-opencl-loader-libopencl1, khronos-opencl-loader-opencl-dev")
+set(CPACK_DEBIAN_BINARY_PACKAGE_DEPENDS "opencl-c-headers, opencl-clhpp-headers, khronos-opencl-loader-libopencl1, khronos-opencl-loader-opencl-dev, clinfo")
 set(CPACK_DEBIAN_BINARY_PACKAGE_SECTION "libdevel")
 
 # Package clinfo, if enabled

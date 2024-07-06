@@ -312,9 +312,11 @@ jobs:
           $CTEST_EXE -C Release --output-on-failure --no-tests=error --parallel `nproc`;
         fi
 
+    - name: Run clinfo (DEB)
+      run: clinfo
+
     - name: Uninstall (DEB)
-      # ToDo: khronos-opencl-loader*
-      run: apt-get remove -y "ocl-icd*" opencl-c-headers opencl-clhpp-headers opencl-sdk
+      run: apt-get remove -y "khronos-opencl-loader*" opencl-c-headers opencl-clhpp-headers opencl-sdk clinfo
 
     - name: Test install
       run: $CMAKE_EXE
@@ -623,16 +625,6 @@ jobs:
         shell: bash
     strategy:
       matrix:
-        COMPILER:
-        - C_NAME: /usr/bin/clang
-          CXX_NAME: /usr/bin/clang++
-          EXCLUSIVE_C_FLAGS: -Wno-conditional-uninitialized
-        - C_NAME: /usr/local/bin/gcc-11
-          CXX_NAME: /usr/local/bin/g++-11
-          EXCLUSIVE_C_FLAGS: -Wno-maybe-uninitialized
-        - C_NAME: /usr/local/bin/gcc-13
-          CXX_NAME: /usr/local/bin/g++-13
-          EXCLUSIVE_C_FLAGS: -Wno-maybe-uninitialized
         GEN:
         - Xcode
         - Ninja Multi-Config
@@ -645,114 +637,91 @@ jobs:
           CXX: 14
         - C: 17
           CXX: 17
-        exclude:
-        # These entries are excluded, since XCode selects its own compiler
-        - COMPILER:
-            C_NAME: /usr/local/bin/gcc-11
-            CXX_NAME: /usr/local/bin/g++-11
-            EXCLUSIVE_C_FLAGS: -Wno-maybe-uninitialized
-          GEN: Xcode
-        - COMPILER:
-            C_NAME: /usr/local/bin/gcc-13
-            CXX_NAME: /usr/local/bin/g++-13
-            EXCLUSIVE_C_FLAGS: -Wno-maybe-uninitialized
-          GEN: Xcode
-        # The gnu binaries are not compatible with the Homebrew installed binaries
-        - COMPILER:
-            C_NAME: /usr/local/bin/gcc-11
-            CXX_NAME: /usr/local/bin/g++-11
-            EXCLUSIVE_C_FLAGS: -Wno-maybe-uninitialized
-          DEPS: system
-        - COMPILER:
-            C_NAME: /usr/local/bin/gcc-13
-            CXX_NAME: /usr/local/bin/g++-13
-            EXCLUSIVE_C_FLAGS: -Wno-maybe-uninitialized
-          DEPS: system
     env:
-      CC: ${{matrix.COMPILER.C_NAME}}
-      CXX: ${{matrix.COMPILER.CXX_NAME}}
+      CC: /usr/bin/clang
+      CXX: /usr/bin/clang++
     steps:
-      - name: Checkout OpenCL-SDK
-        uses: actions/checkout@v3
-        with:
-            fetch-depth: 0
-            submodules: recursive
+    - name: Checkout OpenCL-SDK
+      uses: actions/checkout@v3
+      with:
+          fetch-depth: 0
+          submodules: recursive
 
-      - name: Create Build Environment
-        run: |
-          # Install Ninja only if it's the selected generator and it's not available.
-          if [[ "${{matrix.GEN}}" == "Ninja Multi-Config" && ! `which ninja` ]]; then brew install ninja; fi &&
-          # We need to provide an OpenCL driver for Intel CPU on mac
-          brew install pocl
-          cmake --version
+    - name: Create Build Environment
+      run: |
+        # Install Ninja only if it's the selected generator and it's not available.
+        if [[ "${{matrix.GEN}}" == "Ninja Multi-Config" && ! `which ninja` ]]; then brew install ninja; fi &&
+        # We need to provide an OpenCL driver for Intel CPU on mac
+        brew install pocl
+        cmake --version
 
-      - name: Install dependencies (Homebrew)
-        if: matrix.DEPS == 'system'
-        run: brew install tclap glm glew sfml mesa-glu
+    - name: Install dependencies (Homebrew)
+      if: matrix.DEPS == 'system'
+      run: brew install tclap glm glew sfml mesa-glu
 
-      - name: Install dependencies (vcpkg)
-        if: matrix.DEPS == 'vcpkg'
-        run: |
-          git clone https://github.com/Microsoft/vcpkg.git vcpkg
-          ./vcpkg/bootstrap-vcpkg.sh
-          ./vcpkg/vcpkg install tclap glm glew sfml stb
+    - name: Install dependencies (vcpkg)
+      if: matrix.DEPS == 'vcpkg'
+      run: |
+        git clone https://github.com/Microsoft/vcpkg.git vcpkg
+        ./vcpkg/bootstrap-vcpkg.sh
+        ./vcpkg/vcpkg install tclap glm glew sfml stb
 
-      - name: Set up compiler flags
-        run: |
-          # Not using -pedantic: error: ISO C forbids braced-groups within expressions
-          # The flags
-          #  * -Wno-missing-field-initializers
-          #  * matrix.COMPILER.EXCLUSIVE_C_FLAGS
-          # have been added because of Std compilation errors
-          echo "CFLAGS=-Wall -Wextra -Werror -Wno-missing-field-initializers ${{ matrix.COMPILER.EXCLUSIVE_C_FLAGS }}" >> $GITHUB_ENV;
-          # The flags
-          #  * -Wno-deprecated-declarations
-          #  * -Wno-missing-field-initializers
-          # have been added because of Std compilation errors
-          echo "CXXFLAGS=-Wall -Wextra -pedantic -Wno-format -Werror -Wno-missing-field-initializers -Wno-deprecated-declarations" >> $GITHUB_ENV;
+    - name: Set up compiler flags
+      run: |
+        # Not using -pedantic: error: ISO C forbids braced-groups within expressions
+        # The flags
+        #  * -Wno-missing-field-initializers
+        #  * -Wno-conditional-uninitialized
+        # have been added because of Std compilation errors
+        echo "CFLAGS=-Wall -Wextra -Werror -Wno-missing-field-initializers -Wno-conditional-uninitialized" >> $GITHUB_ENV;
+        # The flags
+        #  * -Wno-deprecated-declarations
+        #  * -Wno-missing-field-initializers
+        # have been added because of Std compilation errors
+        echo "CXXFLAGS=-Wall -Wextra -pedantic -Wno-format -Werror -Wno-missing-field-initializers -Wno-deprecated-declarations" >> $GITHUB_ENV;
 
-      - name: Configure
-        run: cmake
-          -G "${{matrix.GEN}}"
-          `if [[ "${{matrix.DEPS}}" == "vcpkg" ]]; then echo "-D CMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake"; fi`
-          -D BUILD_DOCS=ON
-          -D BUILD_TESTING=ON
-          -D BUILD_EXAMPLES=ON
-          -D OPENCL_SDK_BUILD_SAMPLES=ON
-          -D CMAKE_C_STANDARD=${{matrix.STD.C}}
-          -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}}
-          -D CMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/install
-          -S $GITHUB_WORKSPACE
-          -B $GITHUB_WORKSPACE/build
+    - name: Configure
+      run: cmake
+        -G "${{matrix.GEN}}"
+        `if [[ "${{matrix.DEPS}}" == "vcpkg" ]]; then echo "-D CMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake"; fi`
+        -D BUILD_DOCS=ON
+        -D BUILD_TESTING=ON
+        -D BUILD_EXAMPLES=ON
+        -D OPENCL_SDK_BUILD_SAMPLES=ON
+        -D CMAKE_C_STANDARD=${{matrix.STD.C}}
+        -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}}
+        -D CMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/install
+        -S $GITHUB_WORKSPACE
+        -B $GITHUB_WORKSPACE/build
 
-      - name: Build
-        run: |
-          cmake --build $GITHUB_WORKSPACE/build --config Debug --parallel `sysctl -n hw.logicalcpu`
-          cmake --build $GITHUB_WORKSPACE/build --config Release --parallel `sysctl -n hw.logicalcpu`
+    - name: Build
+      run: |
+        cmake --build $GITHUB_WORKSPACE/build --config Debug --parallel `sysctl -n hw.logicalcpu`
+        cmake --build $GITHUB_WORKSPACE/build --config Release --parallel `sysctl -n hw.logicalcpu`
 
-      - name: Test
-        working-directory: ${{runner.workspace}}/OpenCL-SDK/build
-        run: |
-          OCL_ICD_VENDORS=/usr/local/etc/OpenCL/vendors ctest -C Debug --output-on-failure --no-tests=error --parallel `sysctl -n hw.logicalcpu`
-          OCL_ICD_VENDORS=/usr/local/etc/OpenCL/vendors ctest -C Release --output-on-failure --no-tests=error --parallel `sysctl -n hw.logicalcpu`
+    - name: Test
+      working-directory: ${{runner.workspace}}/OpenCL-SDK/build
+      run: |
+        OCL_ICD_VENDORS=/usr/local/etc/OpenCL/vendors ctest -C Debug --output-on-failure --no-tests=error --parallel `sysctl -n hw.logicalcpu`
+        OCL_ICD_VENDORS=/usr/local/etc/OpenCL/vendors ctest -C Release --output-on-failure --no-tests=error --parallel `sysctl -n hw.logicalcpu`
 
-      - name: Install
-        run: |
-          cmake --build $GITHUB_WORKSPACE/build --config Release --target install
+    - name: Install
+      run: |
+        cmake --build $GITHUB_WORKSPACE/build --config Release --target install
 
-      - name: Consume (install)
-        run: cmake
-          -G "${{matrix.GEN}}"
-          -D CMAKE_C_STANDARD=${{matrix.STD.C}}
-          -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}}
-          -D CMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/install"
-          -S $GITHUB_WORKSPACE/test/cmake/pkgconfig/useutil
-          -B $GITHUB_WORKSPACE/build_install &&
-          cmake --build $GITHUB_WORKSPACE/build_install --config Debug --parallel `sysctl -n hw.logicalcpu` &&
-          cmake --build $GITHUB_WORKSPACE/build_install --config Release --parallel `sysctl -n hw.logicalcpu` &&
-          cd $GITHUB_WORKSPACE/build_install &&
-          OCL_ICD_VENDORS=/usr/local/etc/OpenCL/vendors ctest -C Debug --output-on-failure --no-tests=error --parallel `sysctl -n hw.logicalcpu` &&
-          OCL_ICD_VENDORS=/usr/local/etc/OpenCL/vendors ctest -C Release --output-on-failure --no-tests=error --parallel `sysctl -n hw.logicalcpu`
+    - name: Consume (install)
+      run: cmake
+        -G "${{matrix.GEN}}"
+        -D CMAKE_C_STANDARD=${{matrix.STD.C}}
+        -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}}
+        -D CMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/install"
+        -S $GITHUB_WORKSPACE/test/cmake/pkgconfig/useutil
+        -B $GITHUB_WORKSPACE/build_install &&
+        cmake --build $GITHUB_WORKSPACE/build_install --config Debug --parallel `sysctl -n hw.logicalcpu` &&
+        cmake --build $GITHUB_WORKSPACE/build_install --config Release --parallel `sysctl -n hw.logicalcpu` &&
+        cd $GITHUB_WORKSPACE/build_install &&
+        OCL_ICD_VENDORS=/usr/local/etc/OpenCL/vendors ctest -C Debug --output-on-failure --no-tests=error --parallel `sysctl -n hw.logicalcpu` &&
+        OCL_ICD_VENDORS=/usr/local/etc/OpenCL/vendors ctest -C Release --output-on-failure --no-tests=error --parallel `sysctl -n hw.logicalcpu`
 
   python:
     name: Exercise Python examples on ${{matrix.os}}
