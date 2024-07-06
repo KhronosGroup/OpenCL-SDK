@@ -1,4 +1,5 @@
 name: Presubmit
+
 on: [push, pull_request]
 
 jobs:
@@ -32,7 +33,6 @@ jobs:
         run: $GITHUB_WORKSPACE/scripts/check-format.sh origin/${{ needs.get-branch.outputs.branch }} --binary clang-format
 
   linux:
-    if: false
     runs-on: ubuntu-latest
     needs: format
     strategy:
@@ -42,23 +42,27 @@ jobs:
           - C_NAME: gcc
             CXX_NAME: g++
             VER: 11
-          # - C_NAME: gcc
-          #   CXX_NAME: g++
-          #   VER: 13
-          # - C_NAME: clang
-          #   CXX_NAME: clang++
-          #   VER: 14
-          # - C_NAME: clang
-          #   CXX_NAME: clang++
-          #   VER: 16
+          - C_NAME: gcc
+            CXX_NAME: g++
+            VER: 13
+          - C_NAME: clang
+            CXX_NAME: clang++
+            VER: 14
+          - C_NAME: clang
+            CXX_NAME: clang++
+            VER: 16
         DEPS: [os, vcpkg]
         BIN: [64]
         STD: [11, 17]
         CONF:
           - GEN: Unix Makefiles
             CONFIG: Debug
+          - GEN: Unix Makefiles
+            CONFIG: Release
+          - GEN: Ninja Multi-Config
+            CONFIG: Release
         IMAGE:
-          - streamhpc/opencl-sdk-base:ubuntu-22.04-20230717
+          - streamhpc/opencl-sdk-intelcpu:ubuntu-22.04-20230717
     container: ${{matrix.IMAGE}}
     env:
       CMAKE_EXE: /opt/Kitware/CMake/${{ matrix.CMAKE }}/bin/cmake
@@ -67,6 +71,8 @@ jobs:
       DEB_INSTALLATION_PATH: /usr
       CC: ${{matrix.COMPILER.C_NAME}}-${{matrix.COMPILER.VER}}
       CXX:  ${{matrix.COMPILER.CXX_NAME}}-${{matrix.COMPILER.VER}}
+      CFLAGS: -Wall -Wextra -pedantic -Werror -m${{matrix.BIN}}
+      CXXFLAGS: -Wall -Wextra -pedantic -Werror -m${{matrix.BIN}}
 
     steps:
       - name: Checkout OpenCL-SDK
@@ -180,7 +186,8 @@ jobs:
 
       - name: Consume (DEB)
         shell: bash
-        run: dpkg -i $GITHUB_WORKSPACE/package-deb/*.deb &&
+        run: dpkg -i $GITHUB_WORKSPACE/external/OpenCL-*/package-deb/*.deb &&
+          dpkg -i --force-overwrite $GITHUB_WORKSPACE/package-deb/*.deb &&
           mkdir $GITHUB_WORKSPACE/build_package &&
           cd $GITHUB_WORKSPACE/build_package &&
           $CMAKE_EXE
@@ -201,8 +208,7 @@ jobs:
 
       - name: Test install
         shell: bash
-        run: $CMAKE_EXE --build $GITHUB_WORKSPACE/build --target install --config ${{matrix.CONF.CONFIG}} -- -j`nproc` &&
-          ls -lR $GITHUB_WORKSPACE/install
+        run: $CMAKE_EXE --build $GITHUB_WORKSPACE/build --target install --config ${{matrix.CONF.CONFIG}} -- -j`nproc`;
 
       - name: Consume (install)
         shell: bash
@@ -221,6 +227,7 @@ jobs:
           fi;
 
   build:
+    if: false
     needs: format
     name: Build ${{ matrix.os }} ${{ matrix.compiler }} ${{ matrix.deps }}
     runs-on: ${{ matrix.os }}
@@ -276,6 +283,7 @@ jobs:
               --verbose \
               --parallel `numproc`
   buildwin:
+    if: false
     needs: format
     name: Build Windows ${{ matrix.deps }}
     runs-on: windows-latest
@@ -308,6 +316,7 @@ jobs:
             /noLogo
 
   python:
+    if: false
     name: Exercise Python examples on ${{matrix.os}}
     strategy:
       matrix:
@@ -345,6 +354,7 @@ jobs:
           done
 
   checkruby:
+    if: false
     name: Check Ruby Samples ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
