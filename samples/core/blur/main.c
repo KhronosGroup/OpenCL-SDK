@@ -920,6 +920,12 @@ end:
     return error;
 }
 
+cl_int opencl_version_contains(const char *dev_version,
+                               const char *version_fragment)
+{
+    char *found_version = strstr(dev_version, version_fragment);
+    return (found_version != NULL);
+}
 
 int main(int argc, char *argv[])
 {
@@ -1051,16 +1057,23 @@ int main(int argc, char *argv[])
         free(name);
     }
 
-    // 5) query if OpenCL driver version is 2.0
-    bool opencl_c_version_2_0 = false;
+    // 5) Query OpenCL version to compile for.
+    // If no -cl-std option is specified then the highest 1.x version
+    // supported by each device is used to compile the program. Therefore,
+    // it's only necessary to add the -cl-std option for 2.0 and 3.0 OpenCL
+    // versions.
+    char dev_version[64];
+    OCLERROR_RET(clGetDeviceInfo(s.device, CL_DEVICE_OPENCL_C_VERSION,
+                                 sizeof(dev_version), &dev_version, NULL),
+                 error, end);
+    char compiler_options[1024] = "";
+    if (opencl_version_contains(dev_version, "3."))
     {
-        char *driver_version = NULL;
-        OCLERROR_PAR(
-            driver_version = cl_util_get_device_info(s.device, CL_DRIVER_VERSION, &error),
-            error, clean);
-        opencl_c_version_2_0 = strcmp("2.0", driver_version) ? 0 : 1;
-    clean:
-        free(driver_version);
+        strcat(compiler_options, "-cl-std=CL3.0 ");
+    }
+    else if (opencl_version_contains(dev_version, "2."))
+    {
+        strcat(compiler_options, "-cl-std=CL2.0 ");
     }
 
     /// Create image buffers
@@ -1128,23 +1141,21 @@ int main(int argc, char *argv[])
                          error, prg);
 
         /// Subgroup exchange in dual-pass blur
-        if (use_subgroup_exchange_relative && opencl_c_version_2_0)
+        if (use_subgroup_exchange_relative)
         {
             printf("Dual-pass subgroup relative exchange blur\n");
 
             kernel_op[0] = '\0';
-            strcat(kernel_op, " -cl-std=CL2.0 ");
             strcat(kernel_op, "-D USE_SUBGROUP_EXCHANGE_RELATIVE ");
             OCLERROR_RET(dual_pass_subgroup_exchange_box_blur(
                              &s, (cl_int)blur_opts.size),
                          error, prg);
         }
-        if (use_subgroup_exchange && opencl_c_version_2_0)
+        if (use_subgroup_exchange)
         {
             printf("Dual-pass subgroup exchange blur\n");
 
             kernel_op[0] = '\0';
-            strcat(kernel_op, " -cl-std=CL2.0 ");
             strcat(kernel_op, "-D USE_SUBGROUP_EXCHANGE ");
 
             OCLERROR_RET(dual_pass_subgroup_exchange_box_blur(
@@ -1183,24 +1194,22 @@ int main(int argc, char *argv[])
         }
 
         /// Subgroup exchange in dual-pass Gaussian blur
-        if (use_subgroup_exchange_relative && opencl_c_version_2_0)
+        if (use_subgroup_exchange_relative)
         {
             printf("Dual-pass subgroup relative exchange Gaussian blur\n");
 
             kernel_op[0] = '\0';
-            strcat(kernel_op, " -cl-std=CL2.0 ");
             strcat(kernel_op, "-D USE_SUBGROUP_EXCHANGE_RELATIVE ");
 
             OCLERROR_RET(dual_pass_subgroup_exchange_kernel_blur(&s, gauss_size,
                                                                  gauss_kern),
                          error, gkrn);
         }
-        if (use_subgroup_exchange && opencl_c_version_2_0)
+        if (use_subgroup_exchange)
         {
             printf("Dual-pass subgroup exchange Gaussian blur\n");
 
             kernel_op[0] = '\0';
-            strcat(kernel_op, " -cl-std=CL2.0 ");
             strcat(kernel_op, "-D USE_SUBGROUP_EXCHANGE ");
 
             OCLERROR_RET(dual_pass_subgroup_exchange_kernel_blur(&s, gauss_size,

@@ -25,6 +25,7 @@
 #include <map>
 #include <random>
 #include <sstream>
+#include <string>
 
 // C header includes
 #include <math.h>
@@ -484,7 +485,13 @@ void BlurCppExample::prepare_output_image()
                                * output_image.pixel_size);
 }
 
-std::tuple<bool, bool, bool> BlurCppExample::query_capabilities()
+bool opencl_version_contains(const cl::string& dev_version,
+                             const cl::string& version_fragment)
+{
+    return dev_version.find(version_fragment) != cl::string::npos;
+}
+
+std::tuple<bool, bool, bool, std::string> BlurCppExample::query_capabilities()
 {
     // 1) query image support
     if (!device.getInfo<CL_DEVICE_IMAGE_SUPPORT>())
@@ -501,21 +508,34 @@ std::tuple<bool, bool, bool> BlurCppExample::query_capabilities()
         (device.getInfo<CL_DEVICE_LOCAL_MEM_TYPE>() == CL_LOCAL);
 
     // 4) query if device allow subgroup shuffle operations
-    bool use_subgroups =
-        cl::util::supports_extension(device, "cl_khr_subgroups");
     bool use_subgroup_exchange =
         cl::util::supports_extension(device, "cl_khr_subgroup_shuffle");
     bool use_subgroup_exchange_relative = cl::util::supports_extension(
         device, "cl_khr_subgroup_shuffle_relative");
 
-    return std::make_tuple(use_local_mem,
-                           use_subgroups && use_subgroup_exchange,
-                           use_subgroups && use_subgroup_exchange_relative);
-}
+    // 5) Query OpenCL version to compile for.
+    // If no -cl-std option is specified then the highest 1.x version
+    // supported by each device is used to compile the program. Therefore,
+    // it's only necessary to add the -cl-std option for 2.0 and 3.0 OpenCL
+    // versions.
+    const std::string dev_version =
+        device.getInfo<CL_DEVICE_OPENCL_C_VERSION>();
+    cl::string compiler_options;
+    constexpr int max_major_version = 3;
+    for (auto i = 2; i <= max_major_version; ++i)
+    {
+        std::string version_str = std::to_string(i) + "."; // "i."
+        std::string compiler_opt_str =
+            "-cl-std=CL" + std::to_string(i) + ".0 "; // -cl-std=CLi.0
 
-bool BlurCppExample::query_opencl_c_2_0_support()
-{
-    return cl::util::opencl_c_version_contains(device, "2.0");
+        compiler_options +=
+            cl::string{ opencl_version_contains(dev_version, version_str)
+                            ? compiler_opt_str
+                            : "" };
+    }
+
+    return std::make_tuple(use_local_mem, use_subgroup_exchange,
+                           use_subgroup_exchange_relative, compiler_options);
 }
 
 void BlurCppExample::create_image_buffers()

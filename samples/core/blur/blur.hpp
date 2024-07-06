@@ -7,6 +7,7 @@
 
 // STL includes
 #include <fstream>
+#include <string>
 
 class BlurCppExample {
 public:
@@ -39,10 +40,7 @@ public:
     void prepare_output_image();
 
     // Query device and runtime capabilities
-    std::tuple<bool, bool, bool> query_capabilities();
-
-    // Query device support for OpenCL 2.0
-    bool query_opencl_c_2_0_support();
+    std::tuple<bool, bool, bool, std::string> query_capabilities();
 
     void create_image_buffers();
 
