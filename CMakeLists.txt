@@ -48,6 +48,7 @@ list(APPEND CMAKE_MODULE_PATH
   ${PROJECT_SOURCE_DIR}/cmake/Modules
 )
 include(Dependencies)
+include(Package)
 if(OPENCL_SDK_BUILD_UTILITY_LIBRARIES)
   add_subdirectory(lib)
 endif()

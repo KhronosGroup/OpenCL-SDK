@@ -6,7 +6,7 @@ jobs:
     name: Code formatting
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Install clang-format
@@ -23,7 +23,7 @@ jobs:
         compiler: [gcc, clang]
         deps: [os, fetch, vcpkg]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
           submodules: recursive
@@ -31,8 +31,9 @@ jobs:
         run: |
             if [[ "${{ matrix.os }}" == "ubuntu-20.04" ]]; then
               sudo apt update
-              sudo apt install -y libidn11 libx11-dev libxrandr-dev libxcursor-dev libxi-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libudev-dev \
-              `if [[ "${{matrix.deps}}" == "os" ]]; then echo libtclap-dev libglm-dev libglew-dev libsfml-dev libstb-dev; fi;`
+              sudo apt install -y libidn11 libx11-dev libxrandr-dev libxi-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libudev-dev \
+              `if [[ "${{matrix.deps}}" == "os" ]]; then echo libtclap-dev libglm-dev libglew-dev libsfml-dev libstb-dev; fi;` \
+              `if [[ "${{matrix.deps}}" == "vcpkg" ]]; then echo autoconf libtool libxcursor-dev; fi;`
               if [[ "${{matrix.deps}}" == "vcpkg" ]]; then
                 git clone https://github.com/Microsoft/vcpkg.git
                 ./vcpkg/bootstrap-vcpkg.sh
@@ -75,7 +76,7 @@ jobs:
       matrix:
         deps: [fetch, vcpkg]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
           submodules: recursive
@@ -107,7 +108,7 @@ jobs:
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Environment setup
         run: |
           MINIFORGE_INSTALL_DIR=.miniforge3
@@ -144,7 +145,7 @@ jobs:
         #os: [ubuntu-latest, macos-latest]
         os: [ubuntu-latest, macos-13]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
           submodules: recursive
