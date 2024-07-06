@@ -42,15 +42,19 @@ jobs:
           # - C_NAME: gcc
           #   CXX_NAME: g++
           #   VER: 11
+          #   EXCLUSIVE_C_FLAGS: -Wno-maybe-uninitialized
           # - C_NAME: gcc
           #   CXX_NAME: g++
           #   VER: 13
+          #   EXCLUSIVE_C_FLAGS: -Wno-maybe-uninitialized
           - C_NAME: clang
             CXX_NAME: clang++
             VER: 14
+            EXCLUSIVE_C_FLAGS: ""
           - C_NAME: clang
             CXX_NAME: clang++
             VER: 16
+            EXCLUSIVE_C_FLAGS: ""
         DEPS: [os, vcpkg]
         BIN: [64]
         STD:

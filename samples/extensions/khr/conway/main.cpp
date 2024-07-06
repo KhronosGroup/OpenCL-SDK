@@ -306,7 +306,7 @@ void Conway::updateScene()
         conway(
             cl::EnqueueArgs{ queue, cl::NDRange{ getSize().x, getSize().y } },
             cl_images.front, cl_images.back,
-            cl_float2{ 1.f / getSize().x, 1.f / getSize().y });
+            cl_float2{ { 1.f / getSize().x, 1.f / getSize().y } });
 
         queue.enqueueReleaseGLObjects(&interop_resources, nullptr, &release);
 
