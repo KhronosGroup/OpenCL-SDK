@@ -16,7 +16,7 @@ jobs:
 
     steps:
     - name: Checkout OpenCL-SDK
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Initialize git submodules
       shell: pwsh
@@ -69,7 +69,7 @@ jobs:
             /verbosity:minimal `
             /noLogo `
         }
-    
+
     - name: Package Binary
       shell: pwsh
       run: |
@@ -95,9 +95,12 @@ jobs:
       matrix:
         OS: [ubuntu-20.04, windows-2022]
 
+    env:
+      DEB_INSTALLATION_PATH: /usr
+
     steps:
     - name: Checkout OpenCL-SDK
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Initialize git submodules
       shell: pwsh
@@ -117,6 +120,7 @@ jobs:
           -D OPENCL_SDK_BUILD_SAMPLES=OFF `
           -D OPENCL_ICD_LOADER_BUILD_TESTING=OFF `
           -D CMAKE_POLICY_DEFAULT_CMP0096=NEW
+          -D CPACK_PACKAGING_INSTALL_PREFIX=$DEB_INSTALLATION_PATH
 
     - name: Check version number
       shell: pwsh
@@ -126,6 +130,16 @@ jobs:
           Select-String -Pattern ('CMAKE_PROJECT_VERSION:STATIC=' + '${{github.ref_name}}'.Replace('v','')) `
         )) `
         { throw 'CMake project version mismatches Git tag name (without leading "v")'}
+
+    - name: Package DEB
+      shell: pwsh
+      if: ${{ contains(matrix.OS, 'ubuntu') }}
+      run: |
+        cpack
+        --config "${env:GITHUB_WORKSPACE}/build/CPackSourceConfig.cmake" `
+        -G DEB
+        -C Release
+        "${env:GITHUB_WORKSPACE}/package-deb"
 
     - name: Package Source
       shell: pwsh

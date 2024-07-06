@@ -1,5 +1,12 @@
-build/
-install/
+# Build dir
+[Bb]uild/
+
+# Install dir
+[Ii]nstall/
+
+# Package dirs
+[Pp]ackage/
+[Pp]ackage-deb/
 
 # vim
 *~
