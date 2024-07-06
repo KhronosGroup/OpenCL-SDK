@@ -53,7 +53,11 @@ jobs:
           #   VER: 16
         DEPS: [os, vcpkg]
         BIN: [64]
-        STD: [11, 17]
+        STD:
+          - C: 99
+            CXX: 14
+          - C: 17
+            CXX: 17
         CONF:
           - GEN: Unix Makefiles
             CONFIG: Debug
@@ -150,6 +154,8 @@ jobs:
           -D BUILD_EXAMPLES=ON
           -D OPENCL_SDK_BUILD_SAMPLES=OFF
           -D OPENCL_ICD_LOADER_BUILD_TESTING=ON
+          -D CMAKE_C_STANDARD=${{matrix.STD.C}}
+          -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}}
           -D CMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/install
           -D CPACK_PACKAGING_INSTALL_PREFIX=$DEB_INSTALLATION_PATH
           -S $GITHUB_WORKSPACE
@@ -191,6 +197,8 @@ jobs:
           $CMAKE_EXE
           -G "${{matrix.CONF.GEN}}"
           `if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]]; then echo "-D CMAKE_BUILD_TYPE=${{matrix.CONF.CONFIG}}"; fi`
+          -D CMAKE_C_STANDARD=${{matrix.STD.C}}
+          -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}}
           -S $GITHUB_WORKSPACE/test/cmake/pkgconfig/useutil
           -B $GITHUB_WORKSPACE/build_package &&
           if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]];
@@ -216,7 +224,10 @@ jobs:
           -G "${{matrix.CONF.GEN}}"
           `if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]]; then echo "-D CMAKE_BUILD_TYPE=${{matrix.CONF.CONFIG}}"; fi`
           -D CMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/install
-          $GITHUB_WORKSPACE/test/cmake/pkgconfig/useutil &&
+          -D CMAKE_C_STANDARD=${{matrix.STD.C}}
+          -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}}
+          -S $GITHUB_WORKSPACE/test/cmake/pkgconfig/useutil
+          -B $GITHUB_WORKSPACE/build_install &&
           if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]];
           then
             $CMAKE_EXE --build $GITHUB_WORKSPACE/build_install -- -j`nproc`;
@@ -234,7 +245,11 @@ jobs:
         GEN: [Visual Studio 17 2022, Ninja Multi-Config]
         DEPS: [os, vcpkg]
         BIN: [x64]
-        STD: [14, 17]
+        STD:
+          - C: 99
+            CXX: 14
+          - C: 17
+            CXX: 17
         exclude:
         - VER: clangcl
           GEN: Ninja Multi-Config
@@ -296,8 +311,8 @@ jobs:
             -D BUILD_TESTING=ON `
             -D OPENCL_SDK_BUILD_SAMPLES=OFF `
             -D OPENCL_ICD_LOADER_BUILD_TESTING=ON `
-            -D CMAKE_C_STANDARD=${{matrix.STD}} `
-            -D CMAKE_CXX_STANDARD=${{matrix.STD}} `
+            -D CMAKE_C_STANDARD=${{matrix.STD.C}} `
+            -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}} `
             -D CMAKE_INSTALL_PREFIX=${env:GITHUB_WORKSPACE}\install `
             -S ${env:GITHUB_WORKSPACE} `
             -B ${env:GITHUB_WORKSPACE}\build
@@ -327,8 +342,8 @@ jobs:
             -D BUILD_TESTING=ON `
             -D OPENCL_SDK_BUILD_SAMPLES=OFF `
             -D OPENCL_ICD_LOADER_BUILD_TESTING=ON `
-            -D CMAKE_C_STANDARD=${{matrix.STD}} `
-            -D CMAKE_CXX_STANDARD=${{matrix.STD}} `
+            -D CMAKE_C_STANDARD=${{matrix.STD.C}} `
+            -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}} `
             -D CMAKE_EXE_LINKER_FLAGS=/INCREMENTAL `
             -D CMAKE_INSTALL_PREFIX=${env:GITHUB_WORKSPACE}\install `
             -S ${env:GITHUB_WORKSPACE} `
@@ -407,8 +422,8 @@ jobs:
             -D CMAKE_EXE_LINKER_FLAGS=/INCREMENTAL `
             -D CMAKE_PREFIX_PATH="${env:GITHUB_WORKSPACE}\install" `
             -D DRIVER_STUB_PATH="${env:GITHUB_WORKSPACE}\build\Release\OpenCLDriverStub.dll" `
-            -D CMAKE_C_STANDARD=${{matrix.STD}} `
-            -D CMAKE_CXX_STANDARD=${{matrix.STD}} `
+            -D CMAKE_C_STANDARD=${{matrix.STD.C}} `
+            -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}} `
             -S "${env:GITHUB_WORKSPACE}\test\pkgconfig\useutil" `
             -B "${env:GITHUB_WORKSPACE}\downstream\pkgconfig\useutil"
           foreach ($Config in 'Release','Debug') { `
@@ -441,8 +456,8 @@ jobs:
             -D CMAKE_EXE_LINKER_FLAGS=/INCREMENTAL `
             -D CMAKE_PREFIX_PATH="${env:GITHUB_WORKSPACE}\external\OpenCL-Headers\install;${env:GITHUB_WORKSPACE}\install" `
             -D DRIVER_STUB_PATH="${env:GITHUB_WORKSPACE}\build\Release\OpenCLDriverStub.dll" `
-            -D CMAKE_C_STANDARD=${{matrix.STD}} `
-            -D CMAKE_CXX_STANDARD=${{matrix.STD}} `
+            -D CMAKE_C_STANDARD=${{matrix.STD.C}} `
+            -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}} `
             -S "${env:GITHUB_WORKSPACE}\test\pkgconfig\useutil" `
             -B "${env:GITHUB_WORKSPACE}\downstream\pkgconfig\useutil"
           foreach ($Config in 'Release','Debug') { `
@@ -469,7 +484,11 @@ jobs:
         GEN:
         - Xcode
         - Ninja Multi-Config
-        STD: [14, 17]
+        STD:
+          - C: 99
+            CXX: 14
+          - C: 17
+            CXX: 17
         DEPS: [os, vcpkg]
         exclude:
           - COMPILER:
@@ -525,8 +544,8 @@ jobs:
           -D BUILD_EXAMPLES=ON
           -D OPENCL_SDK_BUILD_SAMPLES=OFF
           -D OPENCL_ICD_LOADER_BUILD_TESTING=ON
-          -D CMAKE_C_STANDARD=${{matrix.STD}}
-          -D CMAKE_CXX_STANDARD=${{matrix.STD}}
+          -D CMAKE_C_STANDARD=${{matrix.STD.C}}
+          -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}}
           -D CMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/install
           -S $GITHUB_WORKSPACE
           -B $GITHUB_WORKSPACE/build
@@ -560,8 +579,8 @@ jobs:
           cmake
           $TOOLCHAIN_ARG
           -G "${{matrix.GEN}}"
-          -D CMAKE_C_STANDARD=${{matrix.STD}}
-          -D CMAKE_CXX_STANDARD=${{matrix.STD}}
+          -D CMAKE_C_STANDARD=${{matrix.STD.C}}
+          -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}}
           -D CMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/install"
           -S $GITHUB_WORKSPACE/test/cmake/pkgconfig/useutil
           -B $GITHUB_WORKSPACE/build_install &&
