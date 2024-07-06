@@ -10,7 +10,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           # repository: ${{ github.repository }} (default)
           fetch-depth: 0
@@ -151,7 +151,7 @@ jobs:
     - name: Cache dependencies (vcpkg)
       if: matrix.DEPS == 'vcpkg'
       id: vcpkg-install
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: /opt/Microsoft/vcpkg
         key: vcpkg-linux-${{matrix.BIN}}
@@ -179,7 +179,7 @@ jobs:
         echo "CXXFLAGS=-Wall -Wextra -pedantic -Werror -m${{matrix.BIN}} -Wno-missing-field-initializers" >> $GITHUB_ENV;
 
     - name: Checkout OpenCL-SDK
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
           fetch-depth: 0
           submodules: recursive
@@ -397,7 +397,7 @@ jobs:
     - name: Cache Ninja install
       if: matrix.GEN == 'Ninja Multi-Config'
       id: ninja-install
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           C:\Tools\Ninja
@@ -431,7 +431,7 @@ jobs:
     - name: Cache dependencies (vcpkg)
       if: matrix.DEPS == 'vcpkg'
       id: vcpkg-install
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           C:\vcpkg
@@ -447,7 +447,7 @@ jobs:
         echo "CXXFLAGS=/W4 /WX" >> $GITHUB_ENV
 
     - name: Checkout OpenCL-SDK
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
         submodules: recursive
@@ -642,7 +642,7 @@ jobs:
       CXX: /usr/bin/clang++
     steps:
     - name: Checkout OpenCL-SDK
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
           fetch-depth: 0
           submodules: recursive
@@ -734,7 +734,7 @@ jobs:
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Environment setup
         run: |
           MINIFORGE_INSTALL_DIR=.miniforge3
@@ -774,7 +774,7 @@ jobs:
         #os: [ubuntu-latest, macos-latest]
         os: [ubuntu-latest, macos-13]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: recursive
@@ -814,7 +814,7 @@ jobs:
       CXXFLAGS: -Wall -Wextra -pedantic -Werror -Wno-error=missing-field-initializers
     steps:
     - name: Checkout OpenCL-SDK
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
           fetch-depth: 0
           submodules: recursive

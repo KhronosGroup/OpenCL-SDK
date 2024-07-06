@@ -22,7 +22,7 @@ jobs:
       MultiProcMaxCount: 3
     steps:
     - name: Checkout OpenCL-SDK
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
         submodules: recursive
@@ -97,7 +97,7 @@ jobs:
 
     steps:
     - name: Checkout OpenCL-SDK
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
         submodules: recursive
