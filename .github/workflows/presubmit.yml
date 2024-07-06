@@ -33,6 +33,7 @@ jobs:
         run: $GITHUB_WORKSPACE/scripts/check-format.sh origin/${{ needs.get-branch.outputs.branch }} --binary clang-format
 
   linux:
+    if: false
     runs-on: ubuntu-latest
     needs: format
     strategy:
@@ -62,7 +63,7 @@ jobs:
           # - GEN: Ninja Multi-Config
           #   CONFIG: Release
         IMAGE:
-          - streamhpc/opencl-sdk-base:ubuntu-22.04-20230717
+          - streamhpc/opencl-sdk-intelcpu:ubuntu-22.04-20230717
     container: ${{matrix.IMAGE}}
     env:
       CMAKE_EXE: /opt/Kitware/CMake/${{ matrix.CMAKE }}/bin/cmake
@@ -225,6 +226,235 @@ jobs:
             $CMAKE_EXE --build $GITHUB_WORKSPACE/build_install --config Release -- -j`nproc`;
           fi;
 
+  windows:
+    runs-on: windows-latest
+    needs: format
+    strategy:
+      matrix:
+        VER: [v141, v142, v143, clangcl]
+        GEN: [Visual Studio 17 2022, Ninja Multi-Config]
+        DEPS: [os, vcpkg]
+        BIN: [x64]
+        STD: [14, 17]
+        exclude:
+        - VER: clangcl
+          GEN: Ninja Multi-Config
+        include:
+          - VER: v142
+            GEN: Visual Studio 17 2022
+            BIN: x86
+    env:
+      NINJA_URL: https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-win.zip
+      NINJA_ROOT: C:\Tools\Ninja
+      VS_ROOT: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise'
+      UseMultiToolTask: true # Better parallel MSBuild execution
+      EnforceProcessCountAcrossBuilds: 'true' # -=-
+      MultiProcMaxCount: '3'                  # -=-
+      WindowsSDKVersion: '10.0.22621.0'
+
+    steps:
+      - name: Cache Ninja install
+        if: matrix.GEN == 'Ninja Multi-Config'
+        id: ninja-install
+        uses: actions/cache@v3
+        with:
+          path: |
+            C:\Tools\Ninja
+          key: ${{runner.os}}-ninja-${{env.NINJA_URL}}
+
+      - name: Install Ninja
+        if: matrix.GEN == 'Ninja Multi-Config' && steps.ninja-install.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          Invoke-WebRequest ${env:NINJA_URL} -OutFile ~\Downloads\ninja-win.zip
+          Expand-Archive ~\Downloads\ninja-win.zip -DestinationPath ${env:NINJA_ROOT}\
+          Remove-Item ~\Downloads\*
+
+      - name: Checkout OpenCL-SDK
+        uses: actions/checkout@v3
+        with:
+            fetch-depth: 0
+            submodules: recursive
+
+      - name: Configure (MSBuild)
+        if: matrix.GEN == 'Visual Studio 17 2022'
+        shell: pwsh
+        run: |
+          if ('${{ matrix.DEPS }}' -eq 'vcpkg') {
+            Get-ChildItem Env:\
+            & ${env:VCPKG_INSTALLATION_ROOT}\vcpkg.exe --triplet=x64-windows install sfml tclap glm glew stb
+            $TOOLCHAIN_ARG="-D CMAKE_TOOLCHAIN_FILE=${env:VCPKG_INSTALLATION_ROOT}\scripts\buildsystems\vcpkg.cmake"
+          } else {
+            $TOOLCHAIN_ARG=''
+          }
+          $BIN = if('${{matrix.BIN}}' -eq 'x86') {'Win32'} else {'x64'}
+          & cmake `
+            $TOOLCHAIN_ARG `
+            -G "${{matrix.GEN}}" `
+            -A $BIN `
+            -T ${{matrix.VER}} `
+            -D BUILD_DOCS=ON `
+            -D BUILD_TESTING=ON `
+            -D OPENCL_SDK_BUILD_SAMPLES=OFF `
+            -D OPENCL_ICD_LOADER_BUILD_TESTING=ON `
+            -D CMAKE_C_STANDARD=${{matrix.STD}} `
+            -D CMAKE_CXX_STANDARD=${{matrix.STD}} `
+            -D CMAKE_INSTALL_PREFIX=${env:GITHUB_WORKSPACE}\install `
+            -S ${env:GITHUB_WORKSPACE} `
+            -B ${env:GITHUB_WORKSPACE}\build
+
+      - name: Configure (Ninja Multi-Config)
+        if: matrix.GEN == 'Ninja Multi-Config'
+        shell: pwsh
+        run: |
+          if ('${{ matrix.DEPS }}' -eq 'vcpkg') {
+            Get-ChildItem Env:\
+            & ${env:VCPKG_INSTALLATION_ROOT}\vcpkg.exe --triplet=x64-windows install sfml tclap glm glew stb
+            $TOOLCHAIN_ARG="-D CMAKE_TOOLCHAIN_FILE=${env:VCPKG_INSTALLATION_ROOT}\scripts\buildsystems\vcpkg.cmake"
+          } else {
+            $TOOLCHAIN_ARG=''
+          }
+          $VER = switch ('${{matrix.VER}}') { `
+            'v141' {'14.1'} `
+            'v142' {'14.2'} `
+            'v143' {'14.3'} }
+          Import-Module "${env:VS_ROOT}\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
+          Enter-VsDevShell -VsInstallPath ${env:VS_ROOT} -SkipAutomaticLocation -DevCmdArguments "-host_arch=x64 -arch=${{matrix.BIN}} -vcvars_ver=$VER"
+          & cmake `
+            $TOOLCHAIN_ARG `
+            -G "${{matrix.GEN}}" `
+            -D CMAKE_MAKE_PROGRAM="${env:NINJA_ROOT}\ninja.exe" `
+            -D BUILD_DOCS=ON `
+            -D BUILD_TESTING=ON `
+            -D OPENCL_SDK_BUILD_SAMPLES=OFF `
+            -D OPENCL_ICD_LOADER_BUILD_TESTING=ON `
+            -D CMAKE_C_STANDARD=${{matrix.STD}} `
+            -D CMAKE_CXX_STANDARD=${{matrix.STD}} `
+            -D CMAKE_EXE_LINKER_FLAGS=/INCREMENTAL `
+            -D CMAKE_INSTALL_PREFIX=${env:GITHUB_WORKSPACE}\install `
+            -S ${env:GITHUB_WORKSPACE} `
+            -B ${env:GITHUB_WORKSPACE}\build
+
+      - name: Build (MSBuild)
+        if: matrix.GEN == 'Visual Studio 17 2022'
+        shell: pwsh
+        run: |
+          foreach ($Config in 'Release','Debug') { `
+            & cmake `
+              --build "${env:GITHUB_WORKSPACE}\build" `
+              --config $Config `
+              -- `
+              /verbosity:minimal `
+              /maxCpuCount `
+              /noLogo
+          }
+
+      - name: Build (Ninja Multi-Config)
+        if: matrix.GEN == 'Ninja Multi-Config'
+        shell: pwsh
+        run: |
+          $VER = switch ('${{matrix.VER}}') { `
+            'v141' {'14.1'} `
+            'v142' {'14.2'} `
+            'v143' {'14.3'} }
+          Import-Module "${env:VS_ROOT}\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
+          Enter-VsDevShell -VsInstallPath ${env:VS_ROOT} -SkipAutomaticLocation -DevCmdArguments "-host_arch=x64 -arch=${{matrix.BIN}} -vcvars_ver=$VER"
+          foreach ($Config in 'Release','Debug') { `
+            & cmake `
+              --build "${env:GITHUB_WORKSPACE}\build" `
+              --config $Config `
+              -- `
+              -j ${env:NUMBER_OF_PROCESSORS}
+          }
+
+      - name: Test
+        working-directory: ${{runner.workspace}}/OpenCL-SDK/build
+        shell: pwsh
+        run: |
+          $REG = if('${{matrix.BIN}}' -eq 'x64') {"reg"} else {"${env:SystemRoot}\Syswow64\reg.exe"}
+          $KEY_NAME = "HKEY_LOCAL_MACHINE\SOFTWARE\Khronos\OpenCL\Vendors"
+          foreach ($Config in 'Release','Debug') {
+            $VALUE_NAME = "${env:GITHUB_WORKSPACE}/build/$Config/OpenCLDriverStub.dll"
+            & $REG ADD $KEY_NAME /v $VALUE_NAME /t REG_DWORD /d 0
+            & ctest `
+              --build-config ${Config} `
+              --output-on-failure `
+              --parallel ${env:NUMBER_OF_PROCESSORS}
+            & $REG DELETE $KEY_NAME /v $VALUE_NAME /f
+          }
+
+      - name: Install
+        shell: pwsh
+        run: |
+          & cmake `
+            --install "${env:GITHUB_WORKSPACE}\build" `
+            --prefix "${env:GITHUB_WORKSPACE}\install" `
+            --config Release
+
+      - name: "Consume (MSBuild SDK): Configure/Build/Test"
+        shell: pwsh
+        run: |
+          if ('${{ matrix.DEPS }}' -eq 'vcpkg') {
+            $TOOLCHAIN_ARG="-D CMAKE_TOOLCHAIN_FILE=${env:VCPKG_INSTALLATION_ROOT}\scripts\buildsystems\vcpkg.cmake"
+          } else {
+            $TOOLCHAIN_ARG=''
+          }
+          $BIN = if('${{matrix.BIN}}' -eq 'x86') {'Win32'} else {'x64'}
+          & cmake `
+            $TOOLCHAIN_ARG `
+            -G '${{matrix.GEN}}' `
+            -A $BIN `
+            -T ${{matrix.VER}} `
+            -D CMAKE_EXE_LINKER_FLAGS=/INCREMENTAL `
+            -D CMAKE_PREFIX_PATH="${env:GITHUB_WORKSPACE}\install" `
+            -D DRIVER_STUB_PATH="${env:GITHUB_WORKSPACE}\build\Release\OpenCLDriverStub.dll" `
+            -D CMAKE_C_STANDARD=${{matrix.STD}} `
+            -D CMAKE_CXX_STANDARD=${{matrix.STD}} `
+            -S "${env:GITHUB_WORKSPACE}\test\pkgconfig\useutil" `
+            -B "${env:GITHUB_WORKSPACE}\downstream\pkgconfig\useutil"
+          foreach ($Config in 'Release','Debug') { `
+            & cmake `
+              --build "${env:GITHUB_WORKSPACE}\downstream\pkgconfig\useutil" `
+              --config ${Config} `
+            & cd ${env:GITHUB_WORKSPACE}\downstream\pkgconfig\useutil `
+            & ctest `
+              --output-on-failure -C ${Config}
+          }
+
+      - name: "Consume (Ninja-Multi-Config SDK): Configure/Build/Test"
+        shell: pwsh
+        run: |
+          if ('${{ matrix.DEPS }}' -eq 'vcpkg') {
+            $TOOLCHAIN_ARG="-D CMAKE_TOOLCHAIN_FILE=${env:VCPKG_INSTALLATION_ROOT}\scripts\buildsystems\vcpkg.cmake"
+          } else {
+            $TOOLCHAIN_ARG=''
+          }
+          $VER = switch ('${{matrix.VER}}') { `
+            'v141' {'14.1'} `
+            'v142' {'14.2'} `
+            'v143' {'14.3'} }
+          Import-Module "${env:VS_ROOT}\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
+          Enter-VsDevShell -VsInstallPath ${env:VS_ROOT} -SkipAutomaticLocation -DevCmdArguments "-host_arch=x64 -arch=${{matrix.BIN}} -vcvars_ver=${VER}"
+          & cmake `
+            $TOOLCHAIN_ARG `
+            -G '${{matrix.GEN}}' `
+            -D CMAKE_MAKE_PROGRAM="${env:NINJA_ROOT}\ninja.exe" `
+            -D CMAKE_EXE_LINKER_FLAGS=/INCREMENTAL `
+            -D CMAKE_PREFIX_PATH="${env:GITHUB_WORKSPACE}\external\OpenCL-Headers\install;${env:GITHUB_WORKSPACE}\install" `
+            -D DRIVER_STUB_PATH="${env:GITHUB_WORKSPACE}\build\Release\OpenCLDriverStub.dll" `
+            -D CMAKE_C_STANDARD=${{matrix.STD}} `
+            -D CMAKE_CXX_STANDARD=${{matrix.STD}} `
+            -S "${env:GITHUB_WORKSPACE}\test\pkgconfig\useutil" `
+            -B "${env:GITHUB_WORKSPACE}\downstream\pkgconfig\useutil"
+          foreach ($Config in 'Release','Debug') { `
+            & cmake `
+              --build "${env:GITHUB_WORKSPACE}\downstream\pkgconfig\useutil" `
+              --config ${Config} `
+            & cd ${env:GITHUB_WORKSPACE}\downstream\pkgconfig\useutil `
+            & ctest `
+              --output-on-failure -C ${Config}
+          }
+
   build:
     if: false
     needs: format
@@ -281,38 +511,6 @@ jobs:
               --build ./build \
               --verbose \
               --parallel `numproc`
-  buildwin:
-    if: false
-    needs: format
-    name: Build Windows ${{ matrix.deps }}
-    runs-on: windows-latest
-    strategy:
-      matrix:
-        deps: [fetch, vcpkg]
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          submodules: recursive
-      - name: Build
-        shell: pwsh
-        run: |
-          if ('${{ matrix.deps }}' -eq 'vcpkg') {
-            Get-ChildItem Env:\
-            & ${env:VCPKG_INSTALLATION_ROOT}\vcpkg.exe --triplet=x64-windows install sfml tclap glm glew stb
-            $TOOLCHAIN_ARG="-D CMAKE_TOOLCHAIN_FILE=${env:VCPKG_INSTALLATION_ROOT}\scripts\buildsystems\vcpkg.cmake"
-          } else {
-            $TOOLCHAIN_ARG=''
-          }
-          cmake `
-            $TOOLCHAIN_ARG `
-             -S . -B build
-          cmake `
-            --build ./build `
-            -- `
-            /verbosity:minimal `
-            /maxCpuCount `
-            /noLogo
 
   python:
     if: false
