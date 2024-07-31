@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.16)
 
 set(CMAKE_CXX_STANDARD 14)
 
@@ -27,6 +27,11 @@ option(OPENCL_SDK_BUILD_UTILITY_LIBRARIES "Build utility libraries" ON)
 cmake_dependent_option(OPENCL_SDK_BUILD_SAMPLES "Build sample code" ON OPENCL_SDK_BUILD_UTILITY_LIBRARIES OFF)
 cmake_dependent_option(OPENCL_SDK_BUILD_OPENGL_SAMPLES "Build OpenCL-OpenGL interop sample code" ON OPENCL_SDK_BUILD_SAMPLES OFF)
 cmake_dependent_option(OPENCL_SDK_TEST_SAMPLES "Add CTest to samples (where applicable)" ON OPENCL_SDK_BUILD_SAMPLES OFF)
+
+option(OPENCL_SDK_BUILD_CLINFO "Build clinfo utility" ON)
+if (("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin") AND ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU"))
+  string(APPEND CMAKE_CXX_FLAGS " -stdlib=libstdc++")
+endif()
 
 include(CTest)
 
@@ -48,6 +53,7 @@ list(APPEND CMAKE_MODULE_PATH
   ${PROJECT_SOURCE_DIR}/cmake/Modules
 )
 include(Dependencies)
+include(Package)
 if(OPENCL_SDK_BUILD_UTILITY_LIBRARIES)
   add_subdirectory(lib)
 endif()
@@ -71,6 +77,7 @@ set(config_package_location ${CMAKE_INSTALL_DATADIR}/cmake/OpenCL)
 install(
   FILES ${PROJECT_BINARY_DIR}/OpenCL/OpenCLConfig.cmake
   DESTINATION ${config_package_location}
+  COMPONENT binary
 )
 
 unset(CMAKE_SIZEOF_VOID_P)
@@ -83,6 +90,7 @@ write_basic_package_version_file(
 install(
   FILES ${CMAKE_CURRENT_BINARY_DIR}/OpenCL/OpenCLConfigVersion.cmake
   DESTINATION ${config_package_location}
+  COMPONENT binary
 )
 
 include(CPack)

@@ -46,8 +46,10 @@ int main(int argc, char* argv[])
         // Query device and runtime capabilities
         bool use_local_mem, use_subgroup_exchange,
             use_subgroup_exchange_relative;
+        std::string compiler_options;
         std::tie(use_local_mem, use_subgroup_exchange,
-                 use_subgroup_exchange_relative) = blur.query_capabilities();
+                 use_subgroup_exchange_relative, compiler_options) =
+            blur.query_capabilities();
 
         // Create image buffers used for operation. In this example input,
         // output and temporary image buffers are used. Temporary buffer is used
@@ -59,7 +61,7 @@ int main(int argc, char* argv[])
         // Create kernel and build program for selected device and blur.cl file
         // without any options. If this function fails, ensure that the blur.cl
         // file is available in place of execution.
-        blur.build_program("");
+        blur.build_program(compiler_options);
 
         // The box blur operation will be performed if you pass "-b box" or
         // don't select any option.
@@ -89,8 +91,8 @@ int main(int argc, char* argv[])
             {
                 std::cout << "Dual-pass subgroup relative exchange blur"
                           << std::endl;
-
-                blur.build_program("-D USE_SUBGROUP_EXCHANGE_RELATIVE ");
+                blur.build_program(compiler_options
+                                   + "-D USE_SUBGROUP_EXCHANGE_RELATIVE ");
                 blur.dual_pass_subgroup_exchange_box_blur();
             }
 
@@ -99,14 +101,14 @@ int main(int argc, char* argv[])
             if (use_subgroup_exchange)
             {
                 std::cout << "Dual-pass subgroup exchange blur" << std::endl;
-
-                blur.build_program("-D USE_SUBGROUP_EXCHANGE ");
+                blur.build_program(compiler_options
+                                   + "-D USE_SUBGROUP_EXCHANGE ");
                 blur.dual_pass_subgroup_exchange_box_blur();
             }
         } // Box blur
 
         // Build default program with no kernel arguments.
-        blur.build_program("");
+        blur.build_program(compiler_options);
 
         // The gauss blur operation is performed when the "-b gauss" option or
         // no option is passed. The following examples use a manually created
@@ -137,8 +139,8 @@ int main(int argc, char* argv[])
                 std::cout
                     << "Dual-pass subgroup relative exchange Gaussian blur"
                     << std::endl;
-
-                blur.build_program("-D USE_SUBGROUP_EXCHANGE_RELATIVE ");
+                blur.build_program(compiler_options
+                                   + "-D USE_SUBGROUP_EXCHANGE_RELATIVE ");
                 blur.dual_pass_subgroup_exchange_kernel_blur();
             }
 
@@ -148,8 +150,8 @@ int main(int argc, char* argv[])
             {
                 std::cout << "Dual-pass subgroup exchange Gaussian blur"
                           << std::endl;
-
-                blur.build_program("-D USE_SUBGROUP_EXCHANGE ");
+                blur.build_program(compiler_options
+                                   + "-D USE_SUBGROUP_EXCHANGE ");
                 blur.dual_pass_subgroup_exchange_kernel_blur();
             }
         } // Gaussian blur
