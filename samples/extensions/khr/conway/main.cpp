@@ -46,17 +46,13 @@ public:
     explicit Conway(int width, int height, bool fullscreen,
                     cl_uint platform_id = 0, cl_uint device_id = 0,
                     cl_bitfield device_type = CL_DEVICE_TYPE_DEFAULT)
-        : InteropWindow{ sf::VideoMode(width, height),
-                         "Conway's Game of Life",
-                         fullscreen ? sf::Style::Fullscreen
-                                    : sf::Style::Default,
-                         sf::ContextSettings{
-                             0, 0, 0, // Depth, Stencil, AA
-                             3, 3, // OpenGL version
-                             sf::ContextSettings::Attribute::Core },
-                         platform_id,
-                         device_id,
-                         device_type },
+        : InteropWindow(
+            sf::VideoMode(width, height), "Conway's Game of Life",
+            fullscreen ? sf::Style::Fullscreen : sf::Style::Default,
+            sf::ContextSettings{ 0, 0, 0, // Depth, Stencil, AA
+                                 3, 3, // OpenGL version
+                                 sf::ContextSettings::Attribute::Core },
+            platform_id, device_id, device_type),
           animating(true)
     {}
 
@@ -306,7 +302,7 @@ void Conway::updateScene()
         conway(
             cl::EnqueueArgs{ queue, cl::NDRange{ getSize().x, getSize().y } },
             cl_images.front, cl_images.back,
-            cl_float2{ 1.f / getSize().x, 1.f / getSize().y });
+            cl_float2{ { 1.f / getSize().x, 1.f / getSize().y } });
 
         queue.enqueueReleaseGLObjects(&interop_resources, nullptr, &release);
 
@@ -391,7 +387,7 @@ int main(int argc, char* argv[])
         std::exit(e.err());
     } catch (cl::Error& e)
     {
-        std::cerr << "OpenCL rutnime error: " << e.what() << std::endl;
+        std::cerr << "OpenCL runtime error: " << e.what() << std::endl;
         std::exit(e.err());
     } catch (std::exception& e)
     {

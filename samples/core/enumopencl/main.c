@@ -195,7 +195,7 @@ static cl_int PrintDeviceInfoSummary(cl_device_id* devices, cl_uint numDevices)
     return errorCode;
 }
 
-int main(int argc, char** argv)
+int main(void)
 {
     cl_uint numPlatforms = 0;
     clGetPlatformIDs(0, NULL, &numPlatforms);
