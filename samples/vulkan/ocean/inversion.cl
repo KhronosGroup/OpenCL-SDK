@@ -22,9 +22,9 @@ kernel void inversion( int2 patch_info, read_only image2d_t src0,
     int2 uv = (int2)((int)get_global_id(0), (int)get_global_id(1));
     int res2 = patch_info.y * patch_info.y;
 
-    float x = read_imagef(src0, sampler, uv).r;
-    float y = read_imagef(src1, sampler, uv).r;
-    float z = read_imagef(src2, sampler, uv).r;
+    float x = read_imagef(src0, sampler, uv).x;
+    float y = read_imagef(src1, sampler, uv).x;
+    float z = read_imagef(src2, sampler, uv).x;
 
     write_imagef(dst, uv, (float4)(x/res2, y/res2, z/res2, 1));
 }

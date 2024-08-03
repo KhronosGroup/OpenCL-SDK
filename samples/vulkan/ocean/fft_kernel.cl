@@ -39,15 +39,11 @@ __kernel void fft_1D( int2 mode, int2 patch_info,
     int2 data_coords = (int2)(mode.y, uv.x * (1-mode.x) + uv.y * mode.x);
     float4 data = read_imagef(twiddle, sampler, data_coords);
 
-
-    work_group_barrier(CLK_IMAGE_MEM_FENCE);
-
-
     int2 pp_coords0 = (int2)(data.z, uv.y) * (1-mode.x) + (int2)(uv.x, data.z) * mode.x;
-    float2 p = read_imagef(src, sampler, pp_coords0).rg;
+    float2 p = read_imagef(src, sampler, pp_coords0).xy;
 
     int2 pp_coords1 = (int2)(data.w, uv.y) * (1-mode.x) + (int2)(uv.x, data.w) * mode.x;
-    float2 q = read_imagef(src, sampler, pp_coords1).rg;
+    float2 q = read_imagef(src, sampler, pp_coords1).xy;
 
     float2 w = (float2)(data.x, data.y);
 

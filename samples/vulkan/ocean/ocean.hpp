@@ -199,11 +199,6 @@ private:
     std::array<std::vector<std::unique_ptr<cl::Image2D>>, IOPT_COUNT>
         ocl_image_mems;
 
-    clEnqueueAcquireExternalMemObjectsKHR_fn
-        clEnqueueAcquireExternalMemObjectsKHR = NULL;
-    clEnqueueReleaseExternalMemObjectsKHR_fn
-        clEnqueueReleaseExternalMemObjectsKHR = NULL;
-
     void init_window();
     void init_openCL();
     void init_openCL_mems();

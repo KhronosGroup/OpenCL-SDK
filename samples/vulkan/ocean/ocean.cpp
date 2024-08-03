@@ -86,26 +86,6 @@ void OceanApplication::init_openCL()
 
     check_openCL_ext_mem_support(devices[dev_opts.triplet.dev_index]);
 
-    if (app_opts.useExternalMemory)
-    {
-        clEnqueueAcquireExternalMemObjectsKHR =
-            (clEnqueueAcquireExternalMemObjectsKHR_fn)
-                clGetExtensionFunctionAddressForPlatform(
-                    platforms[dev_opts.triplet.plat_index](),
-                    "clEnqueueAcquireExternalMemObjectsKHR");
-        clEnqueueReleaseExternalMemObjectsKHR =
-            (clEnqueueReleaseExternalMemObjectsKHR_fn)
-                clGetExtensionFunctionAddressForPlatform(
-                    platforms[dev_opts.triplet.plat_index](),
-                    "clEnqueueReleaseExternalMemObjectsKHR");
-        if (clEnqueueAcquireExternalMemObjectsKHR == NULL
-            || clEnqueueReleaseExternalMemObjectsKHR == NULL)
-        {
-            throw std::runtime_error("couldn't get function pointers for "
-                                     "cl_khr_external_memory");
-        }
-    }
-
     int error = CL_SUCCESS;
     error |= clGetDeviceInfo(
         devices[dev_opts.triplet.dev_index](), CL_DEVICE_IMAGE2D_MAX_WIDTH,
