@@ -151,6 +151,7 @@ private:
     size_t current_frame = 0;
 
 #ifdef _WIN32
+    using PFN_vkGetMemoryWin32HandleKHR = VkResult(VKAPI_PTR *)(VkDevice, const VkMemoryGetWin32HandleInfoKHR *, HANDLE *);
     PFN_vkGetMemoryWin32HandleKHR vkGetMemoryWin32HandleKHR = NULL;
 #elif defined(__linux__)
     PFN_vkGetMemoryFdKHR vkGetMemoryFdKHR = NULL;

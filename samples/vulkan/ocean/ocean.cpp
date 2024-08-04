@@ -24,10 +24,6 @@
 #error cl_khr_external_memory not found, please update your OpenCL headers!
 #endif
 
-#ifdef _WIN32
-#define VK_USE_PLATFORM_WIN32_KHR
-#endif
-
 #include <fstream>
 #include <random>
 #include <set>
@@ -171,12 +167,11 @@ void OceanApplication::init_openCL_mems()
             context, CL_MEM_READ_WRITE, cl::ImageFormat(CL_RGBA, CL_FLOAT),
             ocean_tex_size, ocean_tex_size);
 
-        int log_2_N = log((float)ocean_tex_size) / log(2.f);
+        int log_2_N = (int)(log((float)ocean_tex_size) / log(2.f));
 
         twiddle_factors_mem = std::make_unique<cl::Image2D>(
             context, CL_MEM_READ_WRITE, cl::ImageFormat(CL_RGBA, CL_FLOAT),
             log_2_N, ocean_tex_size);
-
 
         for (size_t target = 0; target < IOPT_COUNT; target++)
         {
@@ -184,7 +179,7 @@ void OceanApplication::init_openCL_mems()
 
             for (size_t i = 0; i < swap_chain_images.size(); i++)
             {
-                if (app_opts.useExternalMemory)
+                if (app_opts.use_external_memory)
                 {
 #ifdef _WIN32
                     HANDLE handle = NULL;
@@ -192,14 +187,14 @@ void OceanApplication::init_openCL_mems()
                     getWin32HandleInfo.sType =
                         VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR;
                     getWin32HandleInfo.memory =
-                        textureImages[target].imageMemories[i];
+                        texture_images[target].image_memories[i];
                     getWin32HandleInfo.handleType =
                         VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
                     vkGetMemoryWin32HandleKHR(device, &getWin32HandleInfo,
                                               &handle);
 
                     const cl_mem_properties props[] = {
-                        externalMemType,
+                        external_mem_type,
                         (cl_mem_properties)handle,
                         0,
                     };
@@ -515,7 +510,7 @@ void OceanApplication::create_instance()
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.pEngineName = "No Engine";
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    if (app_opts.useExternalMemory)
+    if (app_opts.use_external_memory)
     {
         appInfo.apiVersion = VK_API_VERSION_1_1;
     }
@@ -556,7 +551,7 @@ void OceanApplication::create_instance()
     }
 
 #ifdef _WIN32
-    if (app_opps.useExternalMemory)
+    if (app_opts.use_external_memory)
     {
         vkGetMemoryWin32HandleKHR =
             (PFN_vkGetMemoryWin32HandleKHR)vkGetInstanceProcAddr(
@@ -568,7 +563,7 @@ void OceanApplication::create_instance()
         }
     }
 #elif defined(__linux__)
-    if (app_opts.useExternalMemory)
+    if (app_opts.use_external_memory)
     {
         vkGetMemoryFdKHR = (PFN_vkGetMemoryFdKHR)vkGetInstanceProcAddr(
             instance, "vkGetMemoryFdKHR");
@@ -1112,14 +1107,14 @@ void OceanApplication::create_command_pool()
 
 void OceanApplication::create_vertex_buffers()
 {
-    int iCXY = (ocean_grid_size + 1) * (ocean_grid_size + 1);
+    size_t iCXY = (ocean_grid_size + 1) * (ocean_grid_size + 1);
     ocean_grid_vertices.resize(iCXY);
 
-    cl_float dfY = -0.5 * (ocean_grid_size * mesh_spacing),
-             dfBaseX = -0.5 * (ocean_grid_size * mesh_spacing);
+    cl_float dfY = -0.5f * (ocean_grid_size * mesh_spacing),
+             dfBaseX = -0.5f * (ocean_grid_size * mesh_spacing);
     cl_float tx = 0.f, ty = 0.f, dtx = 1.f / ocean_grid_size,
              dty = 1.f / ocean_grid_size;
-    for (int iBase = 0, iY = 0; iY <= ocean_grid_size;
+    for (size_t iBase = 0, iY = 0; iY <= ocean_grid_size;
          iY++, iBase += ocean_grid_size + 1)
     {
         tx = 0.f;
@@ -1187,14 +1182,14 @@ void OceanApplication::create_index_buffers()
                   stagingBuffer, stagingBufferMemory);
 
     // Each tri strip draws one row of NX quads
-    for (int iBaseTo, iBaseFrom = 0, iY = 0; iY < ocean_grid_size;
+    for (size_t iBaseTo, iBaseFrom = 0, iY = 0; iY < ocean_grid_size;
          iY++, iBaseFrom = iBaseTo)
     {
         iBaseTo = iBaseFrom + ocean_grid_size + 1;
-        for (int iX = 0; iX <= ocean_grid_size; iX++)
+        for (size_t iX = 0; iX <= ocean_grid_size; iX++)
         {
-            ocean_grid_indices[iX * 2 + 0] = iBaseFrom + iX;
-            ocean_grid_indices[iX * 2 + 1] = iBaseTo + iX;
+            ocean_grid_indices[iX * 2 + 0] = (int)(iBaseFrom + iX);
+            ocean_grid_indices[iX * 2 + 1] = (int)(iBaseTo + iX);
         }
 
         index_buffers[iY].buffers.resize(swap_chain_images.size());
@@ -1229,7 +1224,7 @@ void OceanApplication::create_texture_images()
     VkImageTiling tiling = app_opts.linearImages ? VK_IMAGE_TILING_LINEAR
                                                  : VK_IMAGE_TILING_OPTIMAL;
     VkMemoryPropertyFlags properties =
-        app_opts.deviceLocalImages ? VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT : 0;
+        app_opts.device_local_images ? VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT : 0;
 
     uint32_t texWidth = static_cast<uint32_t>(ocean_tex_size);
     uint32_t texHeight = static_cast<uint32_t>(ocean_tex_size);
@@ -1253,7 +1248,7 @@ void OceanApplication::create_texture_images()
                 VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                 properties, texture_images[target].images[i],
                 texture_images[target].image_memories[i]);
-            if (app_opts.useExternalMemory)
+            if (app_opts.use_external_memory)
             {
                 transition_image_layout(
                     texture_images[target].images[i],
@@ -1351,7 +1346,7 @@ void OceanApplication::create_shareable_image(
 
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    if (app_opts.useExternalMemory)
+    if (app_opts.use_external_memory)
     {
         imageInfo.pNext = &externalMemCreateInfo;
     }
@@ -1383,7 +1378,7 @@ void OceanApplication::create_shareable_image(
 
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    if (app_opts.useExternalMemory)
+    if (app_opts.use_external_memory)
     {
         allocInfo.pNext = &exportMemoryAllocInfo;
     }
@@ -1957,7 +1952,7 @@ void OceanApplication::update_uniforms(uint32_t currentImage)
     glm::mat4 view_matrix =
         glm::lookAt(camera.eye, camera.eye + camera.dir, camera.up);
 
-    float fov = glm::radians(60.0);
+    float fov = (float)glm::radians(60.0);
     float aspect = (float)app_opts.window_width / app_opts.window_height;
     glm::mat4 proj_matrix = glm::perspective(
         fov, aspect, 1.f, 2.f * ocean_grid_size * mesh_spacing);
@@ -1995,7 +1990,7 @@ void OceanApplication::update_spectrum(uint32_t currentImage, float elapsed)
     {
         try
         {
-            size_t log_2_N = (size_t)(log(ocean_tex_size) / log(2.f));
+            int log_2_N = (int)(log(ocean_tex_size) / log(2.f));
 
             /// Prepare vector of values to extract results
             std::vector<cl_int> v(ocean_tex_size);
@@ -2017,7 +2012,7 @@ void OceanApplication::update_spectrum(uint32_t currentImage, float elapsed)
 
             command_queue.enqueueNDRangeKernel(
                 twiddle_kernel, cl::NullRange,
-                cl::NDRange{ log_2_N, ocean_tex_size }, cl::NDRange{ 1, 16 });
+                cl::NDRange{ (cl::size_type)log_2_N, ocean_tex_size }, cl::NDRange{ 1, 16 });
             twiddle_factors_init = false;
         } catch (const cl::Error& e)
         {
@@ -2084,7 +2079,7 @@ void OceanApplication::update_spectrum(uint32_t currentImage, float elapsed)
     {
         const cl::Image* displ_swap[] = { dxyz_coef_mem[i].get(),
                                           hkt_pong_mem.get() };
-        cl_int2 mode = (cl_int2){ 0, 0 };
+        cl_int2 mode = cl_int2{ { 0, 0 } };
 
         bool ifft_pingpong = false;
         for (int p = 0; p < log_2_N; p++)
@@ -2147,7 +2142,7 @@ void OceanApplication::update_spectrum(uint32_t currentImage, float elapsed)
         }
     }
 
-    if (app_opts.useExternalMemory)
+    if (app_opts.use_external_memory)
     {
         for (size_t target = 0; target < IOPT_COUNT; target++)
         {
@@ -2204,7 +2199,7 @@ void OceanApplication::update_ocean(uint32_t currentImage)
 
         update_spectrum(currentImage, elapsed);
 
-        if (app_opts.useExternalMemory)
+        if (app_opts.use_external_memory)
         {
             for (size_t target = 0; target < IOPT_COUNT; target++)
             {
@@ -2261,7 +2256,7 @@ void OceanApplication::update_ocean(uint32_t currentImage)
         start =
             end - std::chrono::duration_cast<std::chrono::seconds>(duration);
 
-        if (app_opts.useExternalMemory)
+        if (app_opts.use_external_memory)
         {
             command_queue.finish();
         }
@@ -2365,17 +2360,20 @@ void OceanApplication::check_openCL_ext_mem_support(cl::Device& device)
 
 
 #ifdef _WIN32
-        if (std::find(types.begin(), types.end(),
-                      CL_EXTERNAL_MEMORY_HANDLE_OPAQUE_WIN32_KHR)
+        if (std::find_if(types.begin(), types.end(),
+                      [](cl::ExternalMemoryType &emt) {
+                    return static_cast<std::underlying_type_t<cl::ExternalMemoryType>>(emt)
+                        == CL_EXTERNAL_MEMORY_HANDLE_OPAQUE_WIN32_KHR;
+                      })
             != types.end())
         {
-            externalMemType = CL_EXTERNAL_MEMORY_HANDLE_OPAQUE_WIN32_KHR;
+            external_mem_type = CL_EXTERNAL_MEMORY_HANDLE_OPAQUE_WIN32_KHR;
         }
         else
         {
             printf("Couldn't find a compatible external memory type "
                    "(sample supports OPAQUE_WIN32).\n");
-            useExternalMemory = false;
+            app_opts.use_external_memory = false;
         }
 #elif defined(__linux__)
         if (std::find(
@@ -2396,14 +2394,14 @@ void OceanApplication::check_openCL_ext_mem_support(cl::Device& device)
         {
             printf("Couldn't find a compatible external memory type "
                    "(sample supports DMA_BUF or OPAQUE_FD).\n");
-            app_opts.useExternalMemory = false;
+            app_opts.use_external_memory = false;
         }
 #endif
     }
     else
     {
         printf("Device does not support cl_khr_external_memory.\n");
-        app_opts.useExternalMemory = false;
+        app_opts.use_external_memory = false;
     }
 }
 
@@ -2618,12 +2616,12 @@ std::vector<const char*> OceanApplication::get_required_exts()
     std::vector<const char*> extensions(glfwExtensions,
                                         glfwExtensions + glfwExtensionCount);
 
-    if (app_opts.useExternalMemory)
+    if (app_opts.use_external_memory)
     {
         extensions.push_back(
             VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
     }
-    if (app_opts.useExternalMemory)
+    if (app_opts.use_external_memory)
     {
         extensions.push_back(
             VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME);
@@ -2640,7 +2638,7 @@ std::vector<const char*> OceanApplication::get_required_dev_exts()
 {
     std::vector<const char*> extensions(deviceExtensions);
 
-    if (app_opts.useExternalMemory)
+    if (app_opts.use_external_memory)
     {
         extensions.push_back(VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME);
 #ifdef _WIN32

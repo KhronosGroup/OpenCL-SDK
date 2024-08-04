@@ -17,6 +17,13 @@
 #ifndef OCEAN_UTIL_HPP
 #define OCEAN_UTIL_HPP
 
+#ifdef _WIN32
+#include <windows.h>
+#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_win32.h>
+#define VK_USE_PLATFORM_WIN32_KHR
+#endif
+
 #include <CL/Utils/Utils.hpp>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -127,7 +134,7 @@ static const char* IGetErrorString(int clErrorCode)
 static uint32_t reverse_bits(uint32_t n, uint32_t log_2_N)
 {
     uint32_t r = 0;
-    for (int j = 0; j < log_2_N; j++)
+    for (uint32_t j = 0; j < log_2_N; j++)
     {
         r = (r << 1) + (n & 1);
         n >>= 1;
@@ -264,9 +271,8 @@ struct CliOptions
     bool immediate = false;
 
     bool linearImages = false;
-    bool deviceLocalImages = true;
-
-    bool useExternalMemory = true;
+    bool device_local_images = true;
+    bool use_external_memory = true;
 };
 
 #endif // OCEAN_UTIL_HPP

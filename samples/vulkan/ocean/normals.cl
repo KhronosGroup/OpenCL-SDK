@@ -43,6 +43,7 @@ kernel void normals( int2 patch_info, float2 scale_fac, read_only image2d_t nois
     normal.x = dz_c + 2.f * dz_cl + dz_tl - dz_br - 2.f * dz_cr - dz_tr;
 
     float4 n = read_imagef(noise, sampler, fuv*(float2)(4.0));
+    float* pn = &n;
 
-    write_imagef(dst, uv, (float4)(normalize(normal), n[(uv.x+uv.y)%4]));
+    write_imagef(dst, uv, (float4)(normalize(normal), pn[(uv.x+uv.y)%4]));
 }
