@@ -267,6 +267,7 @@ struct CliOptions
 {
     size_t window_width = 1024;
     size_t window_height = 1024;
+    std::int32_t vulkan_device = -1;
 
     bool immediate = false;
 

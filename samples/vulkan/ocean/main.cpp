@@ -71,6 +71,9 @@ template <> auto cl::sdk::parse<CliOptions>()
         std::make_shared<TCLAP::ValueArg<size_t>>("", "window_height",
                                                   "Window height", false, 1024,
                                                   "positive integral"),
+        std::make_shared<TCLAP::ValueArg<std::int32_t>>(
+            "", "vulkan_device", "Vulkan physical device", false, -1,
+            "integral number"),
         std::make_shared<TCLAP::ValueArg<bool>>(
             "", "immediate", "Prefer VK_PRESENT_MODE_IMMEDIATE_KHR (no vsync)",
             false, false, "boolean"),
@@ -88,15 +91,17 @@ template <>
 CliOptions cl::sdk::comprehend<CliOptions>(
     std::shared_ptr<TCLAP::ValueArg<size_t>> window_width,
     std::shared_ptr<TCLAP::ValueArg<size_t>> window_height,
+    std::shared_ptr<TCLAP::ValueArg<std::int32_t>> vulkan_device,
     std::shared_ptr<TCLAP::ValueArg<bool>> immediate,
     std::shared_ptr<TCLAP::ValueArg<bool>> linearImages,
     std::shared_ptr<TCLAP::ValueArg<bool>> deviceLocalImages,
     std::shared_ptr<TCLAP::ValueArg<bool>> useExternalMemory)
 {
     return CliOptions{
-        window_width->getValue(),      window_height->getValue(),
-        immediate->getValue(),         linearImages->getValue(),
-        deviceLocalImages->getValue(), useExternalMemory->getValue()
+        window_width->getValue(),     window_height->getValue(),
+        vulkan_device->getValue(),    immediate->getValue(),
+        linearImages->getValue(),     deviceLocalImages->getValue(),
+        useExternalMemory->getValue()
     };
 }
 

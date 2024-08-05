@@ -626,11 +626,14 @@ void OceanApplication::pick_physical_device()
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
-    for (const auto& device : devices)
+    for (auto i = 0; i < devices.size(); i++)
     {
-        if (is_device_suitable(device))
+        if (app_opts.vulkan_device >= 0 && app_opts.vulkan_device != i)
+            continue;
+
+        if (is_device_suitable(devices[i]))
         {
-            physical_device = device;
+            physical_device = devices[i];
             break;
         }
     }
@@ -2542,9 +2545,6 @@ bool OceanApplication::check_device_extension_support(VkPhysicalDevice device)
 {
     VkPhysicalDeviceProperties pProperties;
     vkGetPhysicalDeviceProperties(device, &pProperties);
-
-    if (std::string(pProperties.deviceName).find("Intel") != std::string::npos)
-        return false;
 
     uint32_t extensionCount;
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount,
