@@ -57,9 +57,9 @@ void OceanApplication::init_window()
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    window = glfwCreateWindow(
-        (int)app_opts.window_width, (int)app_opts.window_height,
-        "Ocean surface simulation with OpenCL and Vulkan", nullptr, nullptr);
+    window = glfwCreateWindow((int)app_opts.window_width,
+                              (int)app_opts.window_height, app_name.c_str(),
+                              nullptr, nullptr);
     glfwSetWindowUserPointer(window, this);
 }
 
@@ -103,7 +103,8 @@ void OceanApplication::init_openCL()
                                    const char* name) {
         try
         {
-            std::string kernel_code = read_file(src_file).data();
+            std::string kernel_code =
+                cl::util::read_exe_relative_text_file(src_file);
             cl::Program program{ context, kernel_code };
             program.build();
             kernel = cl::Kernel{ program, name };
@@ -112,7 +113,7 @@ void OceanApplication::init_openCL()
             auto bl = e.getBuildLog();
             std::cout << "Build OpenCL " << name
                       << " kernel error: " << std::endl;
-            for (auto elem : bl) std::cout << elem.second << std::endl;
+            for (auto& elem : bl) std::cout << elem.second << std::endl;
             exit(1);
         }
     };
@@ -330,6 +331,11 @@ void OceanApplication::keyboard(int key, int scancode, int action, int mods)
             case GLFW_KEY_W:
                 wireframe_mode = !wireframe_mode;
                 create_command_buffers();
+                break;
+
+            case GLFW_KEY_E:
+                show_fps = !show_fps;
+                if (!show_fps) glfwSetWindowTitle(window, app_name.c_str());
                 break;
         }
     }
@@ -912,8 +918,10 @@ void OceanApplication::create_descriptor_det_layout()
 
 void OceanApplication::create_graphics_pipeline()
 {
-    auto vertShaderCode = read_file("ocean.vert.spv");
-    auto fragShaderCode = read_file("ocean.frag.spv");
+    auto vertShaderCode =
+        cl::util::read_exe_relative_text_file("ocean.vert.spv");
+    auto fragShaderCode =
+        cl::util::read_exe_relative_text_file("ocean.frag.spv");
 
     VkShaderModule vertShaderModule = create_shader_module(vertShaderCode);
     VkShaderModule fragShaderModule = create_shader_module(fragShaderCode);
@@ -2015,7 +2023,8 @@ void OceanApplication::update_spectrum(uint32_t currentImage, float elapsed)
 
             command_queue.enqueueNDRangeKernel(
                 twiddle_kernel, cl::NullRange,
-                cl::NDRange{ (cl::size_type)log_2_N, ocean_tex_size }, cl::NDRange{ 1, 16 });
+                cl::NDRange{ (cl::size_type)log_2_N, ocean_tex_size },
+                cl::NDRange{ 1, 16 });
             twiddle_factors_init = false;
         } catch (const cl::Error& e)
         {
@@ -2186,8 +2195,43 @@ void OceanApplication::update_spectrum(uint32_t currentImage, float elapsed)
     }
 }
 
+void OceanApplication::show_fps_window_title()
+{
+    if (show_fps)
+    {
+        auto fps_now = std::chrono::system_clock::now();
+
+        std::chrono::duration<float> elapsed = fps_now - fps_last_time;
+        float delta = elapsed.count();
+
+        const float elapsed_tres = 1.f;
+
+        delta_frames++;
+        if (window && delta >= 1.f)
+        {
+            double fps = double(delta_frames) / delta;
+
+            std::stringstream ss;
+            ss << app_name << ", [FPS:" << std::fixed << std::setprecision(2)
+               << fps << "]";
+
+            glfwSetWindowTitle(window, ss.str().c_str());
+
+            delta_frames = 0;
+            fps_last_time = fps_now;
+        }
+    }
+    else
+    {
+        fps_last_time = std::chrono::system_clock::now();
+        delta_frames = 0;
+    }
+}
+
 void OceanApplication::update_ocean(uint32_t currentImage)
 {
+    show_fps_window_title();
+
     update_uniforms(currentImage);
 
     auto end = std::chrono::system_clock::now();
@@ -2363,11 +2407,14 @@ void OceanApplication::check_openCL_ext_mem_support(cl::Device& device)
 
 
 #ifdef _WIN32
-        if (std::find_if(types.begin(), types.end(),
-                      [](cl::ExternalMemoryType &emt) {
-                    return static_cast<std::underlying_type_t<cl::ExternalMemoryType>>(emt)
+        if (std::find_if(
+                types.begin(), types.end(),
+                [](cl::ExternalMemoryType& emt) {
+                    return static_cast<
+                               std::underlying_type_t<cl::ExternalMemoryType>>(
+                               emt)
                         == CL_EXTERNAL_MEMORY_HANDLE_OPAQUE_WIN32_KHR;
-                      })
+                })
             != types.end())
         {
             external_mem_type = CL_EXTERNAL_MEMORY_HANDLE_OPAQUE_WIN32_KHR;
@@ -2408,13 +2455,12 @@ void OceanApplication::check_openCL_ext_mem_support(cl::Device& device)
     }
 }
 
-VkShaderModule
-OceanApplication::create_shader_module(const std::vector<char>& code)
+VkShaderModule OceanApplication::create_shader_module(const std::string& code)
 {
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = code.size();
-    createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+    createInfo.pCode = reinterpret_cast<const uint32_t*>(code.c_str());
 
     VkShaderModule shaderModule;
     if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule)
@@ -2679,25 +2725,6 @@ bool OceanApplication::check_validation_layer_support()
     }
 
     return true;
-}
-
-std::vector<char> OceanApplication::read_file(const std::string& filename)
-{
-    std::ifstream file(filename, std::ios::ate | std::ios::binary);
-
-    if (!file.is_open())
-    {
-        throw std::runtime_error("failed to open file!");
-    }
-
-    size_t fileSize = (size_t)file.tellg();
-    if (filename.find(".spv") == std::string::npos) fileSize += 1;
-    std::vector<char> buffer(fileSize, '\0');
-
-    file.seekg(0);
-    file.read(buffer.data(), fileSize);
-    file.close();
-    return buffer;
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL OceanApplication::debug_callback(

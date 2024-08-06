@@ -34,8 +34,9 @@ public:
     CliOptions app_opts;
 
 private:
-    GLFWwindow* window;
+    GLFWwindow* window = nullptr;
     Camera camera;
+    std::string app_name = "Ocean Surface Simulation";
 
     // ocean texture size - assume uniform x/y
     size_t ocean_tex_size = 512;
@@ -50,6 +51,7 @@ private:
     float mesh_spacing = 2.f;
 
     bool animate = true;
+    bool show_fps = true;
 
     // ocean parameters changed - rebuild initial spectrum resources
     bool changed = true;
@@ -71,6 +73,10 @@ private:
 
     std::chrono::system_clock::time_point start =
         std::chrono::system_clock::now();
+
+    std::chrono::system_clock::time_point fps_last_time =
+        std::chrono::system_clock::now();
+    int delta_frames = 0;
 
     VkInstance instance;
     VkDebugUtilsMessengerEXT debug_messenger;
@@ -151,7 +157,8 @@ private:
     size_t current_frame = 0;
 
 #ifdef _WIN32
-    using PFN_vkGetMemoryWin32HandleKHR = VkResult(VKAPI_PTR *)(VkDevice, const VkMemoryGetWin32HandleInfoKHR *, HANDLE *);
+    using PFN_vkGetMemoryWin32HandleKHR = VkResult(VKAPI_PTR*)(
+        VkDevice, const VkMemoryGetWin32HandleInfoKHR*, HANDLE*);
     PFN_vkGetMemoryWin32HandleKHR vkGetMemoryWin32HandleKHR = NULL;
 #elif defined(__linux__)
     PFN_vkGetMemoryFdKHR vkGetMemoryFdKHR = NULL;
@@ -280,6 +287,7 @@ private:
     void create_sync_objects();
     void update_uniforms(uint32_t currentImage);
 
+    void show_fps_window_title();
     void update_spectrum(uint32_t currentImage, float elapsed);
     void update_ocean(uint32_t currentImage);
 
@@ -287,7 +295,7 @@ private:
 
     void check_openCL_ext_mem_support(cl::Device& device);
 
-    VkShaderModule create_shader_module(const std::vector<char>& code);
+    VkShaderModule create_shader_module(const std::string& code);
 
     VkSurfaceFormatKHR choose_swap_surf_format(
         const std::vector<VkSurfaceFormatKHR>& availableFormats);
@@ -310,8 +318,6 @@ private:
     std::vector<const char*> get_required_dev_exts();
 
     bool check_validation_layer_support();
-
-    std::vector<char> read_file(const std::string& filename);
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL
     debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,

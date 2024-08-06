@@ -20,6 +20,16 @@ The application performs an initial setup during which:
     -A GLFW window, camera, and related keyboard event callbacks are created.
     -Both shared and private resources for OpenCL and Vulkan are set up.
 
+Available CLI options are as follows:
+
+    --window_width, specifies initial window width
+    --window_height, specifies initial window window_height
+    --vulkan_device, requests number of vulkan physical device
+    --immediate, requests preference of VK_PRESENT_MODE_IMMEDIATE_KHR (no vsync)
+    --linear, requests use of linearly tiled images 
+    --deviceLocalImages, requests use of device local images
+    --useExternalMemory, requests use of cl_khr_external_memory
+
 After the setup, the simulation starts with initial ocean parameters that can be modified with keyboard events in real-time:
 
     - a/z - Increase/decrease wind magnitude.
@@ -28,7 +38,9 @@ After the setup, the simulation starts with initial ocean parameters that can be
     - f/v - Increase/decrease wave choppiness.
     - g/b - Increase/decrease additional altitude scale.
 
-Additionally, the simulation and rendering can be paused with the Space key. Rendering can toggle between wireframe and filled modes using the 'w' key. While the simulation is in progress, each frame of the application performs the following general steps:
+Additionally, the simulation and rendering can be paused with the Space key. Rendering can toggle between wireframe and filled modes using the 'w' key. Application tracks its performance in the title bar of the window, it could be toggled by pressing 'e' key.
+
+While the simulation is in progress, each frame of the application performs the following general steps:
 
     -Necessary Vulkan/OpenCL semaphores are signaled/waited.
     -Uniform buffers are updated to handle camera and ocean parameters.
@@ -44,6 +56,7 @@ Multiple kernels follow the general steps (with multiple optimizations) describe
 
 ```c++
 cl::util::supports_extension(cl::Device, cl::string)
+cl::util::read_exe_relative_text_file(const char*, cl_int* const)
 cl::Context(cl::Device)
 cl::CommandQueue(cl::Context, cl::Device)
 cl::Platform::get(vector<Platform>)
