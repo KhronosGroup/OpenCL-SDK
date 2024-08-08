@@ -295,7 +295,7 @@ private:
 
     void check_openCL_ext_mem_support(cl::Device& device);
 
-    VkShaderModule create_shader_module(const std::string& code);
+    VkShaderModule create_shader_module(const std::vector<unsigned char>& code);
 
     VkSurfaceFormatKHR choose_swap_surf_format(
         const std::vector<VkSurfaceFormatKHR>& availableFormats);

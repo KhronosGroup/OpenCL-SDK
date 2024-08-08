@@ -918,10 +918,8 @@ void OceanApplication::create_descriptor_det_layout()
 
 void OceanApplication::create_graphics_pipeline()
 {
-    auto vertShaderCode =
-        cl::util::read_exe_relative_text_file("ocean.vert.spv");
-    auto fragShaderCode =
-        cl::util::read_exe_relative_text_file("ocean.frag.spv");
+    auto vertShaderCode = cl::util::read_binary_file("ocean.vert.spv");
+    auto fragShaderCode = cl::util::read_binary_file("ocean.frag.spv");
 
     VkShaderModule vertShaderModule = create_shader_module(vertShaderCode);
     VkShaderModule fragShaderModule = create_shader_module(fragShaderCode);
@@ -2455,12 +2453,13 @@ void OceanApplication::check_openCL_ext_mem_support(cl::Device& device)
     }
 }
 
-VkShaderModule OceanApplication::create_shader_module(const std::string& code)
+VkShaderModule
+OceanApplication::create_shader_module(const std::vector<unsigned char>& code)
 {
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = code.size();
-    createInfo.pCode = reinterpret_cast<const uint32_t*>(code.c_str());
+    createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
     VkShaderModule shaderModule;
     if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule)
