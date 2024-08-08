@@ -918,8 +918,10 @@ void OceanApplication::create_descriptor_det_layout()
 
 void OceanApplication::create_graphics_pipeline()
 {
-    auto vertShaderCode = cl::util::read_binary_file("ocean.vert.spv");
-    auto fragShaderCode = cl::util::read_binary_file("ocean.frag.spv");
+    auto vertShaderCode =
+        cl::util::read_exe_relative_binary_file("ocean.vert.spv");
+    auto fragShaderCode =
+        cl::util::read_exe_relative_binary_file("ocean.frag.spv");
 
     VkShaderModule vertShaderModule = create_shader_module(vertShaderCode);
     VkShaderModule fragShaderModule = create_shader_module(fragShaderCode);

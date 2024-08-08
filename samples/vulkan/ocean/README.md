@@ -57,6 +57,7 @@ Multiple kernels follow the general steps (with multiple optimizations) describe
 ```c++
 cl::util::supports_extension(cl::Device, cl::string)
 cl::util::read_exe_relative_text_file(const char*, cl_int* const)
+cl::util::read_exe_relative_binary_file(const char*, cl_int* const)
 cl::Context(cl::Device)
 cl::CommandQueue(cl::Context, cl::Device)
 cl::Platform::get(vector<Platform>)
