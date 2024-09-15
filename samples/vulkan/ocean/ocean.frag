@@ -82,8 +82,8 @@ void main()
     float f0 = clamp(abs(dot(n0, n2) * (-0.5) + 0.5), 0.0, 1.0);
     float f1 = clamp(abs(dot(n1, n3) * (-0.5) + 0.5), 0.0, 1.0);
 
-    f0 = pow(f0 * 8.0, 2.0);
-    f1 = pow(f1 * 8.0, 2.0);
+    f0 = pow(f0 * 5.0, 2.0);
+    f1 = pow(f1 * 5.0, 2.0);
 
     float foam_fac = ndata.w * clamp(max(f0, f1), 0.0, 1.0);
 
@@ -116,6 +116,6 @@ void main()
     float fresnel = clamp(pow( 1.0 + n_dot_e, -fresnel_approx_pow_factor ) * dyna_range, 0.0, 1.0);
     vec3 bright = fresnel * ocean_bright;
     vec3 water = (1.0 - fresnel) * ocean_dark * ocean_bright * diffuse;
-    vec3 color = bright + water + specular + vec3(foam_fac);
-    out_color = vec4(hdr(color, exposure), 1.0);
+    vec3 color = bright + water + specular;
+    out_color = vec4(hdr(color, exposure) + vec3(foam_fac), 1.0);
 }

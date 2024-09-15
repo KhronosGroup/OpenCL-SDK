@@ -32,9 +32,9 @@ layout(std140, set = 0, binding = 2) uniform ViewData {
 
 void main()
 {
-    vec3 displ = texture(u_displacement_map, in_tex_coords).rgb;
-    displ.xz *= view.choppiness;
-    displ.y *= view.alt_scale;
+    vec3 displ = texture(u_displacement_map, in_tex_coords).rbg;
+    displ.xy *= view.choppiness;
+    displ.z *= view.alt_scale;
     vec3 ocean_vert = in_position + displ;
     ec_pos = view.view_mat * vec4(ocean_vert, 1.0);
     gl_Position = view.proj_mat * ec_pos;

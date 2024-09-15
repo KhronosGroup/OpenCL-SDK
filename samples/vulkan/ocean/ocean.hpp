@@ -60,7 +60,7 @@ private:
     // ocean in-factors
     float wind_magnitude = 300.f;
     float wind_angle = 45.f;
-    float choppiness = 30.f;
+    float choppiness = 10.f;
     float alt_scale = 20.f;
 
     float amplitude = 80.f;
