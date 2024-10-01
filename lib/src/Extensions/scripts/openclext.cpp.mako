@@ -181,11 +181,6 @@ def getCParameterStrings(params):
 
 #include <vector>
 
-static inline cl_platform_id _get_platform(cl_platform_id platform)
-{
-    return platform;
-}
-
 static inline cl_platform_id _get_platform(cl_device_id device)
 {
     if (device == nullptr) return nullptr;

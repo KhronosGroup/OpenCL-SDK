@@ -920,9 +920,16 @@ end:
     return error;
 }
 
+cl_int opencl_version_contains(const char *dev_version,
+                               const char *version_fragment)
+{
+    char *found_version = strstr(dev_version, version_fragment);
+    return (found_version != NULL);
+}
 
 int main(int argc, char *argv[])
 {
+    srand((unsigned int)time(NULL));
     cl_int error = CL_SUCCESS, end_error = CL_SUCCESS;
     state s;
     cl_platform_id platform;
@@ -934,7 +941,7 @@ int main(int argc, char *argv[])
         .triplet = { 0, 0, CL_DEVICE_TYPE_ALL }
     };
     struct options_Blur blur_opts = {
-        .size = 1, .op = "box", .in = NULL, .out = "out.png"
+        .size = 1, .op = "box", .in = NULL, .out = "blur_out.png"
     };
 
     OCLERROR_RET(parse_options(argc, argv, &diag_opts, &dev_opts, &blur_opts),
@@ -969,9 +976,11 @@ int main(int argc, char *argv[])
     if (!diag_opts.quiet) cl_util_print_device_info(s.device);
 
     /// Read input image and prepare output image
-    const char fname[] = "andrew_svk_7oJ4D_ewB7c_unsplash.png";
+    char fname[FILENAME_MAX];
+    memset(fname, 0, FILENAME_MAX);
     if (!blur_opts.in)
     {
+        sprintf(fname, "andrew_svk_7oJ4D_ewB7c_unsplash_%x.png", rand());
         printf("No file given, use standard image %s\n", fname);
         const unsigned char *fcont = andrew_svk_7oJ4D_ewB7c_unsplash_png;
         const size_t fsize = andrew_svk_7oJ4D_ewB7c_unsplash_png_size;
@@ -1048,6 +1057,25 @@ int main(int argc, char *argv[])
         free(name);
     }
 
+    // 5) Query OpenCL version to compile for.
+    // If no -cl-std option is specified then the highest 1.x version
+    // supported by each device is used to compile the program. Therefore,
+    // it's only necessary to add the -cl-std option for 2.0 and 3.0 OpenCL
+    // versions.
+    char dev_version[64];
+    OCLERROR_RET(clGetDeviceInfo(s.device, CL_DEVICE_OPENCL_C_VERSION,
+                                 sizeof(dev_version), &dev_version, NULL),
+                 error, end);
+    char compiler_options[1024] = "";
+    if (opencl_version_contains(dev_version, "3."))
+    {
+        strcat(compiler_options, "-cl-std=CL3.0 ");
+    }
+    else if (opencl_version_contains(dev_version, "2."))
+    {
+        strcat(compiler_options, "-cl-std=CL2.0 ");
+    }
+
     /// Create image buffers
     const cl_image_desc desc = { .image_type = CL_MEM_OBJECT_IMAGE2D,
                                  .image_width = s.input_image.width,
@@ -1118,8 +1146,8 @@ int main(int argc, char *argv[])
             printf("Dual-pass subgroup relative exchange blur\n");
 
             kernel_op[0] = '\0';
+            strcat(kernel_op, compiler_options);
             strcat(kernel_op, "-D USE_SUBGROUP_EXCHANGE_RELATIVE ");
-
             OCLERROR_RET(dual_pass_subgroup_exchange_box_blur(
                              &s, (cl_int)blur_opts.size),
                          error, prg);
@@ -1129,6 +1157,7 @@ int main(int argc, char *argv[])
             printf("Dual-pass subgroup exchange blur\n");
 
             kernel_op[0] = '\0';
+            strcat(kernel_op, compiler_options);
             strcat(kernel_op, "-D USE_SUBGROUP_EXCHANGE ");
 
             OCLERROR_RET(dual_pass_subgroup_exchange_box_blur(
@@ -1172,6 +1201,7 @@ int main(int argc, char *argv[])
             printf("Dual-pass subgroup relative exchange Gaussian blur\n");
 
             kernel_op[0] = '\0';
+            strcat(kernel_op, compiler_options);
             strcat(kernel_op, "-D USE_SUBGROUP_EXCHANGE_RELATIVE ");
 
             OCLERROR_RET(dual_pass_subgroup_exchange_kernel_blur(&s, gauss_size,
@@ -1183,6 +1213,7 @@ int main(int argc, char *argv[])
             printf("Dual-pass subgroup exchange Gaussian blur\n");
 
             kernel_op[0] = '\0';
+            strcat(kernel_op, compiler_options);
             strcat(kernel_op, "-D USE_SUBGROUP_EXCHANGE ");
 
             OCLERROR_RET(dual_pass_subgroup_exchange_kernel_blur(&s, gauss_size,

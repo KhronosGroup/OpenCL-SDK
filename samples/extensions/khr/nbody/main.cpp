@@ -225,8 +225,8 @@ void NBody::initializeGL()
                      y_dist = uni(-y_abs_range, y_abs_range),
                      z_dist = uni(-z_abs_range, z_abs_range),
                      m_dist = uni(mass_min, mass_max)]() mutable {
-                        return cl_float4{ x_dist(prng), y_dist(prng),
-                                          z_dist(prng), m_dist(prng) };
+                        return cl_float4{ { x_dist(prng), y_dist(prng),
+                                            z_dist(prng), m_dist(prng) } };
                     });
 
     glUseProgram(gl_program);
@@ -299,7 +299,7 @@ void NBody::initializeCL()
     // });
     velocity_buffer = cl::Buffer{ opencl_context, CL_MEM_READ_WRITE,
                                   particle_count * sizeof(cl_float3), nullptr };
-    queue.enqueueFillBuffer(velocity_buffer, cl_float4{ 0, 0, 0, 0 }, 0,
+    queue.enqueueFillBuffer(velocity_buffer, cl_float4{ { 0, 0, 0, 0 } }, 0,
                             particle_count * sizeof(cl_float4));
     queue.finish();
 
@@ -493,7 +493,7 @@ int main(int argc, char* argv[])
         std::exit(e.err());
     } catch (cl::Error& e)
     {
-        std::cerr << "OpenCL rutnime error: " << e.what() << std::endl;
+        std::cerr << "OpenCL runtime error: " << e.what() << std::endl;
         std::exit(e.err());
     } catch (std::exception& e)
     {

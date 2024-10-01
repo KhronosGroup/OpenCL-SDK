@@ -108,8 +108,8 @@ SDK_EXPORT ParseState parse_SingleDeviceOptions(
 
     switch (identifier)
     {
-        case 'p': IF_ERR(dev_opts->triplet.plat_index = strtoul(value, NULL, 0))
-        case 'd': IF_ERR(dev_opts->triplet.dev_index = strtoul(value, NULL, 0))
+        case 'p': IF_ERR(dev_opts->triplet.plat_index = (cl_uint)strtoul(value, NULL, 0))
+        case 'd': IF_ERR(dev_opts->triplet.dev_index = (cl_uint)strtoul(value, NULL, 0))
         case 't': IF_ERR(dev_opts->triplet.dev_type = get_dev_type(value))
     }
     return NotParsed;

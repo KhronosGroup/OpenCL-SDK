@@ -4,7 +4,7 @@
 
 # Note: cmake 3.7 is needed to use OpenCL::OpenCL.
 # Older versions may work by explicitly specifying OpenCL_INCLUDE_DIRS and OpenCL_LIBRARIES.
-cmake_minimum_required(VERSION 3.7 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 set(CMAKE_CXX_STANDARD 11)
@@ -120,6 +120,7 @@ if (OPENCL_EXTENSION_LOADER_INSTALL)
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        COMPONENT binary
     )
 
     export(EXPORT OpenCLExtensionLoaderTargets
@@ -130,6 +131,7 @@ if (OPENCL_EXTENSION_LOADER_INSTALL)
         FILE OpenCLExtensionLoaderTargets.cmake
         NAMESPACE OpenCL::
         DESTINATION ${OPENCL_EXTENSION_LOADER_CONFIG_PATH}
+        COMPONENT binary
     )
 
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/OpenCLExtensionLoader/OpenCLExtensionLoaderConfig.cmake
@@ -137,6 +139,7 @@ if (OPENCL_EXTENSION_LOADER_INSTALL)
     )
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/OpenCLExtensionLoader/OpenCLExtensionLoaderConfig.cmake
         DESTINATION ${OPENCL_EXTENSION_LOADER_CONFIG_PATH}
+        COMPONENT binary
     )
 
     write_basic_package_version_file(
@@ -146,6 +149,14 @@ if (OPENCL_EXTENSION_LOADER_INSTALL)
     )
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/OpenCLExtensionLoader/OpenCLExtensionLoaderConfigVersion.cmake
         DESTINATION ${OPENCL_EXTENSION_LOADER_CONFIG_PATH}
+        COMPONENT binary
+    )
+
+    # For packaging the extensions library
+    install(
+        TARGETS OpenCLExt
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        COMPONENT binary
     )
 endif()
 
