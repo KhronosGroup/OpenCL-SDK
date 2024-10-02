@@ -241,10 +241,14 @@ find_suitable_device(VkInstance instance,
          ++platform_id)
     {
         cl_uint cl_platform_devices_count = 0;
-        OCLERROR_RET(clGetDeviceIDs(platforms[platform_id],
-                                    CL_DEVICE_TYPE_ALL, 0, NULL,
-                                    &cl_platform_devices_count),
-                     error, platforms);
+        error = clGetDeviceIDs(platforms[platform_id], CL_DEVICE_TYPE_ALL, 0,
+                               NULL, &cl_platform_devices_count);
+        // Some platforms may not have any suitable device. Allow the CL_DEVICE_NOT_FOUND
+        // error so that other platforms can be checked.
+        if (error != CL_SUCCESS && error != CL_DEVICE_NOT_FOUND)
+        {
+            goto platforms;
+        }
         for (cl_uint device_id = 0; device_id < cl_platform_devices_count;
              ++device_id)
         {
