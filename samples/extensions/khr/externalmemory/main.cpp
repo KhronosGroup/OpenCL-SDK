@@ -138,6 +138,12 @@ bool cl_check_external_memory_handle_type(
     return it != supported_handle_types.end();
 }
 
+bool opencl_version_is_major(const cl_name_version& dev_name_version,
+                             const cl_uint& major)
+{
+    return CL_VERSION_MAJOR(dev_name_version.version) == major;
+}
+
 int main(int argc, char* argv[])
 {
     try
@@ -267,13 +273,22 @@ int main(int argc, char* argv[])
 
         // The Khronos extension showcased requires OpenCL 3.0 version.
         cl::string compiler_options = "";
-#if CL_HPP_TARGET_OPENCL_VERSION >= 300
-        compiler_options += cl::string{ "-cl-std=CL3.0 " };
-#else
-        sdt::cerr << "\nError: OpenCL version must be at least 3.0"
-                  << std::endl;
-        exit(EXIT_FAILURE);
-#endif
+        std::vector<cl_name_version> dev_versions =
+            cl_device.getInfo<CL_DEVICE_OPENCL_C_ALL_VERSIONS>();
+        for (cl_name_version dev_name_version : dev_versions)
+        {
+            if (opencl_version_is_major(dev_name_version, 3))
+            {
+                compiler_options += cl::string{ "-cl-std=CL3.0 " };
+            }
+        }
+
+        if (compiler_options.empty())
+        {
+            std::cerr << "\nError: OpenCL version must be at least 3.0"
+                      << std::endl;
+            exit(EXIT_FAILURE);
+        }
 
         cl_program.build(cl_device, compiler_options.c_str());
 
