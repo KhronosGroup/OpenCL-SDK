@@ -658,7 +658,8 @@ jobs:
         if [[ "${{matrix.GEN}}" == "Ninja Multi-Config" && ! `which ninja` ]]; then brew install ninja; fi &&
         # We need to provide an OpenCL driver for Intel CPU on mac
         brew install pocl
-        echo "OCL_ICD_VENDORS=/opt/homebrew/Cellar/pocl/6.0/etc/OpenCL/vendors" >> $GITHUB_ENV
+        POCL_INSTALL_PATH=$(brew --prefix pocl)
+        echo "OCL_ICD_VENDORS=$POCL_INSTALL_PATH/etc/OpenCL/vendors" >> $GITHUB_ENV
         cmake --version
 
     - name: Install dependencies (Homebrew)
