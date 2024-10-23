@@ -154,6 +154,7 @@ jobs:
           package/OpenCL-SDK-${{github.ref_name}}-Source.*
 
   ppa:
+    if: false
     runs-on: ubuntu-latest
     defaults:
       run:
