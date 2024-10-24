@@ -7,6 +7,7 @@ name: Create Release
 
 jobs:
   windows-binary:
+    name: Binary Release (Windows)
     runs-on: windows-2022
     defaults:
       run:
@@ -65,7 +66,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Building OpenCL-SDK in $Config failed." }
         }
 
-    - name: Package Binary
+    - name: Package
       run: |
         & cpack `
           --config "${env:GITHUB_WORKSPACE}\build\CPackConfig.cmake" `
@@ -75,10 +76,11 @@ jobs:
           -B "${env:GITHUB_WORKSPACE}\package"
         if ($LASTEXITCODE -ne 0) { throw "Packaging OpenCL-SDK failed." }
 
-    - name: Upload Package
-      uses: softprops/action-gh-release@v1
+    - name: Upload
+      uses: softprops/action-gh-release@v2
       with:
         draft: true
+        token: ${{ secrets.ACTIONS_CREATE_RELEASE_TOKEN }}
         files: |
           package/OpenCL-SDK-${{github.ref_name}}-Win-${{matrix.BIN}}.zip
 
@@ -124,17 +126,18 @@ jobs:
         )) `
         { throw 'CMake project version mismatches Git tag name (without leading "v")'}
 
-    - name: Package DEB
+    - name: Package (DEB)
       if: ${{ contains(matrix.OS, 'ubuntu') }}
       run: |
         cpack `
         --config "${env:GITHUB_WORKSPACE}/build/CPackSourceConfig.cmake" `
         -G DEB `
         -C Release `
-        "${env:GITHUB_WORKSPACE}/package-deb"
+        -D CPACK_PACKAGE_FILE_NAME='OpenCL-SDK-${{github.ref_name}}-Source' `
+        -B "${env:GITHUB_WORKSPACE}/package-deb"
         if ($LASTEXITCODE -ne 0) { throw "Packaging OpenCL-SDK deb failed." }
 
-    - name: Package Source
+    - name: Package (Archive)
       run: |
         $Generator = if('${{matrix.OS}}' -match 'windows') {'ZIP'} else {'TGZ'}
         & cpack `
@@ -146,12 +149,14 @@ jobs:
           -B "${env:GITHUB_WORKSPACE}/package"
         if ($LASTEXITCODE -ne 0) { throw "Packaging OpenCL-SDK source failed." }
 
-    - name: Release Source
+    - name: Upload
       uses: softprops/action-gh-release@v2
       with:
         draft: true
+        token: ${{ secrets.ACTIONS_CREATE_RELEASE_TOKEN }}
         files: |
           package/OpenCL-SDK-${{github.ref_name}}-Source.*
+          package-deb/OpenCL-SDK-${{github.ref_name}}-Source.*
 
   ppa:
     if: false
