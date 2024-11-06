@@ -35,13 +35,13 @@ namespace util {
         Error(cl_int err, const char* errStr = NULL): err_(err), errStr_(errStr)
         {}
 
-        ~Error() throw() {}
+        ~Error() noexcept {}
 
         /*! \brief Get error string associated with exception
          *
          * \return A memory pointer to the error message string.
          */
-        virtual const char* what() const throw()
+        virtual const char* what() const noexcept
         {
             if (errStr_ == NULL)
             {

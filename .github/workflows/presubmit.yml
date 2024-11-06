@@ -1,113 +1,749 @@
 name: Presubmit
+
 on: [push, pull_request]
 
 jobs:
   format:
     name: Code formatting
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
+          # repository: ${{ github.repository }} (default)
           fetch-depth: 0
       - name: Install clang-format
-        run: sudo apt-get install clang-format clang-format-9
+        run: sudo apt-get install clang-format
       - name: Check format
-        run: ./scripts/check-format.sh
-  build:
+        run: $GITHUB_WORKSPACE/scripts/check-format.sh
+          origin/`if [[ "${{ github.event_name }}" == "push" ]]; then echo "main"; else echo "${{ github.base_ref }}"; fi`
+          --binary clang-format
+
+  linux:
+    runs-on: ubuntu-latest
     needs: format
-    name: Build ${{ matrix.os }} ${{ matrix.compiler }} ${{ matrix.deps }}
-    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-latest]
-        compiler: [gcc, clang]
-        deps: [os, fetch, vcpkg]
+        CMAKE: [3.26.4]
+        COMPILER:
+        - C_NAME: gcc
+          CXX_NAME: g++
+          VER: 11
+          EXCLUSIVE_C_FLAGS: -Wno-maybe-uninitialized
+        - C_NAME: gcc
+          CXX_NAME: g++
+          VER: 13
+          EXCLUSIVE_C_FLAGS: -Wno-maybe-uninitialized
+        - C_NAME: clang
+          CXX_NAME: clang++
+          VER: 14
+          EXCLUSIVE_C_FLAGS: ""
+        - C_NAME: clang
+          CXX_NAME: clang++
+          VER: 16
+          EXCLUSIVE_C_FLAGS: ""
+        DEPS: [system, vcpkg, fetch]
+        BIN: [64]
+        STD:
+        - C: 11 # Utils C library uses C11 functions (e.g. timespec_get)
+          CXX: 14 # Utils C++ library uses C14 types (e.g. integer_sequence)
+        - C: 17
+          CXX: 17
+        CONF:
+        - GEN: Unix Makefiles
+          CONFIG: Debug
+        - GEN: Unix Makefiles
+          CONFIG: Release
+        - GEN: Ninja Multi-Config
+          CONFIG: Release
+        IMAGE:
+        - khronosgroup/docker-images:opencl-sdk-intelcpu-ubuntu-22.04.20230717
+        include:
+        - CMAKE: system
+          COMPILER:
+            C_NAME: gcc
+            CXX_NAME: g++
+            VER: 9
+            # A warning in libstb-dev
+            EXCLUSIVE_C_FLAGS: "-Wno-type-limits"
+            EXCLUSIVE_CXX_FLAGS: "-Wno-type-limits"
+          DEPS: system
+          BIN: 64
+          STD:
+            C: 11
+            CXX: 14
+          CONF:
+            GEN: Unix Makefiles
+            CONFIG: Debug
+          IMAGE: khronosgroup/docker-images:opencl-sdk-intelcpu-ubuntu-20.04.20230717
+        - CMAKE: system
+          COMPILER:
+            C_NAME: gcc
+            CXX_NAME: g++
+            VER: 9
+            # A warning in libstb-dev
+            EXCLUSIVE_C_FLAGS: "-Wno-type-limits"
+            EXCLUSIVE_CXX_FLAGS: "-Wno-type-limits"
+          DEPS: system
+          BIN: 64
+          STD:
+            C: 11
+            CXX: 14
+          CONF:
+            GEN: Unix Makefiles
+            CONFIG: Release
+          IMAGE: khronosgroup/docker-images:opencl-sdk-intelcpu-ubuntu-20.04.20230717
+        - CMAKE: system
+          COMPILER:
+            C_NAME: gcc
+            CXX_NAME: g++
+            VER: 9
+            EXCLUSIVE_C_FLAGS: ""
+          DEPS: vcpkg
+          BIN: 32
+          STD:
+            C: 11
+            CXX: 14
+          CONF:
+            GEN: Unix Makefiles
+            CONFIG: Debug
+          IMAGE: khronosgroup/docker-images:opencl-sdk-intelcpu-ubuntu-20.04.20230717
+        - CMAKE: system
+          COMPILER:
+            C_NAME: gcc
+            CXX_NAME: g++
+            VER: 9
+            EXCLUSIVE_C_FLAGS: ""
+          DEPS: vcpkg
+          BIN: 32
+          STD:
+            C: 11
+            CXX: 14
+          CONF:
+            GEN: Unix Makefiles
+            CONFIG: Release
+          IMAGE: khronosgroup/docker-images:opencl-sdk-intelcpu-ubuntu-20.04.20230717
+    container: ${{matrix.IMAGE}}
+    env:
+      CMAKE_EXE: /opt/Kitware/CMake/${{ matrix.CMAKE }}/bin/cmake
+      CPACK_EXE: /opt/Kitware/CMake/${{ matrix.CMAKE }}/bin/cpack
+      CTEST_EXE: /opt/Kitware/CMake/${{ matrix.CMAKE }}/bin/ctest
+      DEB_INSTALLATION_PATH: /usr
+      CC: ${{matrix.COMPILER.C_NAME}}-${{matrix.COMPILER.VER}}
+      CXX:  ${{matrix.COMPILER.CXX_NAME}}-${{matrix.COMPILER.VER}}
     steps:
-      - uses: actions/checkout@v2
-        with:
+    - name: Set up vcpkg triplet
+      if: matrix.DEPS == 'vcpkg'
+      run: if [[ "${{ matrix.BIN }}" == "64" ]]; then
+          echo "VCPKG_TRIPLET=x64-linux" >> $GITHUB_ENV;
+        else
+          echo "VCPKG_TRIPLET=x86-linux" >> $GITHUB_ENV;
+        fi
+
+    - name: Install system CMake
+      if: matrix.CMAKE == 'system'
+      run: apt-get update -qq && apt-get install -y cmake &&
+        echo "CMAKE_EXE=cmake" >> "$GITHUB_ENV" &&
+        echo "CTEST_EXE=ctest" >> "$GITHUB_ENV" &&
+        echo "CPACK_EXE=cpack" >> "$GITHUB_ENV"
+
+    - name: Install dependencies (system)
+      if: matrix.DEPS == 'system'
+      run: apt-get update -qq && apt-get install -y libfreetype-dev libsfml-dev libglm-dev libglew-dev libtclap-dev libstb-dev
+  
+    - name: Cache dependencies (vcpkg)
+      if: matrix.DEPS == 'vcpkg'
+      id: vcpkg-install
+      uses: actions/cache@v4
+      with:
+        path: /opt/Microsoft/vcpkg
+        key: vcpkg-linux-${{matrix.BIN}}
+
+    - name: Install dependencies (vcpkg)
+      if: matrix.DEPS == 'vcpkg' && steps.vcpkg-install.outputs.cache-hit != 'true'
+      run: |
+        cd /opt/Microsoft/vcpkg
+        git pull
+        ./bootstrap-vcpkg.sh
+        ./vcpkg --triplet=$VCPKG_TRIPLET install tclap stb
+        # It is not possible to cross-compile the OpenGL samples on Ubuntu
+        # because system dev dependencies are not available for i386
+        if [[ "${{ matrix.BIN }}" == "64" ]]; then
+          ./vcpkg --triplet=$VCPKG_TRIPLET install sfml glm glew;
+        fi
+
+    - name: Set up compiler flags
+      run: |
+        # Excluding missing-field-initializers error because it comes from the Std dependency
+        # Excluding maybe-uninitialized error because cannot workaround the compiler issuing this error
+        # Not using -pedantic: error: ISO C forbids braced-groups within expressions
+        echo "CFLAGS=-Wall -Wextra -Werror -m${{matrix.BIN}} -Wno-missing-field-initializers ${{ matrix.COMPILER.EXCLUSIVE_C_FLAGS }}" >> $GITHUB_ENV;
+        # Excluding missing-field-initializers error because it comes from the Std dependency
+        echo "CXXFLAGS=-Wall -Wextra -pedantic -Werror -m${{matrix.BIN}} -Wno-missing-field-initializers ${{ matrix.COMPILER.EXCLUSIVE_CXX_FLAGS }}" >> $GITHUB_ENV;
+
+    - name: Checkout OpenCL-SDK
+      uses: actions/checkout@v4
+      with:
           fetch-depth: 0
           submodules: recursive
-      - name: Build
-        run: |
-            if [[ "${{ matrix.os }}" == "ubuntu-20.04" ]]; then
-              sudo apt update
-              sudo apt install -y libidn11 libx11-dev libxrandr-dev libxcursor-dev libxi-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libudev-dev \
-              `if [[ "${{matrix.deps}}" == "os" ]]; then echo libtclap-dev libglm-dev libglew-dev libsfml-dev libstb-dev; fi;`
-              if [[ "${{matrix.deps}}" == "vcpkg" ]]; then
-                git clone https://github.com/Microsoft/vcpkg.git
-                ./vcpkg/bootstrap-vcpkg.sh
-                ./vcpkg/vcpkg install sfml tclap glm glew stb
-                TOOLCHAIN_ARG="-D CMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake"
-              else
-                TOOLCHAIN_ARG=""
-              fi
-              if [[ "${{matrix.deps}}" == "fetch" ]]; then
-                sudo apt remove -y libtclap-dev libglm-dev libglew-dev libsfml-dev libstb-dev libfreetype6-dev
-              fi
-            elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-              brew install tclap glm glew sfml mesa-glu
-              git clone https://github.com/Microsoft/vcpkg.git
-              ./vcpkg/bootstrap-vcpkg.sh
-              ./vcpkg/vcpkg install stb
-              TOOLCHAIN_ARG="-D CMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake"
-            fi
-            if [[ "${{ matrix.compiler }}" == "gcc" ]]; then
-              CC=gcc
-              CXX=g++
-            elif [[ "${{ matrix.compiler }}" == "clang" ]]; then
-              CC=clang
-              CXX=clang++
-            fi
-            cmake \
-              -D CMAKE_C_COMPILER=$CC \
-              -D CMAKE_CXX_COMPILER=$CXX \
-              $TOOLCHAIN_ARG \
-              -S . -B build
-            cmake \
-              --build ./build \
-              --verbose \
-              --parallel `numproc`
-  buildwin:
-    needs: format
-    name: Build Windows ${{ matrix.deps }}
+
+    - name: Configure, package & install OpenCL-Headers
+      run: $CMAKE_EXE
+          -G "${{matrix.CONF.GEN}}"
+          `if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]]; then echo "-D CMAKE_BUILD_TYPE=${{matrix.CONF.CONFIG}}"; fi`
+          -D BUILD_TESTING=OFF
+          -D CPACK_PACKAGING_INSTALL_PREFIX=$DEB_INSTALLATION_PATH
+          -S $GITHUB_WORKSPACE/external/OpenCL-Headers
+          -B $GITHUB_WORKSPACE/external/OpenCL-Headers/build &&
+        $CPACK_EXE
+          --config "$GITHUB_WORKSPACE/external/OpenCL-Headers/build/CPackConfig.cmake"
+          -G DEB
+          -C ${{matrix.CONF.CONFIG}}
+          -B "$GITHUB_WORKSPACE/external/OpenCL-Headers/package-deb" &&
+        dpkg -i $GITHUB_WORKSPACE/external/OpenCL-Headers/package-deb/*.deb
+
+    - name: Configure, package & install OpenCL-ICD-Loader
+      run: $CMAKE_EXE
+          -G "${{matrix.CONF.GEN}}"
+          `if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]]; then echo "-D CMAKE_BUILD_TYPE=${{matrix.CONF.CONFIG}}"; fi`
+          -D BUILD_TESTING=OFF
+          -D CPACK_PACKAGING_INSTALL_PREFIX=$DEB_INSTALLATION_PATH
+          -S $GITHUB_WORKSPACE/external/OpenCL-ICD-Loader
+          -B $GITHUB_WORKSPACE/external/OpenCL-ICD-Loader/build &&
+          if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]];
+          then
+            $CMAKE_EXE --build $GITHUB_WORKSPACE/external/OpenCL-ICD-Loader/build --parallel `nproc`;
+          else
+            $CMAKE_EXE --build $GITHUB_WORKSPACE/external/OpenCL-ICD-Loader/build --config Debug --parallel `nproc`;
+            $CMAKE_EXE --build $GITHUB_WORKSPACE/external/OpenCL-ICD-Loader/build --config Release --parallel `nproc`;
+          fi &&
+        $CPACK_EXE
+          --config "$GITHUB_WORKSPACE/external/OpenCL-ICD-Loader/build/CPackConfig.cmake"
+          -G DEB
+          -C ${{matrix.CONF.CONFIG}}
+          -B "$GITHUB_WORKSPACE/external/OpenCL-ICD-Loader/package-deb" &&
+        dpkg -i $GITHUB_WORKSPACE/external/OpenCL-ICD-Loader/package-deb/*.deb
+
+    - name: Configure, package & install OpenCL-CLHPP
+      run: $CMAKE_EXE
+          -G "${{matrix.CONF.GEN}}"
+          `if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]]; then echo "-D CMAKE_BUILD_TYPE=${{matrix.CONF.CONFIG}}"; fi`
+          -D BUILD_TESTING=OFF
+          -D BUILD_EXAMPLES=OFF
+          -D BUILD_DOCS=OFF
+          -D CPACK_PACKAGING_INSTALL_PREFIX=$DEB_INSTALLATION_PATH
+          -S $GITHUB_WORKSPACE/external/OpenCL-CLHPP
+          -B $GITHUB_WORKSPACE/external/OpenCL-CLHPP/build &&
+        $CPACK_EXE
+          --config "$GITHUB_WORKSPACE/external/OpenCL-CLHPP/build/CPackConfig.cmake"
+          -G DEB
+          -C ${{matrix.CONF.CONFIG}}
+          -B "$GITHUB_WORKSPACE/external/OpenCL-CLHPP/package-deb" &&
+        dpkg -i $GITHUB_WORKSPACE/external/OpenCL-CLHPP/package-deb/*.deb
+
+    - name: Configure
+      run: $CMAKE_EXE
+        -G "${{matrix.CONF.GEN}}"
+        `if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]]; then echo "-D CMAKE_BUILD_TYPE=${{matrix.CONF.CONFIG}}"; fi`
+        `if [[ "${{matrix.DEPS}}" == "vcpkg" ]]; then echo "-D CMAKE_TOOLCHAIN_FILE=/opt/Microsoft/vcpkg/scripts/buildsystems/vcpkg.cmake"; fi;`
+        `if [[ "${{matrix.DEPS}}" == "vcpkg" ]]; then echo "-D VCPKG_TARGET_TRIPLET=$VCPKG_TRIPLET"; fi;`
+        -D BUILD_DOCS=ON
+        -D BUILD_TESTING=ON
+        -D BUILD_EXAMPLES=ON
+        -D OPENCL_SDK_BUILD_SAMPLES=ON
+        `if [[ "${{matrix.BIN}}" == "32" ]]; then echo "-D OPENCL_SDK_BUILD_OPENGL_SAMPLES=OFF"; fi;`
+        -D OPENCL_ICD_LOADER_BUILD_TESTING=ON
+        -D CMAKE_C_STANDARD=${{matrix.STD.C}}
+        -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}}
+        -D CMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/install
+        -D CPACK_PACKAGING_INSTALL_PREFIX=$DEB_INSTALLATION_PATH
+        -S $GITHUB_WORKSPACE
+        -B $GITHUB_WORKSPACE/build
+
+    - name: Build
+      run: if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]];
+        then
+          $CMAKE_EXE --build $GITHUB_WORKSPACE/build --parallel `nproc`;
+        else
+          $CMAKE_EXE --build $GITHUB_WORKSPACE/build --config Debug;
+          $CMAKE_EXE --build $GITHUB_WORKSPACE/build --config Release;
+        fi;
+
+    - name: Test
+      if: matrix.BIN != 32
+      working-directory: ${{runner.workspace}}/OpenCL-SDK/build
+      run: if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]];
+        then
+          $CTEST_EXE --output-on-failure --no-tests=error -C ${{matrix.CONF.CONFIG}} --parallel `nproc`;
+        else
+          $CTEST_EXE --output-on-failure --no-tests=error -C Debug   --parallel `nproc`;
+          $CTEST_EXE --output-on-failure --no-tests=error -C Release --parallel `nproc`;
+        fi;
+
+    - name: Package DEB
+      run: $CPACK_EXE
+        --config "$GITHUB_WORKSPACE/build/CPackConfig.cmake"
+        -G DEB
+        -C ${{matrix.CONF.CONFIG}}
+        -B "$GITHUB_WORKSPACE/package-deb"
+
+    - name: Consume (DEB)
+      run: dpkg -i $GITHUB_WORKSPACE/package-deb/*.deb &&
+        $CMAKE_EXE
+        -G "${{matrix.CONF.GEN}}"
+        `if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]]; then echo "-D CMAKE_BUILD_TYPE=${{matrix.CONF.CONFIG}}"; fi`
+        -D CMAKE_C_STANDARD=${{matrix.STD.C}}
+        -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}}
+        -S $GITHUB_WORKSPACE/test/cmake/pkgconfig/useutil
+        -B $GITHUB_WORKSPACE/build_package &&
+        if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]];
+        then
+          $CMAKE_EXE --build $GITHUB_WORKSPACE/build_package --parallel `nproc`;
+        else
+          $CMAKE_EXE --build $GITHUB_WORKSPACE/build_package --config Debug;
+          $CMAKE_EXE --build $GITHUB_WORKSPACE/build_package --config Release;
+        fi
+
+    - name: Run consume test (DEB)
+      if: matrix.BIN != 32
+      working-directory: ${{runner.workspace}}/OpenCL-SDK/build_package
+      run: if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]];
+        then
+          $CTEST_EXE -C ${{matrix.CONF.CONFIG}} --no-tests=error --output-on-failure --parallel `nproc`;
+        else
+          $CTEST_EXE -C Debug --output-on-failure --no-tests=error --parallel `nproc`;
+          $CTEST_EXE -C Release --output-on-failure --no-tests=error --parallel `nproc`;
+        fi
+
+    - name: Run clinfo (DEB)
+      run: clinfo
+
+    - name: Uninstall (DEB)
+      run: apt-get remove -y "khronos-opencl-loader*" opencl-c-headers opencl-clhpp-headers opencl-sdk clinfo
+
+    - name: Test install
+      run: $CMAKE_EXE
+        --build $GITHUB_WORKSPACE/build
+        --target install
+        --config ${{matrix.CONF.CONFIG}}
+        --parallel `nproc`
+
+    - name: Consume (install)
+      run: $CMAKE_EXE
+        -G "${{matrix.CONF.GEN}}"
+        `if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]]; then echo "-D CMAKE_BUILD_TYPE=${{matrix.CONF.CONFIG}}"; fi`
+        -D CMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/install
+        -D CMAKE_C_STANDARD=${{matrix.STD.C}}
+        -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}}
+        -S $GITHUB_WORKSPACE/test/cmake/pkgconfig/useutil
+        -B $GITHUB_WORKSPACE/build_install &&
+        if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]];
+        then
+          $CMAKE_EXE --build $GITHUB_WORKSPACE/build_install --parallel `nproc`;
+        else
+          $CMAKE_EXE --build $GITHUB_WORKSPACE/build_install --config Debug;
+          $CMAKE_EXE --build $GITHUB_WORKSPACE/build_install --config Release;
+        fi
+
+    - name: Run consume test (install)
+      if: matrix.BIN != 32
+      working-directory: ${{runner.workspace}}/OpenCL-SDK/build_install
+      run: if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]];
+        then
+          $CTEST_EXE -C ${{matrix.CONF.CONFIG}} --output-on-failure --no-tests=error --parallel `nproc`;
+        else
+          $CTEST_EXE -C Debug --output-on-failure --no-tests=error --parallel `nproc`;
+          $CTEST_EXE -C Release --output-on-failure --no-tests=error --parallel `nproc`;
+        fi
+
+  windows:
     runs-on: windows-latest
+    needs: format
+    defaults:
+      run:
+        shell: pwsh
     strategy:
       matrix:
-        deps: [fetch, vcpkg]
+        VER: [v142, v143, clangcl]
+        GEN: [Visual Studio 17 2022, Ninja Multi-Config]
+        DEPS: [vcpkg, fetch]
+        BIN: [x64]
+        STD:
+        - C: 11
+          CXX: 14
+        - C: 17
+          CXX: 17
+        exclude:
+        - VER: clangcl
+          GEN: Ninja Multi-Config
+        include:
+        - VER: v142
+          GEN: Visual Studio 17 2022
+          BIN: x86
+          DEPS: fetch
+          STD:
+            C: 11
+            CXX: 14
+    env:
+      NINJA_URL: https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-win.zip
+      NINJA_ROOT: C:\Tools\Ninja
+      VS_ROOT: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise'
+      UseMultiToolTask: true # Better parallel MSBuild execution
+      EnforceProcessCountAcrossBuilds: 'true' # -=-
+      MultiProcMaxCount: '3'                  # -=-
+      WindowsSDKVersion: '10.0.22621.0'
+      INTEL_OCL_URL: https://github.com/intel/llvm/releases/download/2023-WW27/win-oclcpuexp-2023.16.6.0.28_rel.zip
+      INTEL_TBB_URL: https://github.com/oneapi-src/oneTBB/releases/download/v2021.10.0/oneapi-tbb-2021.10.0-win.zip
+      IMAGE_INTEL_PREFIX: C:\Tools\Intel
+
     steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-          submodules: recursive
-      - name: Build
-        shell: pwsh
-        run: |
-          if ('${{ matrix.deps }}' -eq 'vcpkg') {
-            Get-ChildItem Env:\
-            & ${env:VCPKG_INSTALLATION_ROOT}\vcpkg.exe --triplet=x64-windows install sfml tclap glm glew stb
-            $TOOLCHAIN_ARG="-D CMAKE_TOOLCHAIN_FILE=${env:VCPKG_INSTALLATION_ROOT}\scripts\buildsystems\vcpkg.cmake"
-          } else {
-            $TOOLCHAIN_ARG=''
-          }
-          cmake `
-            $TOOLCHAIN_ARG `
-             -S . -B build
-          cmake `
-            --build ./build `
+    - name: Cache Ninja install
+      if: matrix.GEN == 'Ninja Multi-Config'
+      id: ninja-install
+      uses: actions/cache@v4
+      with:
+        path: |
+          C:\Tools\Ninja
+        key: ${{runner.os}}-ninja-${{env.NINJA_URL}}
+
+    - name: Install Ninja
+      if: matrix.GEN == 'Ninja Multi-Config' && steps.ninja-install.outputs.cache-hit != 'true'
+      run: |
+        Invoke-WebRequest ${env:NINJA_URL} -OutFile ~\Downloads\ninja-win.zip
+        Expand-Archive ~\Downloads\ninja-win.zip -DestinationPath ${env:NINJA_ROOT}\
+        Remove-Item ~\Downloads\*
+
+    - name: Install OpenCL runtime
+      if: matrix.BIN != 'x86'
+      run: |
+        $INTEL_OCL_ARCHIVE_NAME = Split-Path ${env:INTEL_OCL_URL} -Leaf; `
+        Invoke-WebRequest ${env:INTEL_OCL_URL} -OutFile ${env:TEMP}\$INTEL_OCL_ARCHIVE_NAME; `
+        Expand-Archive ${env:TEMP}\$INTEL_OCL_ARCHIVE_NAME -DestinationPath ${env:IMAGE_INTEL_PREFIX}\oclcpuexp; `
+        Remove-Item ${env:TEMP}\$INTEL_OCL_ARCHIVE_NAME; `
+        $INTEL_TBB_ARCHIVE_NAME = Split-Path ${env:INTEL_TBB_URL} -Leaf; `
+        Invoke-WebRequest ${env:INTEL_TBB_URL} -OutFile ${env:TEMP}\$INTEL_TBB_ARCHIVE_NAME; `
+        Expand-Archive ${env:TEMP}\$INTEL_TBB_ARCHIVE_NAME -DestinationPath ${env:IMAGE_INTEL_PREFIX}; `
+        Get-ChildItem ${env:IMAGE_INTEL_PREFIX}\oneapi-tbb* | Rename-Item  -NewName oneapi-tbb; `
+        Remove-Item ${env:TEMP}\$INTEL_TBB_ARCHIVE_NAME; `
+        New-Item -Type Directory ${env:IMAGE_INTEL_PREFIX}\oclcpuexp\tbb | Out-Null; `
+        Get-ChildItem ${env:IMAGE_INTEL_PREFIX}\oneapi-tbb\redist\intel64\vc14\*.dll | ForEach-Object { New-Item -Type SymbolicLink -Path ${env:IMAGE_INTEL_PREFIX}\oclcpuexp\tbb -Name $_.Name -Value $_.FullName | Out-Null; }; `
+        New-Item -Type Directory HKLM:\SOFTWARE\Khronos\OpenCL -Force | Out-Null; `
+        New-Item -Type File HKLM:\SOFTWARE\Khronos\OpenCL\Vendors | Out-Null; `
+        Set-ItemProperty -Path HKLM:\SOFTWARE\Khronos\OpenCL\Vendors -Name ${env:IMAGE_INTEL_PREFIX}\oclcpuexp\intelocl64.dll -Type DWord -Value 0;
+
+    - name: Cache dependencies (vcpkg)
+      if: matrix.DEPS == 'vcpkg'
+      id: vcpkg-install
+      uses: actions/cache@v4
+      with:
+        path: |
+          C:\vcpkg
+        key: x64-windows-sfml-tclap-glm-glew-stb
+
+    - name: Install dependencies (vcpkg)
+      if: matrix.DEPS == 'vcpkg' && steps.vcpkg-install.outputs.cache-hit != 'true'
+      run: C:\vcpkg\vcpkg.exe --triplet=x64-windows install sfml tclap glm glew stb
+
+    - name: Set up compiler flags
+      run: |
+        echo "CFLAGS=/W4 /WX" >> $GITHUB_ENV
+        echo "CXXFLAGS=/W4 /WX" >> $GITHUB_ENV
+
+    - name: Checkout OpenCL-SDK
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        submodules: recursive
+
+    - name: Configure (MSBuild)
+      if: matrix.GEN == 'Visual Studio 17 2022'
+      run: |
+        if ('${{ matrix.DEPS }}' -eq 'vcpkg') {
+          $TOOLCHAIN_ARG="-D CMAKE_TOOLCHAIN_FILE=${env:VCPKG_INSTALLATION_ROOT}\scripts\buildsystems\vcpkg.cmake"
+        } else {
+          $TOOLCHAIN_ARG=''
+        }
+        $BIN = if('${{matrix.BIN}}' -eq 'x86') {'Win32'} else {'x64'}
+        & cmake `
+          $TOOLCHAIN_ARG `
+          -G "${{matrix.GEN}}" `
+          -A $BIN `
+          -T ${{matrix.VER}} `
+          -D BUILD_DOCS=ON `
+          -D BUILD_TESTING=ON `
+          -D OPENCL_SDK_BUILD_SAMPLES=ON `
+          -D CMAKE_C_STANDARD=${{matrix.STD.C}} `
+          -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}} `
+          -D CMAKE_INSTALL_PREFIX=${env:GITHUB_WORKSPACE}\install `
+          -S ${env:GITHUB_WORKSPACE} `
+          -B ${env:GITHUB_WORKSPACE}\build
+        if ($LASTEXITCODE -ne 0) { throw "Configuring OpenCL-SDK failed." }
+
+    - name: Configure (Ninja Multi-Config)
+      if: matrix.GEN == 'Ninja Multi-Config'
+      run: |
+        if ('${{ matrix.DEPS }}' -eq 'vcpkg') {
+          $TOOLCHAIN_ARG="-D CMAKE_TOOLCHAIN_FILE=${env:VCPKG_INSTALLATION_ROOT}\scripts\buildsystems\vcpkg.cmake"
+        } else {
+          $TOOLCHAIN_ARG=''
+        }
+        $VER = switch ('${{matrix.VER}}') { `
+          'v142' {'14.2'} `
+          'v143' {'14.4'} }
+        Import-Module "${env:VS_ROOT}\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
+        Enter-VsDevShell -VsInstallPath ${env:VS_ROOT} -SkipAutomaticLocation -DevCmdArguments "-host_arch=x64 -arch=${{matrix.BIN}} -vcvars_ver=$VER"
+        & cmake `
+          $TOOLCHAIN_ARG `
+          -G "${{matrix.GEN}}" `
+          -D CMAKE_MAKE_PROGRAM="${env:NINJA_ROOT}\ninja.exe" `
+          -D BUILD_DOCS=ON `
+          -D BUILD_TESTING=ON `
+          -D OPENCL_SDK_BUILD_SAMPLES=ON `
+          -D CMAKE_C_STANDARD=${{matrix.STD.C}} `
+          -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}} `
+          -D CMAKE_EXE_LINKER_FLAGS=/INCREMENTAL `
+          -D CMAKE_INSTALL_PREFIX=${env:GITHUB_WORKSPACE}\install `
+          -S ${env:GITHUB_WORKSPACE} `
+          -B ${env:GITHUB_WORKSPACE}\build
+          if ($LASTEXITCODE -ne 0) { throw "Configuring OpenCL-SDK failed." }
+
+    - name: Build (MSBuild)
+      if: matrix.GEN == 'Visual Studio 17 2022'
+      run: |
+        foreach ($Config in 'Release','Debug') { `
+          & cmake `
+            --build "${env:GITHUB_WORKSPACE}\build" `
+            --config $Config `
             -- `
             /verbosity:minimal `
             /maxCpuCount `
             /noLogo
+            if ($LASTEXITCODE -ne 0) { throw "Building OpenCL-SDK in $Config failed." }
+        }
+
+    - name: Build (Ninja Multi-Config)
+      if: matrix.GEN == 'Ninja Multi-Config'
+      run: |
+        $VER = switch ('${{matrix.VER}}') { `
+          'v142' {'14.2'} `
+          'v143' {'14.4'} }
+        Import-Module "${env:VS_ROOT}\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
+        Enter-VsDevShell -VsInstallPath ${env:VS_ROOT} -SkipAutomaticLocation -DevCmdArguments "-host_arch=x64 -arch=${{matrix.BIN}} -vcvars_ver=$VER"
+        foreach ($Config in 'Release','Debug') { `
+          & cmake `
+            --build "${env:GITHUB_WORKSPACE}\build" `
+            --config $Config
+          if ($LASTEXITCODE -ne 0) { throw "Building OpenCL-SDK in $Config failed." }
+        }
+
+    - name: Test
+      if: matrix.BIN != 'x86'
+      working-directory: ${{runner.workspace}}/OpenCL-SDK/build
+      run: |
+        foreach ($Config in 'Release','Debug') {
+          & ctest `
+            --build-config ${Config} `
+            --output-on-failure `
+            --no-tests=error `
+            --parallel ${env:NUMBER_OF_PROCESSORS}
+          if ($LASTEXITCODE -ne 0) { throw "Running OpenCL-SDK tests in $Config failed." }
+        }
+
+    - name: Install
+      run: |
+        & cmake `
+          --install "${env:GITHUB_WORKSPACE}\build" `
+          --prefix "${env:GITHUB_WORKSPACE}\install" `
+          --config Release
+        if ($LASTEXITCODE -ne 0) { throw "Installing OpenCL-SDK failed." }
+
+    - name: "Consume (MSBuild SDK): Configure/Build/Test"
+      if: matrix.GEN == 'Visual Studio 17 2022'
+      run: |
+        $BIN = if('${{matrix.BIN}}' -eq 'x86') {'Win32'} else {'x64'}
+        & cmake `
+          -G '${{matrix.GEN}}' `
+          -A $BIN `
+          -T ${{matrix.VER}} `
+          -D CMAKE_EXE_LINKER_FLAGS=/INCREMENTAL `
+          -D CMAKE_PREFIX_PATH="${env:GITHUB_WORKSPACE}\install" `
+          -D CMAKE_C_STANDARD=${{matrix.STD.C}} `
+          -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}} `
+          -S ${env:GITHUB_WORKSPACE}\test\cmake\pkgconfig\useutil `
+          -B ${env:GITHUB_WORKSPACE}\downstream\pkgconfig\useutil
+        if ($LASTEXITCODE -ne 0) { throw "Configuring OpenCL-SDK consume test failed." }
+        foreach ($Config in 'Release') {
+          & cmake `
+            --build "${env:GITHUB_WORKSPACE}\downstream\pkgconfig\useutil" `
+            --config ${Config}
+          if ($LASTEXITCODE -ne 0) { throw "Building OpenCL-SDK consume test in $Config failed." }
+        }
+
+    - name: "Consume (Ninja-Multi-Config SDK): Configure/Build/Test"
+      if: matrix.GEN == 'Ninja Multi-Config'
+      run: |
+        $VER = switch ('${{matrix.VER}}') { `
+          'v142' {'14.2'} `
+          'v143' {'14.4'} }
+        Import-Module "${env:VS_ROOT}\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
+        Enter-VsDevShell -VsInstallPath ${env:VS_ROOT} -SkipAutomaticLocation -DevCmdArguments "-host_arch=x64 -arch=${{matrix.BIN}} -vcvars_ver=${VER}"
+        & cmake `
+          -G '${{matrix.GEN}}' `
+          -D CMAKE_MAKE_PROGRAM="${env:NINJA_ROOT}\ninja.exe" `
+          -D CMAKE_EXE_LINKER_FLAGS=/INCREMENTAL `
+          -D CMAKE_PREFIX_PATH="${env:GITHUB_WORKSPACE}\external\OpenCL-Headers\install;${env:GITHUB_WORKSPACE}\install" `
+          -D CMAKE_C_STANDARD=${{matrix.STD.C}} `
+          -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}} `
+          -S ${env:GITHUB_WORKSPACE}\test\cmake\pkgconfig\useutil `
+          -B ${env:GITHUB_WORKSPACE}\downstream\pkgconfig\useutil
+        if ($LASTEXITCODE -ne 0) { throw "Configuring OpenCL-SDK consume test failed." }
+        foreach ($Config in 'Release') {
+          & cmake `
+            --build "${env:GITHUB_WORKSPACE}\downstream\pkgconfig\useutil" `
+            --config ${Config}
+          if ($LASTEXITCODE -ne 0) { throw "Building OpenCL-SDK consume test in $Config failed." }
+        }
+
+    - name: Consume test
+      if: matrix.BIN != 'x86'
+      working-directory: ${{runner.workspace}}/OpenCL-SDK/downstream/pkgconfig/useutil
+      run: |
+        foreach ($Config in 'Release') {
+          & ctest `
+            --build-config ${Config} `
+            --output-on-failure `
+            --no-tests=error `
+            --parallel ${env:NUMBER_OF_PROCESSORS}
+          if ($LASTEXITCODE -ne 0) { throw "Running OpenCL-SDK consume test in $Config failed." }
+        }
+
+  macos:
+    runs-on: macos-latest
+    needs: format
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      matrix:
+        GEN:
+        - Xcode
+        - Ninja Multi-Config
+        DEPS:
+        - system
+        - vcpkg
+        - fetch
+        STD:
+        - C: 11
+          CXX: 14
+        - C: 17
+          CXX: 17
+    env:
+      CC: /usr/bin/clang
+      CXX: /usr/bin/clang++
+    steps:
+    - name: Checkout OpenCL-SDK
+      uses: actions/checkout@v4
+      with:
+          fetch-depth: 0
+          submodules: recursive
+
+    - name: Create Build Environment
+      run: |
+        # Install Ninja only if it's the selected generator and it's not available.
+        if [[ "${{matrix.GEN}}" == "Ninja Multi-Config" && ! `which ninja` ]]; then brew install ninja; fi &&
+        # We need to provide an OpenCL driver for Intel CPU on mac
+        brew install pocl
+        POCL_INSTALL_PATH=$(brew --prefix pocl)
+        echo "OCL_ICD_VENDORS=$POCL_INSTALL_PATH/etc/OpenCL/vendors" >> $GITHUB_ENV
+        cmake --version
+
+    - name: Install dependencies (Homebrew)
+      if: matrix.DEPS == 'system'
+      run: brew install tclap glm glew sfml mesa-glu
+
+    - name: Install dependencies (vcpkg)
+      if: matrix.DEPS == 'vcpkg'
+      run: |
+        git clone https://github.com/Microsoft/vcpkg.git vcpkg
+        ./vcpkg/bootstrap-vcpkg.sh
+        ./vcpkg/vcpkg install tclap glm glew sfml stb
+
+    - name: Set up compiler flags
+      run: |
+        # Not using -pedantic: error: ISO C forbids braced-groups within expressions
+        # The flags
+        #  * -Wno-missing-field-initializers
+        #  * -Wno-conditional-uninitialized
+        # have been added because of Std compilation errors
+        echo "CFLAGS=-Wall -Wextra -Werror -Wno-missing-field-initializers -Wno-conditional-uninitialized" >> $GITHUB_ENV;
+        # The flags
+        #  * -Wno-deprecated-declarations
+        #  * -Wno-missing-field-initializers
+        # have been added because of Std compilation errors
+        echo "CXXFLAGS=-Wall -Wextra -pedantic -Wno-format -Werror -Wno-missing-field-initializers -Wno-deprecated-declarations" >> $GITHUB_ENV;
+
+    - name: Configure
+      run: cmake
+        -G "${{matrix.GEN}}"
+        `if [[ "${{matrix.DEPS}}" == "vcpkg" ]]; then echo "-D CMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake"; fi`
+        -D BUILD_DOCS=ON
+        -D BUILD_TESTING=ON
+        -D BUILD_EXAMPLES=ON
+        -D OPENCL_SDK_BUILD_SAMPLES=ON
+        -D CMAKE_C_STANDARD=${{matrix.STD.C}}
+        -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}}
+        -D CMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/install
+        -D CMAKE_OSX_ARCHITECTURES=arm64
+        -S $GITHUB_WORKSPACE
+        -B $GITHUB_WORKSPACE/build
+
+    - name: Build
+      run: |
+        cmake --build $GITHUB_WORKSPACE/build --config Debug --parallel `sysctl -n hw.logicalcpu`
+        cmake --build $GITHUB_WORKSPACE/build --config Release --parallel `sysctl -n hw.logicalcpu`
+
+    - name: Test
+      working-directory: ${{runner.workspace}}/OpenCL-SDK/build
+      run: |
+        EXCLUDE_REGEX="multidevice.*"
+        ctest -C Debug --output-on-failure --no-tests=error --parallel `sysctl -n hw.logicalcpu` --exclude-regex "$EXCLUDE_REGEX"
+        ctest -C Release --output-on-failure --no-tests=error --parallel `sysctl -n hw.logicalcpu` --exclude-regex "$EXCLUDE_REGEX"
+
+    - name: Install
+      run: |
+        cmake --build $GITHUB_WORKSPACE/build --config Release --target install
+
+    - name: Consume (install)
+      run: cmake
+        -G "${{matrix.GEN}}"
+        -D CMAKE_C_STANDARD=${{matrix.STD.C}}
+        -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}}
+        -D CMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/install"
+        -S $GITHUB_WORKSPACE/test/cmake/pkgconfig/useutil
+        -B $GITHUB_WORKSPACE/build_install &&
+        cmake --build $GITHUB_WORKSPACE/build_install --config Debug --parallel `sysctl -n hw.logicalcpu` &&
+        cmake --build $GITHUB_WORKSPACE/build_install --config Release --parallel `sysctl -n hw.logicalcpu` &&
+        cd $GITHUB_WORKSPACE/build_install &&
+        ctest -C Debug --output-on-failure --no-tests=error --parallel `sysctl -n hw.logicalcpu` &&
+        ctest -C Release --output-on-failure --no-tests=error --parallel `sysctl -n hw.logicalcpu`
 
   python:
     name: Exercise Python examples on ${{matrix.os}}
+    defaults:
+      run:
+        shell: bash
     strategy:
       matrix:
         #os: [ubuntu-latest, macos-latest]
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Environment setup
         run: |
           MINIFORGE_INSTALL_DIR=.miniforge3
@@ -138,13 +774,16 @@ jobs:
 
   checkruby:
     name: Check Ruby Samples ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         #os: [ubuntu-latest, macos-latest]
         os: [ubuntu-latest, macos-13]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: recursive
@@ -161,3 +800,44 @@ jobs:
       - name: Run Ruby Samples
         run: rake test
         working-directory: ruby
+
+  android:
+    runs-on: ubuntu-latest
+    needs: format
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      matrix:
+        ABI:
+        - arm64-v8a
+        - x86_64
+        API_LEVEL:
+        - android-29
+        - android-33
+        CONFIG:
+        - Debug
+        - Release
+    env:
+      CFLAGS: -Wall -Wextra -pedantic -Werror -Wno-error=gnu-statement-expression
+      CXXFLAGS: -Wall -Wextra -pedantic -Werror -Wno-error=missing-field-initializers
+    steps:
+    - name: Checkout OpenCL-SDK
+      uses: actions/checkout@v4
+      with:
+          fetch-depth: 0
+          submodules: recursive
+
+    - name: Configure
+      run: cmake
+        -G "Unix Makefiles"
+        -D CMAKE_BUILD_TYPE=${{matrix.CONFIG}}
+        -D CMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake
+        -D ANDROID_ABI=${{matrix.ABI}}
+        -D ANDROID_PLATFORM=${{matrix.API_LEVEL}}
+        -D OPENCL_SDK_BUILD_OPENGL_SAMPLES=OFF
+        -S $GITHUB_WORKSPACE
+        -B $GITHUB_WORKSPACE/build
+
+    - name: Build
+      run: cmake --build $GITHUB_WORKSPACE/build --parallel `nproc`

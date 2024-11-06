@@ -187,7 +187,7 @@ int main(int argc, char *argv[])
     if (!diag_opts.quiet) cl_util_print_device_info(device);
 
     /// Try to read binary
-    program = cl_util_read_binaries(context, &device, 1, "Collatz", &error);
+    program = cl_util_read_binaries(context, &device, 1, "Collatz-c", &error);
 
     if (error != CL_SUCCESS)
     { // if binary not present, compile and save
@@ -198,7 +198,7 @@ int main(int argc, char *argv[])
         OCLERROR_PAR(kernel = cl_util_read_exe_relative_text_file(
                          "Collatz.cl", &program_size, &error),
                      error, cont);
-        printf("OpenCL file red... ");
+        printf("OpenCL file read... ");
 
         OCLERROR_PAR(program = clCreateProgramWithSource(context, 1,
                                                          (const char **)&kernel,
@@ -207,16 +207,16 @@ int main(int argc, char *argv[])
         OCLERROR_RET(cl_util_build_program(program, device, options), error,
                      prgs);
 
-        OCLERROR_RET(cl_util_write_binaries(program, "Collatz"), error, prgs);
+        OCLERROR_RET(cl_util_write_binaries(program, "Collatz-c"), error, prgs);
         printf("Binary file written.\n\n");
 
     prgs:
-        OCLERROR_RET(clReleaseProgram(program), end_error, que);
+        OCLERROR_RET(clReleaseProgram(program), end_error, cont);
     ker:
         free(kernel);
 
         OCLERROR_PAR(program = cl_util_read_binaries(context, &device, 1,
-                                                     "Collatz", &error),
+                                                     "Collatz-c", &error),
                      error, cont);
     }
 

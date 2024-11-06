@@ -74,6 +74,7 @@ defaultValueForType = {
     # Integral Types
     'cl_int'                            : '0',
     'cl_uint'                           : '0',
+    'int'                               : '0',
     'size_t'                            : '0',
     'UINT'                              : '0',
     }
@@ -118,7 +119,7 @@ def getCallArgs(params):
     return callstr
 
 %>/*******************************************************************************
-// Copyright (c) 2021-2023 Ben Ashbaugh
+// Copyright (c) 2021-2024 Ben Ashbaugh
 //
 // SPDX-License-Identifier: MIT or Apache-2.0
 */

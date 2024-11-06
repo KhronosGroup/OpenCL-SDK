@@ -5,7 +5,7 @@
 #include <iostream> // std::cout
 #include <cstdlib> // EXIT_FAILURE
 
-int main()
+int main(void)
 {
     try
     {
