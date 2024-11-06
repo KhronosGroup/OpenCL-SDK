@@ -338,9 +338,12 @@ int main(int argc, char* argv[])
     const char* kernel_location = "./external_saxpy.cl";
     char *kernel = NULL, *tmp = NULL;
     size_t program_size = 0;
-    OCLERROR_PAR(
-        kernel = cl_util_read_text_file(kernel_location, &program_size, &error),
-        error, que);
+    kernel = cl_util_read_text_file(kernel_location, &program_size, &error);
+    if (error != CL_SUCCESS)
+    {
+        fprintf(stderr, "Cannot open kernel source: %s\n", kernel_location);
+        goto cont;
+    }
     MEM_CHECK(tmp = (char*)realloc(kernel, program_size), error, ker);
     kernel = tmp;
     OCLERROR_PAR(program = clCreateProgramWithSource(
@@ -352,14 +355,14 @@ int main(int argc, char* argv[])
     size_t versions_size = 0;
     OCLERROR_RET(clGetDeviceInfo(cl_device, CL_DEVICE_OPENCL_C_ALL_VERSIONS, 0,
                                  NULL, &versions_size),
-                 error, end);
+                 error, prg);
     size_t versions_count = versions_size / sizeof(cl_name_version);
 
     // Get and check versions.
     cl_name_version* dev_versions = (cl_name_version*)malloc(versions_size);
     OCLERROR_RET(clGetDeviceInfo(cl_device, CL_DEVICE_OPENCL_C_ALL_VERSIONS,
                                  versions_size, dev_versions, NULL),
-                 error, end);
+                 error, prg);
     char compiler_options[1024] = "";
     for (cl_uint i = 0; i < versions_count; ++i)
     {
@@ -424,7 +427,7 @@ int main(int argc, char* argv[])
     {
         fprintf(stderr,
                 "\nError: Unsupported OpenCL external memory handle type\n");
-        exit(EXIT_FAILURE);
+        goto arry;
     }
 
     if (!vk_check_external_memory_handle_type(vk_physical_device,
@@ -432,7 +435,7 @@ int main(int argc, char* argv[])
     {
         fprintf(stderr,
                 "\nError: Unsupported Vulkan external memory handle type\n");
-        exit(EXIT_FAILURE);
+        goto arry;
     }
 
     // Initialize Vulkan device-side storage.
@@ -608,14 +611,14 @@ int main(int argc, char* argv[])
                                                   0 };
     OCLERROR_PAR(queue = clCreateCommandQueueWithProperties(
                      context, cl_device, queue_props, &error),
-                 error, cont);
+                 error, clbufy);
 
     // Set kernel arguments.
-    OCLERROR_RET(clSetKernelArg(saxpy, 0, sizeof(cl_float), &a), error, clbufy);
+    OCLERROR_RET(clSetKernelArg(saxpy, 0, sizeof(cl_float), &a), error, que);
     OCLERROR_RET(clSetKernelArg(saxpy, 1, sizeof(cl_mem), &cl_buf_x), error,
-                 clbufy);
+                 que);
     OCLERROR_RET(clSetKernelArg(saxpy, 2, sizeof(cl_mem), &cl_buf_y), error,
-                 clbufy);
+                 que);
 
     // Acquire OpenCL memory objects created from Vulkan external memory
     // handles.
@@ -638,8 +641,8 @@ int main(int argc, char* argv[])
     GET_CURRENT_TIMER(dev_start)
     OCLERROR_RET(clEnqueueNDRangeKernel(queue, saxpy, 1, NULL, &length, &wgs, 0,
                                         NULL, &kernel_run),
-                 error, clbufy);
-    OCLERROR_RET(clWaitForEvents(1, &kernel_run), error, clbufy);
+                 error, que);
+    OCLERROR_RET(clWaitForEvents(1, &kernel_run), error, que);
     GET_CURRENT_TIMER(dev_end)
 
     cl_ulong dev_time;
@@ -675,7 +678,7 @@ int main(int argc, char* argv[])
     OCLERROR_RET(clEnqueueReadBuffer(queue, cl_buf_y, CL_BLOCKING, 0,
                                      sizeof(cl_float) * length, (void*)arr_x, 0,
                                      NULL, NULL),
-                 error, clbufy);
+                 error, que);
 
     // Validate solution.
     for (size_t i = 0; i < length; ++i)
@@ -707,6 +710,8 @@ int main(int argc, char* argv[])
     }
 
     // Release resources.
+que:
+    OCLERROR_RET(clReleaseCommandQueue(queue), end_error, cont);
 clbufy:
     OCLERROR_RET(clReleaseMemObject(cl_buf_y), end_error, clbufx);
 clbufx:
@@ -718,6 +723,7 @@ vulkan:
     vkUnmapMemory(vk_device, vk_buf_x_memory);
     vkFreeMemory(vk_device, vk_buf_y_memory, NULL);
     vkFreeMemory(vk_device, vk_buf_x_memory, NULL);
+arry:
     free(arr_y);
 arrx:
     free(arr_x);
@@ -727,8 +733,6 @@ prg:
     OCLERROR_RET(clReleaseProgram(program), end_error, ker);
 ker:
     free(kernel);
-que:
-    OCLERROR_RET(clReleaseCommandQueue(queue), end_error, cont);
 cont:
     OCLERROR_RET(clReleaseContext(context), end_error, end);
 end:
