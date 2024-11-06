@@ -363,7 +363,9 @@ bool vk_check_external_memory_handle_type(
     physical_device_external_buffer_info.handleType =
         vk_external_memory_handle_type;
 
-    VkExternalBufferProperties external_buffer_properties;
+    VkExternalBufferProperties external_buffer_properties = {
+        VK_STRUCTURE_TYPE_EXTERNAL_BUFFER_PROPERTIES, NULL
+    };
 
     vkGetPhysicalDeviceExternalBufferProperties(
         vk_physical_device, &physical_device_external_buffer_info,
