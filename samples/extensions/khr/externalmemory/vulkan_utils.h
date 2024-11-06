@@ -353,11 +353,13 @@ ret:
 // type.
 bool vk_check_external_memory_handle_type(
     VkPhysicalDevice vk_physical_device,
+    VkBufferUsageFlags vk_external_memory_usage,
     VkExternalMemoryHandleTypeFlagBits vk_external_memory_handle_type)
 {
     VkPhysicalDeviceExternalBufferInfo physical_device_external_buffer_info = {
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_BUFFER_INFO
     };
+    physical_device_external_buffer_info.usage = vk_external_memory_usage;
     physical_device_external_buffer_info.handleType =
         vk_external_memory_handle_type;
 

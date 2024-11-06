@@ -335,8 +335,12 @@ int main(int argc, char* argv[])
             exit(EXIT_FAILURE);
         }
 
+        VkBufferUsageFlags vk_external_memory_usage =
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
         if (!vk_check_external_memory_handle_type(
-                vk_physical_device, vk_external_memory_handle_type))
+                vk_physical_device, vk_external_memory_usage,
+                vk_external_memory_handle_type))
         {
             std::cerr
                 << "\nError: Unsupported Vulkan external memory handle type"
@@ -362,8 +366,7 @@ int main(int argc, char* argv[])
         buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         buffer_info.pNext = &external_memory_buffer_info;
         buffer_info.size = sizeof(cl_float) * length;
-        buffer_info.usage =
-            VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        buffer_info.usage = vk_external_memory_usage;
         buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
         VkBuffer vk_buf_x, vk_buf_y;
