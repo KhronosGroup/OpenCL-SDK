@@ -483,10 +483,11 @@ int main(int argc, char* argv[])
 
         // Create OpenCL buffers from Vulkan external memory file descriptors.
         std::vector<cl_mem_properties> ext_mem_props_x = {
-            (cl_mem_properties)CL_EXTERNAL_MEMORY_HANDLE_OPAQUE_FD_KHR,
 #ifdef _WIN32
+            (cl_mem_properties)CL_EXTERNAL_MEMORY_HANDLE_OPAQUE_WIN32_KHR,
             (cl_mem_properties)handle_x,
 #else
+            (cl_mem_properties)CL_EXTERNAL_MEMORY_HANDLE_OPAQUE_FD_KHR,
             (cl_mem_properties)fd_x,
 #endif
             (cl_mem_properties)CL_MEM_DEVICE_HANDLE_LIST_KHR,
@@ -495,10 +496,11 @@ int main(int argc, char* argv[])
             0
         };
         std::vector<cl_mem_properties> ext_mem_props_y = {
-            (cl_mem_properties)CL_EXTERNAL_MEMORY_HANDLE_OPAQUE_FD_KHR,
 #ifdef _WIN32
+            (cl_mem_properties)CL_EXTERNAL_MEMORY_HANDLE_OPAQUE_WIN32_KHR,
             (cl_mem_properties)handle_y,
 #else
+            (cl_mem_properties)CL_EXTERNAL_MEMORY_HANDLE_OPAQUE_FD_KHR,
             (cl_mem_properties)fd_y,
 #endif
             (cl_mem_properties)CL_MEM_DEVICE_HANDLE_LIST_KHR,

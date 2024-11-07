@@ -278,10 +278,12 @@ find_suitable_device(VkInstance instance,
          ++platform_id)
     {
         cl_uint cl_platform_devices_count = 0;
-        OCLERROR_RET(clGetDeviceIDs(platforms[platform_id],
-                                    CL_DEVICE_TYPE_ALL, 0, NULL,
-                                    &cl_platform_devices_count),
-                     error, candidates);
+        error = clGetDeviceIDs(platforms[platform_id], CL_DEVICE_TYPE_ALL, 0,
+                               NULL, &cl_platform_devices_count);
+        if (error != CL_SUCCESS && error != CL_DEVICE_NOT_FOUND)
+        {
+            goto candidates;
+        }
 
         for (cl_uint cl_candidate_id = 0;
              cl_candidate_id < cl_platform_devices_count;
