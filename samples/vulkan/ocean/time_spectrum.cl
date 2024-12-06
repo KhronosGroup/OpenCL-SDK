@@ -41,7 +41,7 @@ kernel void spectrum( float dt, int2 patch_info,
 {
     int2 uv = (int2)((int)get_global_id(0), (int)get_global_id(1));
     int res = patch_info.y;
-    float2 wave_vec = (float2)(uv.x - res / 2.f, uv.y - res / 2.f);
+    float2 wave_vec = convert_float2(uv) - (float2)((float)(res-1)/2.f);
     float2 k = (2.f * PI * wave_vec) / patch_info.x;
     float k_mag = length(k);
 

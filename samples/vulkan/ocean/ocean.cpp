@@ -168,7 +168,7 @@ void OceanApplication::init_openCL_mems()
             context, CL_MEM_READ_WRITE, cl::ImageFormat(CL_RGBA, CL_FLOAT),
             ocean_tex_size, ocean_tex_size);
 
-        int log_2_N = (int)(log((float)ocean_tex_size) / log(2.f));
+        size_t log_2_N = (size_t)((log((float)ocean_tex_size) / log(2.f)) - 1);
 
         twiddle_factors_mem = std::make_unique<cl::Image2D>(
             context, CL_MEM_READ_WRITE, cl::ImageFormat(CL_RGBA, CL_FLOAT),
@@ -449,20 +449,14 @@ void OceanApplication::cleanup()
     }
 
     // cleanup indices buffers
-    for (auto& ind_buffer : index_buffers)
+    for (auto buffer : index_buffer.buffers)
     {
-        for (auto buffer : ind_buffer.buffers)
-        {
-            vkDestroyBuffer(device, buffer, nullptr);
-        }
+        vkDestroyBuffer(device, buffer, nullptr);
     }
 
-    for (auto& ind_buffer : index_buffers)
+    for (auto& bufferMemory : index_buffer.buffer_memories)
     {
-        for (auto& bufferMemory : ind_buffer.buffer_memories)
-        {
-            vkFreeMemory(device, bufferMemory, nullptr);
-        }
+        vkFreeMemory(device, bufferMemory, nullptr);
     }
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
@@ -960,7 +954,7 @@ void OceanApplication::create_graphics_pipeline()
     inputAssembly.sType =
         VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-    inputAssembly.primitiveRestartEnable = VK_FALSE;
+    inputAssembly.primitiveRestartEnable = VK_TRUE;
 
     VkViewport viewport{};
     viewport.x = 0.0f;
@@ -1178,9 +1172,8 @@ void OceanApplication::create_vertex_buffers()
 
 void OceanApplication::create_index_buffers()
 {
-    index_buffers.resize(ocean_grid_size);
-    // Add Tri Strip primitve sets
-    ocean_grid_indices.resize((ocean_grid_size + 1) * 2);
+    size_t totalIndices = ((ocean_grid_size + 1) * 2 + 1) * ocean_grid_size;
+    ocean_grid_indices.resize(totalIndices);
 
     VkDeviceSize bufferSize =
         sizeof(ocean_grid_indices[0]) * ocean_grid_indices.size();
@@ -1192,40 +1185,39 @@ void OceanApplication::create_index_buffers()
                       | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                   stagingBuffer, stagingBufferMemory);
 
-    // Each tri strip draws one row of NX quads
-    for (size_t iBaseTo, iBaseFrom = 0, iY = 0; iY < ocean_grid_size;
-         iY++, iBaseFrom = iBaseTo)
+    size_t indexCount = 0;
+    for (size_t iY = 0; iY < ocean_grid_size; iY++)
     {
-        iBaseTo = iBaseFrom + ocean_grid_size + 1;
+        size_t iBaseFrom = iY * (ocean_grid_size + 1);
+        size_t iBaseTo = iBaseFrom + ocean_grid_size + 1;
+
         for (size_t iX = 0; iX <= ocean_grid_size; iX++)
         {
-            ocean_grid_indices[iX * 2 + 0] = (int)(iBaseFrom + iX);
-            ocean_grid_indices[iX * 2 + 1] = (int)(iBaseTo + iX);
+            ocean_grid_indices[indexCount++] = static_cast<int>(iBaseFrom + iX);
+            ocean_grid_indices[indexCount++] = static_cast<int>(iBaseTo + iX);
         }
-
-        index_buffers[iY].buffers.resize(swap_chain_images.size());
-        index_buffers[iY].buffer_memories.resize(swap_chain_images.size());
-
-        void* data;
-        vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, ocean_grid_indices.data(), (size_t)bufferSize);
-        vkUnmapMemory(device, stagingBufferMemory);
-
-        for (size_t i = 0; i < swap_chain_images.size(); i++)
-        {
-
-            // create local memory buffer
-            create_buffer(bufferSize,
-                          VK_BUFFER_USAGE_TRANSFER_DST_BIT
-                              | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                          index_buffers[iY].buffers[i],
-                          index_buffers[iY].buffer_memories[i]);
-
-            copy_buffer(stagingBuffer, index_buffers[iY].buffers[i],
-                        bufferSize);
-        }
+        ocean_grid_indices[indexCount++] = -1;
     }
+
+    void* data;
+    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, ocean_grid_indices.data(), (size_t)bufferSize);
+    vkUnmapMemory(device, stagingBufferMemory);
+
+    index_buffer.buffers.resize(swap_chain_images.size());
+    index_buffer.buffer_memories.resize(swap_chain_images.size());
+
+    for (size_t i = 0; i < swap_chain_images.size(); i++)
+    {
+        create_buffer(bufferSize,
+                      VK_BUFFER_USAGE_TRANSFER_DST_BIT
+                          | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                      index_buffer.buffers[i], index_buffer.buffer_memories[i]);
+
+        copy_buffer(stagingBuffer, index_buffer.buffers[i], bufferSize);
+    }
+
     vkDestroyBuffer(device, stagingBuffer, nullptr);
     vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
@@ -1900,14 +1892,11 @@ void OceanApplication::create_command_buffers()
             command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
             pipeline_layout, 0, 1, &descriptor_sets[i], 0, nullptr);
 
-        for (auto& ind_buffer : index_buffers)
-        {
-            vkCmdBindIndexBuffer(command_buffers[i], ind_buffer.buffers[i], 0,
-                                 VK_INDEX_TYPE_UINT32);
-            vkCmdDrawIndexed(command_buffers[i],
-                             static_cast<uint32_t>(ocean_grid_indices.size()),
-                             1, 0, 0, 0);
-        }
+        vkCmdBindIndexBuffer(command_buffers[i], index_buffer.buffers[i], 0,
+                             VK_INDEX_TYPE_UINT32);
+        vkCmdDrawIndexed(command_buffers[i],
+                         static_cast<uint32_t>(ocean_grid_indices.size()), 1, 0,
+                         0, 0);
 
         vkCmdEndRenderPass(command_buffers[i]);
 
@@ -2001,7 +1990,8 @@ void OceanApplication::update_spectrum(uint32_t currentImage, float elapsed)
     {
         try
         {
-            int log_2_N = (int)(log(ocean_tex_size) / log(2.f));
+            size_t log_2_N =
+                (size_t)((log((float)ocean_tex_size) / log(2.f)) - 1);
 
             /// Prepare vector of values to extract results
             std::vector<cl_int> v(ocean_tex_size);
@@ -2084,7 +2074,7 @@ void OceanApplication::update_spectrum(uint32_t currentImage, float elapsed)
 
 
     // perform 1D FFT horizontal and vertical iterations
-    size_t log_2_N = (size_t)(log(ocean_tex_size) / log(2.f));
+    size_t log_2_N = (size_t)((log((float)ocean_tex_size) / log(2.f)) - 1);
     fft_kernel.setArg(1, patch);
     fft_kernel.setArg(2, *twiddle_factors_mem);
     for (cl_int i = 0; i < 3; i++)

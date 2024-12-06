@@ -41,7 +41,7 @@ kernel void init_spectrum( int2 patch_info, float4 params, read_only image2d_t n
     int2 uv = (int2)((int)get_global_id(0), (int)get_global_id(1));
     int res = patch_info.y;
 
-    float2 fuv = (float2)(get_global_id(0), get_global_id(1)) - (float)(res)/2.f;
+    float2 fuv = convert_float2(uv) - (float2)((float)(res-1)/2.f);
     float2 k = (2.f * PI * fuv) / patch_info.x;
     float k_mag = length(k);
 

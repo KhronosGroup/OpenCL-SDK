@@ -58,7 +58,7 @@ private:
     bool twiddle_factors_init = true;
 
     // ocean in-factors
-    float wind_magnitude = 300.f;
+    float wind_magnitude = 30.f;
     float wind_angle = 45.f;
     float choppiness = 10.f;
     float alt_scale = 20.f;
@@ -141,7 +141,7 @@ private:
         std::vector<VkBuffer> buffers;
         std::vector<VkDeviceMemory> buffer_memories;
     };
-    std::vector<IndexBuffer> index_buffers;
+    IndexBuffer index_buffer;
 
     std::array<VkSampler, IOPT_COUNT> texture_sampler;
 
