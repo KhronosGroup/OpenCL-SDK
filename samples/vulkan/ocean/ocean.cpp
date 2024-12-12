@@ -57,9 +57,8 @@ void OceanApplication::init_window()
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    window = glfwCreateWindow((int)app_opts.window_width,
-                              (int)app_opts.window_height, app_name.c_str(),
-                              nullptr, nullptr);
+    window = glfwCreateWindow((int)win_opts.width, (int)win_opts.height,
+                              app_name.c_str(), nullptr, nullptr);
     glfwSetWindowUserPointer(window, this);
 }
 
@@ -482,7 +481,7 @@ void OceanApplication::cleanup()
 
     vkDestroyDevice(device, nullptr);
 
-    if (enableValidationLayers)
+    if (app_opts.validationLayersOn)
     {
         DestroyDebugUtilsMessengerEXT(instance, debug_messenger, nullptr);
     }
@@ -497,7 +496,7 @@ void OceanApplication::cleanup()
 
 void OceanApplication::create_instance()
 {
-    if (enableValidationLayers && !check_validation_layer_support())
+    if (app_opts.validationLayersOn && !check_validation_layer_support())
     {
         throw std::runtime_error(
             "validation layers requested, but not available!");
@@ -528,7 +527,7 @@ void OceanApplication::create_instance()
     createInfo.ppEnabledExtensionNames = extensions.data();
 
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
-    if (enableValidationLayers)
+    if (app_opts.validationLayersOn)
     {
         createInfo.enabledLayerCount =
             static_cast<uint32_t>(validationLayers.size());
@@ -591,7 +590,7 @@ void OceanApplication::populate_dbg_msger_create_info(
 
 void OceanApplication::setup_dbg_msger()
 {
-    if (!enableValidationLayers) return;
+    if (!app_opts.validationLayersOn) return;
 
     VkDebugUtilsMessengerCreateInfoEXT createInfo;
     populate_dbg_msger_create_info(createInfo);
@@ -684,7 +683,7 @@ void OceanApplication::create_logical_device()
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
 
-    if (enableValidationLayers)
+    if (app_opts.validationLayersOn)
     {
         createInfo.enabledLayerCount =
             static_cast<uint32_t>(validationLayers.size());
@@ -1953,7 +1952,7 @@ void OceanApplication::update_uniforms(uint32_t currentImage)
         glm::lookAt(camera.eye, camera.eye + camera.dir, camera.up);
 
     float fov = (float)glm::radians(60.0);
-    float aspect = (float)app_opts.window_width / app_opts.window_height;
+    float aspect = (float)win_opts.width / win_opts.height;
     glm::mat4 proj_matrix = glm::perspective(
         fov, aspect, 1.f, 2.f * ocean_grid_size * mesh_spacing);
     proj_matrix[1][1] *= -1;
@@ -2659,7 +2658,7 @@ std::vector<const char*> OceanApplication::get_required_exts()
         extensions.push_back(
             VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME);
     }
-    if (enableValidationLayers)
+    if (app_opts.validationLayersOn)
     {
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }

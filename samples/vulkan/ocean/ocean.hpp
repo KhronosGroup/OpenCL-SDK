@@ -31,6 +31,7 @@ public:
 
 public:
     cl::sdk::options::SingleDevice dev_opts;
+    cl::sdk::options::Window win_opts;
     CliOptions app_opts;
 
 private:

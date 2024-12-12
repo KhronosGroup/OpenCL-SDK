@@ -152,12 +152,6 @@ const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 };
 
-#ifdef NDEBUG
-const bool enableValidationLayers = false;
-#else
-const bool enableValidationLayers = true;
-#endif
-
 static VkResult CreateDebugUtilsMessengerEXT(
     VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
     const VkAllocationCallbacks* pAllocator,
@@ -265,8 +259,6 @@ struct Camera
 
 struct CliOptions
 {
-    size_t window_width = 1024;
-    size_t window_height = 1024;
     std::int32_t vulkan_device = -1;
 
     bool immediate = false;
@@ -274,6 +266,7 @@ struct CliOptions
     bool linearImages = false;
     bool device_local_images = true;
     bool use_external_memory = true;
+    bool validationLayersOn = false;
 };
 
 #endif // OCEAN_UTIL_HPP
