@@ -25,9 +25,12 @@
 #endif
 
 #include <CL/Utils/Utils.hpp>
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+
+#include <SFML/Graphics.hpp>
+#include <SFML/Window.hpp>
+
+#include <vulkan/vulkan.h>
 
 #define CL_HPP_TARGET_OPENCL_VERSION 300
 

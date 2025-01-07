@@ -24,10 +24,10 @@ class OceanApplication {
 
 public:
     void run();
-    void keyboard(int key, int scancode, int action, int mods);
-    void mouse_event(int button, int action, int mods);
-    void mouse_pos(double pX, double pY);
-    void mouse_roll(double offset_x, double offset_y);
+
+    void event(const sf::Event& e); // Function that handles render area resize
+    void keyboard(int key);
+    void mouseDrag(const int x, const int y);
 
 public:
     cl::sdk::options::SingleDevice dev_opts;
@@ -35,7 +35,8 @@ public:
     CliOptions app_opts;
 
 private:
-    GLFWwindow* window = nullptr;
+    sf::WindowBase* window = nullptr;
+
     Camera camera;
     std::string app_name = "Ocean Surface Simulation";
 

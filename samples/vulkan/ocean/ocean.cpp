@@ -49,17 +49,10 @@ void OceanApplication::run()
 
 void OceanApplication::init_window()
 {
-    if (!glfwInit())
-    {
-        throw std::runtime_error("failed to initialize glfw!");
-    }
-
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-
-    window = glfwCreateWindow((int)win_opts.width, (int)win_opts.height,
-                              app_name.c_str(), nullptr, nullptr);
-    glfwSetWindowUserPointer(window, this);
+    window = new sf::Window{ sf::VideoMode({ (std::uint32_t)win_opts.width,
+                                             (std::uint32_t)win_opts.height }),
+                             app_name.c_str(),
+                             sf::Style::Titlebar | sf::Style::Close };
 }
 
 void OceanApplication::init_openCL()
@@ -280,113 +273,6 @@ void OceanApplication::init_vulkan()
     create_sync_objects();
 }
 
-void OceanApplication::keyboard(int key, int scancode, int action, int mods)
-{
-    if (action == GLFW_PRESS || action == GLFW_REPEAT)
-    {
-        switch (key)
-        {
-            case GLFW_KEY_ESCAPE:
-                glfwSetWindowShouldClose(window, GLFW_TRUE);
-                break;
-            case GLFW_KEY_SPACE:
-                animate = !animate;
-                printf("animation is %s\n", animate ? "ON" : "OFF");
-                break;
-
-            case GLFW_KEY_A:
-                wind_magnitude += 1.f;
-                changed = true;
-                break;
-            case GLFW_KEY_Z:
-                wind_magnitude -= 1.f;
-                changed = true;
-                break;
-
-            case GLFW_KEY_S:
-                wind_angle += 1.f;
-                changed = true;
-                break;
-            case GLFW_KEY_X:
-                wind_angle -= 1.f;
-                changed = true;
-                break;
-
-            case GLFW_KEY_D:
-                amplitude += 0.5f;
-                changed = true;
-                break;
-            case GLFW_KEY_C:
-                amplitude -= 0.5f;
-                changed = true;
-                break;
-
-            case GLFW_KEY_F: choppiness += 0.5f; break;
-            case GLFW_KEY_V: choppiness -= 0.5f; break;
-
-            case GLFW_KEY_G: alt_scale += 0.5f; break;
-            case GLFW_KEY_B: alt_scale -= 0.5f; break;
-
-            case GLFW_KEY_W:
-                wireframe_mode = !wireframe_mode;
-                create_command_buffers();
-                break;
-
-            case GLFW_KEY_E:
-                show_fps = !show_fps;
-                if (!show_fps) glfwSetWindowTitle(window, app_name.c_str());
-                break;
-        }
-    }
-}
-
-void OceanApplication::mouse_event(int button, int action, int mods)
-{
-    double x, y;
-    glfwGetCursorPos(window, &x, &y);
-    switch (action)
-    {
-        case 0:
-            // Button Up
-            camera.drag = false;
-            break;
-        case 1:
-            // Button Down
-            camera.drag = true;
-            camera.begin = glm::vec2(x, y);
-            break;
-        default: break;
-    }
-}
-
-void OceanApplication::mouse_pos(double pX, double pY)
-{
-    if (!camera.drag) return;
-
-    glm::vec2 off = camera.begin - glm::vec2(pX, pY);
-    camera.begin = glm::vec2(pX, pY);
-
-    camera.yaw -= off.x * DRAG_SPEED_FAC;
-    camera.pitch += off.y * DRAG_SPEED_FAC;
-
-    glm::quat yaw(glm::cos(glm::radians(camera.yaw / 2)),
-                  glm::vec3(0, 0, 1) * glm::sin(glm::radians(camera.yaw / 2)));
-    glm::quat pitch(glm::cos(glm::radians(camera.pitch / 2)),
-                    glm::vec3(1, 0, 0)
-                        * glm::sin(glm::radians(camera.pitch / 2)));
-    glm::mat3 rot_mat(yaw * pitch);
-    glm::vec3 dir = rot_mat * glm::vec3(0, 0, -1);
-
-    camera.dir = glm::normalize(dir);
-    camera.rvec = glm::normalize(glm::cross(camera.dir, glm::vec3(0, 0, 1)));
-    camera.up = glm::normalize(glm::cross(camera.rvec, camera.dir));
-}
-
-void OceanApplication::mouse_roll(double offset_x, double offset_y)
-{
-    camera.eye += camera.dir * (float)offset_y * ROLL_SPEED_FAC;
-}
-
 void OceanApplication::cleanup()
 {
     vkDestroyImageView(device, depth_image_view, nullptr);
@@ -489,9 +375,11 @@ void OceanApplication::cleanup()
     vkDestroySurfaceKHR(instance, surface, nullptr);
     vkDestroyInstance(instance, nullptr);
 
-    glfwDestroyWindow(window);
-
-    glfwTerminate();
+    if (window)
+    {
+        delete window;
+        window = nullptr;
+    }
 }
 
 void OceanApplication::create_instance()
@@ -605,11 +493,8 @@ void OceanApplication::setup_dbg_msger()
 
 void OceanApplication::create_surface()
 {
-    if (glfwCreateWindowSurface(instance, window, nullptr, &surface)
-        != VK_SUCCESS)
-    {
+    if (!window->createVulkanSurface(instance, surface))
         throw std::runtime_error("failed to create window surface!");
-    }
 }
 
 void OceanApplication::pick_physical_device()
@@ -2204,7 +2089,7 @@ void OceanApplication::show_fps_window_title()
             ss << app_name << ", [FPS:" << std::fixed << std::setprecision(2)
                << fps << "]";
 
-            glfwSetWindowTitle(window, ss.str().c_str());
+            window->setTitle(ss.str().c_str());
 
             delta_frames = 0;
             fps_last_time = fps_now;
@@ -2505,8 +2390,13 @@ VkExtent2D OceanApplication::choose_swap_extent(
     }
     else
     {
-        int width, height;
-        glfwGetFramebufferSize(window, &width, &height);
+        int width = win_opts.width, height = win_opts.width;
+        if (window)
+        {
+            auto wsize = window->getSize();
+            width = wsize.x;
+            height = wsize.y;
+        }
 
         VkExtent2D actualExtent = { static_cast<uint32_t>(width),
                                     static_cast<uint32_t>(height) };
@@ -2641,12 +2531,8 @@ OceanApplication::find_queue_families(VkPhysicalDevice device)
 
 std::vector<const char*> OceanApplication::get_required_exts()
 {
-    uint32_t glfwExtensionCount = 0;
-    const char** glfwExtensions;
-    glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-    std::vector<const char*> extensions(glfwExtensions,
-                                        glfwExtensions + glfwExtensionCount);
+    std::vector<const char*> extensions =
+        sf::Vulkan::getGraphicsRequiredInstanceExtensions();
 
     if (app_opts.use_external_memory)
     {

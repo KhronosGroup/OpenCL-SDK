@@ -15,48 +15,125 @@
  */
 
 #include "ocean.hpp"
+#include <glm/gtc/type_ptr.hpp>
 
-namespace {
-
-void glfw_keyboard(GLFWwindow* window, int key, int scancode, int action,
-                   int mods)
+void OceanApplication::event(const sf::Event& event)
 {
-    auto app = (OceanApplication*)glfwGetWindowUserPointer(window);
-    app->keyboard(key, scancode, action, mods);
+    switch (event.type)
+    {
+        case sf::Event::Closed: window->close(); break;
+        case sf::Event::Resized:
+            // not supported
+            break;
+        case sf::Event::KeyPressed: keyboard(event.key.code); break;
+        case sf::Event::MouseButtonPressed:
+            if (event.mouseButton.button == sf::Mouse::Button::Left)
+            {
+                camera.drag = true;
+                camera.begin =
+                    glm::vec2(event.mouseButton.x, event.mouseButton.y);
+            }
+            break;
+        case sf::Event::MouseButtonReleased:
+            if (event.mouseButton.button == sf::Mouse::Button::Left)
+                camera.drag = false;
+            break;
+        case sf::Event::MouseMoved:
+            if (camera.drag) mouseDrag(event.mouseMove.x, event.mouseMove.y);
+            break;
+        case sf::Event::MouseWheelMoved:
+            camera.eye +=
+                camera.dir * (float)event.mouseWheel.delta * ROLL_SPEED_FAC;
+            break;
+        default: break;
+    }
 }
 
-void glfw_mouse_event(GLFWwindow* window, int button, int action, int mods)
+void OceanApplication::mouseDrag(const int x, const int y)
 {
-    auto app = (OceanApplication*)glfwGetWindowUserPointer(window);
-    app->mouse_event(button, action, mods);
+    if (!camera.drag) return;
+
+    glm::vec2 off = camera.begin - glm::vec2(x, y);
+    camera.begin = glm::vec2(x, y);
+
+    camera.yaw -= off.x * DRAG_SPEED_FAC;
+    camera.pitch += off.y * DRAG_SPEED_FAC;
+
+    glm::quat yaw(glm::cos(glm::radians(camera.yaw / 2)),
+                  glm::vec3(0, 0, 1) * glm::sin(glm::radians(camera.yaw / 2)));
+    glm::quat pitch(glm::cos(glm::radians(camera.pitch / 2)),
+                    glm::vec3(1, 0, 0)
+                        * glm::sin(glm::radians(camera.pitch / 2)));
+    glm::mat3 rot_mat(yaw * pitch);
+    glm::vec3 dir = rot_mat * glm::vec3(0, 0, -1);
+
+    camera.dir = glm::normalize(dir);
+    camera.rvec = glm::normalize(glm::cross(camera.dir, glm::vec3(0, 0, 1)));
+    camera.up = glm::normalize(glm::cross(camera.rvec, camera.dir));
 }
 
-void glfw_mouse_pos(GLFWwindow* window, double pX, double pY)
+void OceanApplication::keyboard(int key)
 {
-    auto app = (OceanApplication*)glfwGetWindowUserPointer(window);
-    app->mouse_pos(pX, pY);
+    switch (key)
+    {
+        case sf::Keyboard::Key::Escape: window->close(); break;
+        case sf::Keyboard::Key::Space:
+            animate = !animate;
+            printf("animation is %s\n", animate ? "ON" : "OFF");
+            break;
+
+        case sf::Keyboard::Key::A:
+            wind_magnitude += 1.f;
+            changed = true;
+            break;
+        case sf::Keyboard::Key::Z:
+            wind_magnitude -= 1.f;
+            changed = true;
+            break;
+
+        case sf::Keyboard::Key::S:
+            wind_angle += 1.f;
+            changed = true;
+            break;
+        case sf::Keyboard::Key::X:
+            wind_angle -= 1.f;
+            changed = true;
+            break;
+
+        case sf::Keyboard::Key::D:
+            amplitude += 0.5f;
+            changed = true;
+            break;
+        case sf::Keyboard::Key::C:
+            amplitude -= 0.5f;
+            changed = true;
+            break;
+
+        case sf::Keyboard::Key::F: choppiness += 0.5f; break;
+        case sf::Keyboard::Key::V: choppiness -= 0.5f; break;
+
+        case sf::Keyboard::Key::G: alt_scale += 0.5f; break;
+        case sf::Keyboard::Key::B: alt_scale -= 0.5f; break;
+
+        case sf::Keyboard::Key::W: wireframe_mode = !wireframe_mode; break;
+
+        case sf::Keyboard::Key::E: show_fps = !show_fps; break;
+    }
 }
-
-void glfw_mouse_roll(GLFWwindow* window, double oX, double oY)
-{
-    auto app = (OceanApplication*)glfwGetWindowUserPointer(window);
-    app->mouse_roll(oX, oY);
-}
-
-} // anonymous namespace
-
 
 void OceanApplication::main_loop()
 {
-    glfwSetKeyCallback(window, glfw_keyboard);
-    glfwSetMouseButtonCallback(window, glfw_mouse_event);
-    glfwSetCursorPosCallback(window, glfw_mouse_pos);
-    glfwSetScrollCallback(window, glfw_mouse_roll);
-
-    while (!glfwWindowShouldClose(window))
+    while (window && window->isOpen())
     {
+        // Process events
+        sf::Event e;
+        while (window->pollEvent(e))
+        {
+            event(e);
+        }
+
+        // Render the frame
         draw_frame();
-        glfwPollEvents();
     }
 
     vkDeviceWaitIdle(device);
