@@ -255,7 +255,7 @@ void OceanApplication::init_vulkan()
     create_swap_chain_image_views();
     create_render_pass();
     create_uniform_buffer();
-    create_descriptor_det_layout();
+    create_descriptor_set_layout();
     create_graphics_pipeline();
     create_command_pool();
 
@@ -567,17 +567,7 @@ void OceanApplication::create_logical_device()
     auto extensions = get_required_dev_exts();
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
-
-    if (app_opts.validationLayersOn)
-    {
-        createInfo.enabledLayerCount =
-            static_cast<uint32_t>(validationLayers.size());
-        createInfo.ppEnabledLayerNames = validationLayers.data();
-    }
-    else
-    {
-        createInfo.enabledLayerCount = 0;
-    }
+    createInfo.enabledLayerCount = 0;
 
     if (vkCreateDevice(physical_device, &createInfo, nullptr, &device)
         != VK_SUCCESS)
@@ -751,7 +741,7 @@ void OceanApplication::create_uniform_buffer()
     }
 }
 
-void OceanApplication::create_descriptor_det_layout()
+void OceanApplication::create_descriptor_set_layout()
 {
     VkDescriptorSetLayoutBinding sampler0LayoutBinding{};
     sampler0LayoutBinding.binding = 0;
@@ -1506,13 +1496,17 @@ void OceanApplication::transition_uniform_layout(VkBuffer buffer,
 
 void OceanApplication::create_descriptor_pool()
 {
-    std::array<VkDescriptorPoolSize, 2> poolSizes{};
+    std::array<VkDescriptorPoolSize, 3> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     poolSizes[0].descriptorCount =
         static_cast<uint32_t>(swap_chain_images.size());
 
-    poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     poolSizes[1].descriptorCount =
+        static_cast<uint32_t>(swap_chain_images.size());
+
+    poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    poolSizes[2].descriptorCount =
         static_cast<uint32_t>(swap_chain_images.size());
 
     VkDescriptorPoolCreateInfo poolInfo{};

@@ -228,7 +228,7 @@ private:
     void create_swap_chain_image_views();
     void create_render_pass();
     void create_uniform_buffer();
-    void create_descriptor_det_layout();
+    void create_descriptor_set_layout();
     void create_graphics_pipeline();
     void create_framebuffers();
     void create_command_pool();
