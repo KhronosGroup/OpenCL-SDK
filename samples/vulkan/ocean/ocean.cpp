@@ -37,22 +37,20 @@
 
 #include "ocean.hpp"
 
+OceanApplication::OceanApplication(cl::sdk::options::Window& opts)
+    : win_opts(opts), app_name("Ocean Surface Simulation"),
+      window(sf::VideoMode({ (std::uint32_t)win_opts.width,
+                             (std::uint32_t)win_opts.height }),
+             app_name.c_str(), sf::Style::Titlebar | sf::Style::Close)
+{}
+
 void OceanApplication::run()
 {
-    init_window();
     init_openCL();
     init_vulkan();
     init_openCL_mems();
     main_loop();
     cleanup();
-}
-
-void OceanApplication::init_window()
-{
-    window = new sf::Window{ sf::VideoMode({ (std::uint32_t)win_opts.width,
-                                             (std::uint32_t)win_opts.height }),
-                             app_name.c_str(),
-                             sf::Style::Titlebar | sf::Style::Close };
 }
 
 void OceanApplication::init_openCL()
@@ -374,12 +372,6 @@ void OceanApplication::cleanup()
 
     vkDestroySurfaceKHR(instance, surface, nullptr);
     vkDestroyInstance(instance, nullptr);
-
-    if (window)
-    {
-        delete window;
-        window = nullptr;
-    }
 }
 
 void OceanApplication::create_instance()
@@ -493,7 +485,7 @@ void OceanApplication::setup_dbg_msger()
 
 void OceanApplication::create_surface()
 {
-    if (!window->createVulkanSurface(instance, surface))
+    if (!window.createVulkanSurface(instance, surface))
         throw std::runtime_error("failed to create window surface!");
 }
 
@@ -2075,7 +2067,7 @@ void OceanApplication::show_fps_window_title()
         const float elapsed_tres = 1.f;
 
         delta_frames++;
-        if (window && delta >= 1.f)
+        if (delta >= 1.f)
         {
             double fps = double(delta_frames) / delta;
 
@@ -2083,7 +2075,7 @@ void OceanApplication::show_fps_window_title()
             ss << app_name << ", [FPS:" << std::fixed << std::setprecision(2)
                << fps << "]";
 
-            window->setTitle(ss.str().c_str());
+            window.setTitle(ss.str().c_str());
 
             delta_frames = 0;
             fps_last_time = fps_now;
@@ -2385,12 +2377,10 @@ VkExtent2D OceanApplication::choose_swap_extent(
     else
     {
         int width = win_opts.width, height = win_opts.width;
-        if (window)
-        {
-            auto wsize = window->getSize();
-            width = wsize.x;
-            height = wsize.y;
-        }
+
+        auto wsize = window.getSize();
+        width = wsize.x;
+        height = wsize.y;
 
         VkExtent2D actualExtent = { static_cast<uint32_t>(width),
                                     static_cast<uint32_t>(height) };

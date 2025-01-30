@@ -21,7 +21,7 @@ void OceanApplication::event(const sf::Event& event)
 {
     switch (event.type)
     {
-        case sf::Event::Closed: window->close(); break;
+        case sf::Event::Closed: window.close(); break;
         case sf::Event::Resized:
             // not supported
             break;
@@ -76,7 +76,7 @@ void OceanApplication::keyboard(int key)
 {
     switch (key)
     {
-        case sf::Keyboard::Key::Escape: window->close(); break;
+        case sf::Keyboard::Key::Escape: window.close(); break;
         case sf::Keyboard::Key::Space:
             animate = !animate;
             printf("animation is %s\n", animate ? "ON" : "OFF");
@@ -123,11 +123,11 @@ void OceanApplication::keyboard(int key)
 
 void OceanApplication::main_loop()
 {
-    while (window && window->isOpen())
+    while (window.isOpen())
     {
         // Process events
         sf::Event e;
-        while (window->pollEvent(e))
+        while (window.pollEvent(e))
         {
             event(e);
         }
@@ -179,13 +179,12 @@ CliOptions cl::sdk::comprehend<CliOptions>(
 
 int main(int argc, char** argv)
 {
-    OceanApplication app;
-
     auto opts = cl::sdk::parse_cli<cl::sdk::options::Window,
                                    cl::sdk::options::SingleDevice, CliOptions>(
         argc, argv);
 
-    app.win_opts = std::get<0>(opts);
+    OceanApplication app(std::get<0>(opts));
+
     app.dev_opts = std::get<1>(opts);
     app.app_opts = std::get<2>(opts);
 

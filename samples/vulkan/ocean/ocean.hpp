@@ -23,6 +23,7 @@
 class OceanApplication {
 
 public:
+    OceanApplication(cl::sdk::options::Window& opts);
     void run();
 
     void event(const sf::Event& e); // Function that handles render area resize
@@ -35,10 +36,11 @@ public:
     CliOptions app_opts;
 
 private:
-    sf::WindowBase* window = nullptr;
+    std::string app_name;
+
+    sf::WindowBase window;
 
     Camera camera;
-    std::string app_name = "Ocean Surface Simulation";
 
     // ocean texture size - assume uniform x/y
     size_t ocean_tex_size = 512;
@@ -209,7 +211,6 @@ private:
     std::array<std::vector<std::unique_ptr<cl::Image2D>>, IOPT_COUNT>
         ocl_image_mems;
 
-    void init_window();
     void init_openCL();
     void init_openCL_mems();
     void init_vulkan();
