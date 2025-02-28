@@ -66,4 +66,8 @@ If CMake is not provided by your build system or OS package manager, please cons
              -B ./OpenCL-SDK/build -S ./OpenCL-SDK
        cmake --build ./OpenCL-SDK/build --target install
 
+Samples that make use of OpenGL interop are disabled by default to reduce
+the number of dependencies for most users. They can be enabled using the
+`OPENCL_SDK_BUILD_OPENGL_SAMPLES` CMake option.
+
 _(Note: on Linux, paths to dependent libraries are automatically handled by RPATH in both the build and install tree. On Windows, all DLLs have to be on the `PATH`. Vcpkg copies dependent DLLs to the build tree, but in order to do the same in the install tree, a sufficiently new CMake version is required. CMake 3.21 introduces `install(IMPORTED_RUNTIME_ARTIFACTS)`.)_
