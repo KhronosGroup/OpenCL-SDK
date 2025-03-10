@@ -22,13 +22,15 @@ layout(location = 0) in vec3 in_position;
 layout(location = 1) in vec2 in_tex_coords;
 
 layout(set = 0, binding = 0) uniform sampler2D u_displacement_map;
-layout(std140, set = 0, binding = 2) uniform ViewData {
-    uniform mat4    view_mat;
-    uniform mat4    proj_mat;
-    uniform vec3    sun_dir;
-    uniform float   choppiness;
-    uniform float   alt_scale;
-} view;
+layout(std140, set = 0, binding = 2) uniform ViewData
+{
+    uniform mat4 view_mat;
+    uniform mat4 proj_mat;
+    uniform vec3 sun_dir;
+    uniform float choppiness;
+    uniform float alt_scale;
+}
+view;
 
 void main()
 {
