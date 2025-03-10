@@ -3,10 +3,10 @@
 This is the Khronos OpenCL SDK. It brings together all the components needed to
 develop OpenCL applications:
 
-- OpenCL Headers (`include/api`)
-- OpenCL C++ bindings (`include/cpp`)
-- OpenCL Loader
-- OpenCL utility library (`include/utils`)
+- OpenCL Headers (`external/OpenCL-Headers/`)
+- OpenCL C++ bindings (`external/OpenCL-CLHPP/include`)
+- OpenCL Loader (`external/OpenCL-ICD-Loader`)
+- OpenCL utility library (`lib/include`)
 
 It also contains resources useful to OpenCL developers:
 

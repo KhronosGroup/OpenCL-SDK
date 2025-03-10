@@ -117,10 +117,9 @@ if (OPENCL_EXTENSION_LOADER_INSTALL)
 
     install(TARGETS OpenCLExt
         EXPORT OpenCLExtensionLoaderTargets
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        COMPONENT binary
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT binary
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT binary
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT binary
     )
 
     export(EXPORT OpenCLExtensionLoaderTargets
@@ -149,13 +148,6 @@ if (OPENCL_EXTENSION_LOADER_INSTALL)
     )
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/OpenCLExtensionLoader/OpenCLExtensionLoaderConfigVersion.cmake
         DESTINATION ${OPENCL_EXTENSION_LOADER_CONFIG_PATH}
-        COMPONENT binary
-    )
-
-    # For packaging the extensions library
-    install(
-        TARGETS OpenCLExt
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}
         COMPONENT binary
     )
 endif()
