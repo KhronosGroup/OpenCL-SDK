@@ -273,19 +273,10 @@ void OceanApplication::init_vulkan()
 
 void OceanApplication::cleanup()
 {
-    vkDestroyImageView(device, depth_image_view, nullptr);
-    vkDestroyImage(device, depth_image, nullptr);
-    vkFreeMemory(device, depth_image_memory, nullptr);
-
     for (auto framebuffer : swap_chain_framebuffers)
     {
         vkDestroyFramebuffer(device, framebuffer, nullptr);
     }
-
-    vkDestroyPipeline(device, graphics_pipeline, nullptr);
-    vkDestroyPipeline(device, wireframe_pipeline, nullptr);
-    vkDestroyPipelineLayout(device, pipeline_layout, nullptr);
-    vkDestroyRenderPass(device, render_pass, nullptr);
 
     for (auto imageView : swap_chain_image_views)
     {
@@ -293,6 +284,16 @@ void OceanApplication::cleanup()
     }
 
     vkDestroySwapchainKHR(device, swap_chain, nullptr);
+
+    vkDestroyPipeline(device, graphics_pipeline, nullptr);
+    vkDestroyPipeline(device, wireframe_pipeline, nullptr);
+    vkDestroyPipelineLayout(device, pipeline_layout, nullptr);
+    vkDestroyRenderPass(device, render_pass, nullptr);
+
+    vkDestroyImageView(device, depth_image_view, nullptr);
+    vkDestroyImage(device, depth_image, nullptr);
+    vkFreeMemory(device, depth_image_memory, nullptr);
+
     vkDestroyDescriptorPool(device, descriptor_pool, nullptr);
 
     vkDestroyBuffer(device, staging_tex_buffer, nullptr);
@@ -718,18 +719,22 @@ void OceanApplication::create_render_pass()
 
 void OceanApplication::create_uniform_buffer()
 {
-    VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+    VkDeviceSize buffer_size = sizeof(UniformBufferObject);
 
     uniform_buffers.resize(swap_chain_images.size());
     uniform_buffers_memory.resize(swap_chain_images.size());
 
+    _mapped_unif_data.resize(swap_chain_images.size());
+
     for (size_t i = 0; i < uniform_buffers.size(); i++)
     {
-        create_buffer(bufferSize,
-                      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT
-                          | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, uniform_buffers[i],
-                      uniform_buffers_memory[i]);
+        create_buffer(buffer_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+                          | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                      uniform_buffers[i], uniform_buffers_memory[i]);
+
+        vkMapMemory(device, uniform_buffers_memory[i], 0, buffer_size, 0,
+                    &_mapped_unif_data[i].buffer_memory);
     }
 }
 
@@ -1449,43 +1454,6 @@ void OceanApplication::copy_buffer_to_image(VkBuffer buffer, VkImage image,
     end_single_time_commands(commandBuffer);
 }
 
-void OceanApplication::transition_uniform_layout(VkBuffer buffer,
-                                                 VkAccessFlagBits src,
-                                                 VkAccessFlagBits dst)
-{
-    VkCommandBuffer commandBuffer = begin_single_time_commands();
-
-    VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-    VkBufferMemoryBarrier barrier{};
-    barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-    barrier.pNext = nullptr;
-    barrier.srcAccessMask = src; // VK_ACCESS_HOST_WRITE_BIT;
-    barrier.dstAccessMask = dst; // VK_ACCESS_UNIFORM_READ_BIT;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.buffer = buffer;
-    barrier.offset = 0;
-    barrier.size = bufferSize;
-
-    VkPipelineStageFlags sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-    VkPipelineStageFlags destinationStage =
-        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-
-    if (src == VK_ACCESS_SHADER_READ_BIT)
-    {
-        sourceStage =
-            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT /*|
-                                                     VK_PIPELINE_STAGE_VERTEX_SHADER_BIT*/
-            /*| VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR*/;
-        destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-    }
-
-    vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0,
-                         nullptr, 1, &barrier, 0, nullptr);
-
-    end_single_time_commands(commandBuffer);
-}
-
 void OceanApplication::create_descriptor_pool()
 {
     std::array<VkDescriptorPoolSize, 3> poolSizes{};
@@ -1814,7 +1782,7 @@ void OceanApplication::create_sync_objects()
 
 void OceanApplication::update_uniforms(uint32_t currentImage)
 {
-    UniformBufferObject ubo = {};
+    UniformBufferObject ubo = _mapped_unif_data[currentImage].data;
     ubo.choppiness = choppiness;
     ubo.alt_scale = alt_scale;
 
@@ -1831,18 +1799,8 @@ void OceanApplication::update_uniforms(uint32_t currentImage)
     ubo.view_mat = view_matrix;
     ubo.proj_mat = proj_matrix;
 
-    transition_uniform_layout(uniform_buffers[currentImage],
-                              VK_ACCESS_SHADER_READ_BIT,
-                              VK_ACCESS_TRANSFER_WRITE_BIT);
-
-    VkCommandBuffer commandBuffer = begin_single_time_commands();
-    vkCmdUpdateBuffer(commandBuffer, uniform_buffers[currentImage], 0,
-                      sizeof(UniformBufferObject), &ubo);
-    end_single_time_commands(commandBuffer);
-
-    transition_uniform_layout(uniform_buffers[currentImage],
-                              VK_ACCESS_TRANSFER_WRITE_BIT,
-                              VK_ACCESS_SHADER_READ_BIT);
+    memcpy(_mapped_unif_data[currentImage].buffer_memory, &ubo,
+           sizeof(UniformBufferObject));
 }
 
 void OceanApplication::update_spectrum(uint32_t currentImage, float elapsed)

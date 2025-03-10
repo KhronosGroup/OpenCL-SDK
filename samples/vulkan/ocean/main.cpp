@@ -125,15 +125,20 @@ void OceanApplication::main_loop()
 {
     while (window.isOpen())
     {
+        // Render the frame
+        draw_frame();
+
         // Process events
         sf::Event e;
         while (window.pollEvent(e))
         {
             event(e);
         }
+    }
 
-        // Render the frame
-        draw_frame();
+    if (vkQueueWaitIdle(graphics_queue) != VK_SUCCESS)
+    {
+        throw std::runtime_error("vkQueueWaitIdle failed!");
     }
 
     vkDeviceWaitIdle(device);

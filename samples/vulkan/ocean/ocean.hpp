@@ -171,6 +171,14 @@ private:
     std::vector<VkBuffer> uniform_buffers;
     std::vector<VkDeviceMemory> uniform_buffers_memory;
 
+    struct MappedUniformBufferData
+    {
+        UniformBufferObject data;
+        void* buffer_memory;
+    };
+
+    std::vector<MappedUniformBufferData> _mapped_unif_data;
+
     // more OpenCL resources
     cl_external_memory_handle_type_khr external_mem_type = 0;
 
@@ -267,9 +275,6 @@ private:
 
     void copy_buffer_to_image(VkBuffer buffer, VkImage image, uint32_t width,
                               uint32_t height);
-
-    void transition_uniform_layout(VkBuffer buffer, VkAccessFlagBits src,
-                                   VkAccessFlagBits dst);
 
     void create_descriptor_pool();
 
