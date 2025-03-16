@@ -183,22 +183,26 @@ bool cl_check_external_memory_handle_type(
     cl_external_memory_handle_type_khr external_memory_handle_type)
 {
     cl_external_memory_handle_type_khr* supported_handle_types = NULL;
-    size_t supported_handle_types_count = 0;
+    size_t supported_handle_types_byte_count = 0;
+    const size_t handle_type_size = sizeof(cl_external_memory_handle_type_khr);
     cl_int error = CL_SUCCESS;
 
     OCLERROR_RET(
         clGetDeviceInfo(cl_device,
                         CL_DEVICE_EXTERNAL_MEMORY_IMPORT_HANDLE_TYPES_KHR, 0,
-                        NULL, &supported_handle_types_count),
+                        NULL, &supported_handle_types_byte_count),
         error, err);
     supported_handle_types = (cl_external_memory_handle_type_khr*)malloc(
-        supported_handle_types_count);
+        supported_handle_types_byte_count);
 
     OCLERROR_RET(
         clGetDeviceInfo(
             cl_device, CL_DEVICE_EXTERNAL_MEMORY_IMPORT_HANDLE_TYPES_KHR,
-            supported_handle_types_count, supported_handle_types, NULL),
+            supported_handle_types_byte_count, supported_handle_types, NULL),
         error, err);
+
+    const size_t supported_handle_types_count =
+        supported_handle_types_byte_count / handle_type_size;
     for (size_t i = 0; i < supported_handle_types_count; ++i)
     {
         if (external_memory_handle_type == supported_handle_types[i])
