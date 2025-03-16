@@ -354,36 +354,10 @@ int main(int argc, char* argv[])
                      context, 1, (const char**)&kernel, &program_size, &error),
                  error, ker);
 
-    // The Khronos extension showcased requires OpenCL 3.0 version.
-    // Get number of versions supported.
-    size_t versions_size = 0;
-    OCLERROR_RET(clGetDeviceInfo(cl_device, CL_DEVICE_OPENCL_C_ALL_VERSIONS, 0,
-                                 NULL, &versions_size),
-                 error, prg);
-    size_t versions_count = versions_size / sizeof(cl_name_version);
-
-    // Get and check versions.
-    cl_name_version* dev_versions = (cl_name_version*)malloc(versions_size);
-    OCLERROR_RET(clGetDeviceInfo(cl_device, CL_DEVICE_OPENCL_C_ALL_VERSIONS,
-                                 versions_size, dev_versions, NULL),
-                 error, prg);
-    char compiler_options[1024] = "";
-    for (cl_uint i = 0; i < versions_count; ++i)
-    {
-        if (opencl_version_is_major(&dev_versions[i], 3))
-        {
-            strcat(compiler_options, "-cl-std=CL3.0 ");
-        }
-    }
-
-    if (compiler_options[0] == '\0')
-    {
-        fprintf(stderr, "\nError: OpenCL version must be at least 3.0\n");
-        exit(EXIT_FAILURE);
-    }
-
-    OCLERROR_RET(cl_util_build_program(program, cl_device, compiler_options),
-                 error, prg);
+    // Build OpenCL executable.
+    OCLERROR_RET(
+        cl_util_build_program(program, cl_device, NULL /*compiler_options*/),
+        error, prg);
 
     // Query maximum workgroup size (WGS) supported based on private mem
     // (registers) constraints.

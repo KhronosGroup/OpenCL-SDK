@@ -271,26 +271,8 @@ int main(int argc, char* argv[])
                          std::istreambuf_iterator<char>{} }
         };
 
-        // The Khronos extension showcased requires OpenCL 3.0 version.
-        cl::string compiler_options = "";
-        std::vector<cl_name_version> dev_versions =
-            cl_device.getInfo<CL_DEVICE_OPENCL_C_ALL_VERSIONS>();
-        for (cl_name_version dev_name_version : dev_versions)
-        {
-            if (opencl_version_is_major(dev_name_version, 3))
-            {
-                compiler_options += cl::string{ "-cl-std=CL3.0 " };
-            }
-        }
-
-        if (compiler_options.empty())
-        {
-            std::cerr << "\nError: OpenCL version must be at least 3.0"
-                      << std::endl;
-            exit(EXIT_FAILURE);
-        }
-
-        cl_program.build(cl_device, compiler_options.c_str());
+        // Build OpenCL executable.
+        cl_program.build(cl_device);
 
         // Query maximum workgroup size (WGS) supported based on private mem
         // (registers) constraints.
