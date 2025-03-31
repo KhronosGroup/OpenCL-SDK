@@ -24,7 +24,7 @@ if(NOT (SFML_FOUND OR TARGET SFML::Graphics))
   FetchContent_Declare(
     sfml-external
     GIT_REPOSITORY      https://github.com/SFML/SFML.git
-    GIT_TAG             2.6.1 # 69ea0cd863aed1d4092b970b676924a716ff718b
+    GIT_TAG             2.6.2 # 65383d2b3948f805af55c9f8a4587ac72ec5981d1
     PATCH_COMMAND       ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_LIST_DIR}/CMakeLists.txt" "${CMAKE_CURRENT_BINARY_DIR}/_deps/sfml-external-src/src/SFML/Graphics/CMakeLists.txt"
   )
   FetchContent_MakeAvailable(sfml-external)

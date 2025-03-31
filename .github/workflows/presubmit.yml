@@ -133,6 +133,7 @@ jobs:
       CMAKE_EXE: /opt/Kitware/CMake/${{ matrix.CMAKE }}/bin/cmake
       CPACK_EXE: /opt/Kitware/CMake/${{ matrix.CMAKE }}/bin/cpack
       CTEST_EXE: /opt/Kitware/CMake/${{ matrix.CMAKE }}/bin/ctest
+      VCPKG_INSTALLATION_ROOT: /opt/Microsoft/vcpkg
       DEB_INSTALLATION_PATH: /usr
       CC: ${{matrix.COMPILER.C_NAME}}-${{matrix.COMPILER.VER}}
       CXX:  ${{matrix.COMPILER.CXX_NAME}}-${{matrix.COMPILER.VER}}
@@ -167,16 +168,10 @@ jobs:
     - name: Install dependencies (vcpkg)
       if: matrix.DEPS == 'vcpkg' && steps.vcpkg-install.outputs.cache-hit != 'true'
       run: |
-        cd /opt/Microsoft/vcpkg
+        cd $VCPKG_INSTALLATION_ROOT
         git pull
         ./bootstrap-vcpkg.sh
-        ./vcpkg --triplet=$VCPKG_TRIPLET install tclap stb
-        # It is not possible to cross-compile the OpenGL samples on Ubuntu
-        # because system dev dependencies are not available for i386
-        if [[ "${{ matrix.BIN }}" == "64" ]]; then
-          ./vcpkg --triplet=$VCPKG_TRIPLET install sfml glm glew;
-        fi
-
+  
     - name: Set up compiler flags
       run: |
         # Excluding missing-field-initializers error because it comes from the Std dependency
@@ -250,7 +245,7 @@ jobs:
       run: $CMAKE_EXE
         -G "${{matrix.CONF.GEN}}"
         `if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]]; then echo "-D CMAKE_BUILD_TYPE=${{matrix.CONF.CONFIG}}"; fi`
-        `if [[ "${{matrix.DEPS}}" == "vcpkg" ]]; then echo "-D CMAKE_TOOLCHAIN_FILE=/opt/Microsoft/vcpkg/scripts/buildsystems/vcpkg.cmake"; fi;`
+        `if [[ "${{matrix.DEPS}}" == "vcpkg" ]]; then echo "-D CMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"; fi;`
         `if [[ "${{matrix.DEPS}}" == "vcpkg" ]]; then echo "-D VCPKG_TARGET_TRIPLET=$VCPKG_TRIPLET"; fi;`
         -D BUILD_DOCS=ON
         -D BUILD_TESTING=ON
@@ -417,6 +412,12 @@ jobs:
         Invoke-WebRequest ${env:NINJA_URL} -OutFile ~\Downloads\ninja-win.zip
         Expand-Archive ~\Downloads\ninja-win.zip -DestinationPath ${env:NINJA_ROOT}\
         Remove-Item ~\Downloads\*
+
+    - name: Update Vcpkg
+      if: matrix.DEPS == 'vcpkg'
+      run: |
+        git -C ${env:VCPKG_INSTALLATION_ROOT} pull
+        & ${env:VCPKG_INSTALLATION_ROOT}\bootstrap-vcpkg.bat
 
     - name: Install OpenCL runtime
       if: matrix.BIN != 'x86'
@@ -666,12 +667,12 @@ jobs:
       if: matrix.DEPS == 'system'
       run: brew install tclap glm glew sfml mesa-glu
 
-    - name: Install dependencies (vcpkg)
+    - name: Install Vcpkg
       if: matrix.DEPS == 'vcpkg'
       run: |
         git clone https://github.com/Microsoft/vcpkg.git vcpkg
         ./vcpkg/bootstrap-vcpkg.sh
-        ./vcpkg/vcpkg install tclap glm glew sfml stb
+        echo "VCPKG_INSTALLATION_ROOT=$GITHUB_WORKSPACE/vcpkg" >> $GITHUB_ENV
 
     - name: Set up compiler flags
       run: |
