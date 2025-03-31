@@ -156,30 +156,27 @@ jobs:
     - name: Install dependencies (system)
       if: matrix.DEPS == 'system'
       run: apt-get update -qq && apt-get install -y libfreetype-dev libsfml-dev libglm-dev libglew-dev libtclap-dev libstb-dev
-  
-    - name: Cache dependencies (vcpkg)
-      if: matrix.DEPS == 'vcpkg'
-      id: vcpkg-install
-      uses: actions/cache@v4
-      with:
-        path: /opt/Microsoft/vcpkg
-        key: vcpkg-linux-${{matrix.BIN}}
 
     - name: Install dependencies (vcpkg)
-      if: matrix.DEPS == 'vcpkg' && steps.vcpkg-install.outputs.cache-hit != 'true'
+      if: matrix.DEPS == 'vcpkg'
       run: |
         cd $VCPKG_INSTALLATION_ROOT
         git pull
         ./bootstrap-vcpkg.sh
-  
+        if [[ "${{matrix.BIN}}" == "32" ]]; then
+          dpkg --add-architecture i386
+          apt-get update
+          apt-get install -y autoconf libtool pkg-config libxmu-dev:i386 libxi-dev:i386 libgl-dev:i386 libglu1-mesa-dev:i386 libudev-dev:i386 libx11-dev:i386 libxrandr-dev:i386 libxcursor-dev:i386
+        fi;
+
     - name: Set up compiler flags
       run: |
         # Excluding missing-field-initializers error because it comes from the Std dependency
         # Excluding maybe-uninitialized error because cannot workaround the compiler issuing this error
         # Not using -pedantic: error: ISO C forbids braced-groups within expressions
-        echo "CFLAGS=-Wall -Wextra -Werror -m${{matrix.BIN}} -Wno-missing-field-initializers ${{ matrix.COMPILER.EXCLUSIVE_C_FLAGS }}" >> $GITHUB_ENV;
+        echo "CMAKE_CFLAGS=-Wall -Wextra -Werror -m${{matrix.BIN}} -Wno-missing-field-initializers ${{ matrix.COMPILER.EXCLUSIVE_C_FLAGS }}" >> $GITHUB_ENV;
         # Excluding missing-field-initializers error because it comes from the Std dependency
-        echo "CXXFLAGS=-Wall -Wextra -pedantic -Werror -m${{matrix.BIN}} -Wno-missing-field-initializers ${{ matrix.COMPILER.EXCLUSIVE_CXX_FLAGS }}" >> $GITHUB_ENV;
+        echo "CMAKE_CXXFLAGS=-Wall -Wextra -pedantic -Werror -m${{matrix.BIN}} -Wno-missing-field-initializers ${{ matrix.COMPILER.EXCLUSIVE_CXX_FLAGS }}" >> $GITHUB_ENV;
 
     - name: Checkout OpenCL-SDK
       uses: actions/checkout@v4
@@ -245,6 +242,7 @@ jobs:
       run: $CMAKE_EXE
         -G "${{matrix.CONF.GEN}}"
         `if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]]; then echo "-D CMAKE_BUILD_TYPE=${{matrix.CONF.CONFIG}}"; fi`
+        `if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]]; then echo "-D CMAKE_MAKE_PROGRAM=/usr/bin/make"; else echo "-D CMAKE_MAKE_PROGRAM=/usr/bin/ninja"; fi`
         `if [[ "${{matrix.DEPS}}" == "vcpkg" ]]; then echo "-D CMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"; fi;`
         `if [[ "${{matrix.DEPS}}" == "vcpkg" ]]; then echo "-D VCPKG_TARGET_TRIPLET=$VCPKG_TRIPLET"; fi;`
         -D BUILD_DOCS=ON
@@ -255,6 +253,8 @@ jobs:
         -D OPENCL_ICD_LOADER_BUILD_TESTING=ON
         -D CMAKE_C_STANDARD=${{matrix.STD.C}}
         -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}}
+        -D CMAKE_C_FLAGS="${CMAKE_CFLAGS}"
+        -D CMAKE_CXX_FLAGS="${CMAKE_CXXFLAGS}"
         -D CMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/install
         -D CPACK_PACKAGING_INSTALL_PREFIX=$DEB_INSTALLATION_PATH
         -S $GITHUB_WORKSPACE
@@ -281,6 +281,7 @@ jobs:
         fi;
 
     - name: Package DEB
+      if: matrix.BIN != 32
       run: $CPACK_EXE
         --config "$GITHUB_WORKSPACE/build/CPackConfig.cmake"
         -G DEB
@@ -288,6 +289,7 @@ jobs:
         -B "$GITHUB_WORKSPACE/package-deb"
 
     - name: Consume (DEB)
+      if: matrix.BIN != 32
       run: dpkg -i $GITHUB_WORKSPACE/package-deb/*.deb &&
         $CMAKE_EXE
         -G "${{matrix.CONF.GEN}}"
@@ -316,9 +318,11 @@ jobs:
         fi
 
     - name: Run clinfo (DEB)
+      if: matrix.BIN != 32
       run: clinfo
 
     - name: Uninstall (DEB)
+      if: matrix.BIN != 32
       run: apt-get remove -y "khronos-opencl-loader*" opencl-c-headers opencl-clhpp-headers opencl-sdk clinfo
 
     - name: Test install
@@ -335,6 +339,8 @@ jobs:
         -D CMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/install
         -D CMAKE_C_STANDARD=${{matrix.STD.C}}
         -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}}
+        -D CMAKE_C_FLAGS="${CMAKE_CFLAGS}"
+        -D CMAKE_CXX_FLAGS="${CMAKE_CXXFLAGS}"
         -S $GITHUB_WORKSPACE/test/cmake/pkgconfig/useutil
         -B $GITHUB_WORKSPACE/build_install &&
         if [[ "${{matrix.CONF.GEN}}" == "Unix Makefiles" ]];
@@ -437,23 +443,10 @@ jobs:
         New-Item -Type File HKLM:\SOFTWARE\Khronos\OpenCL\Vendors | Out-Null; `
         Set-ItemProperty -Path HKLM:\SOFTWARE\Khronos\OpenCL\Vendors -Name ${env:IMAGE_INTEL_PREFIX}\oclcpuexp\intelocl64.dll -Type DWord -Value 0;
 
-    - name: Cache dependencies (vcpkg)
-      if: matrix.DEPS == 'vcpkg'
-      id: vcpkg-install
-      uses: actions/cache@v4
-      with:
-        path: |
-          C:\vcpkg
-        key: x64-windows-sfml-tclap-glm-glew-stb
-
-    - name: Install dependencies (vcpkg)
-      if: matrix.DEPS == 'vcpkg' && steps.vcpkg-install.outputs.cache-hit != 'true'
-      run: C:\vcpkg\vcpkg.exe --triplet=x64-windows install sfml tclap glm glew stb
-
     - name: Set up compiler flags
       run: |
-        echo "CFLAGS=/W4 /WX" >> $GITHUB_ENV
-        echo "CXXFLAGS=/W4 /WX" >> $GITHUB_ENV
+        Write-Output "CMAKE_CFLAGS=/W4" | Out-File $env:GITHUB_ENV -Append
+        Write-Output "CMAKE_CXXFLAGS=/W4 /EHsc" | Out-File $env:GITHUB_ENV -Append
 
     - name: Checkout OpenCL-SDK
       uses: actions/checkout@v4
@@ -480,6 +473,8 @@ jobs:
           -D OPENCL_SDK_BUILD_SAMPLES=ON `
           -D CMAKE_C_STANDARD=${{matrix.STD.C}} `
           -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}} `
+          -D CMAKE_C_FLAGS="${env:CMAKE_CFLAGS}" `
+          -D CMAKE_CXX_FLAGS="${env:CMAKE_CXXFLAGS}" `
           -D CMAKE_INSTALL_PREFIX=${env:GITHUB_WORKSPACE}\install `
           -S ${env:GITHUB_WORKSPACE} `
           -B ${env:GITHUB_WORKSPACE}\build
@@ -507,6 +502,8 @@ jobs:
           -D OPENCL_SDK_BUILD_SAMPLES=ON `
           -D CMAKE_C_STANDARD=${{matrix.STD.C}} `
           -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}} `
+          -D CMAKE_C_FLAGS="${env:CMAKE_CFLAGS}" `
+          -D CMAKE_CXX_FLAGS="${env:CMAKE_CXXFLAGS}" `
           -D CMAKE_EXE_LINKER_FLAGS=/INCREMENTAL `
           -D CMAKE_INSTALL_PREFIX=${env:GITHUB_WORKSPACE}\install `
           -S ${env:GITHUB_WORKSPACE} `
@@ -681,23 +678,26 @@ jobs:
         #  * -Wno-missing-field-initializers
         #  * -Wno-conditional-uninitialized
         # have been added because of Std compilation errors
-        echo "CFLAGS=-Wall -Wextra -Werror -Wno-missing-field-initializers -Wno-conditional-uninitialized" >> $GITHUB_ENV;
+        echo "CMAKE_CFLAGS=-Wall -Wextra -Werror -Wno-missing-field-initializers -Wno-conditional-uninitialized" >> $GITHUB_ENV;
         # The flags
         #  * -Wno-deprecated-declarations
         #  * -Wno-missing-field-initializers
         # have been added because of Std compilation errors
-        echo "CXXFLAGS=-Wall -Wextra -pedantic -Wno-format -Werror -Wno-missing-field-initializers -Wno-deprecated-declarations" >> $GITHUB_ENV;
+        echo "CMAKE_CXXFLAGS=-Wall -Wextra -pedantic -Wno-format -Werror -Wno-missing-field-initializers -Wno-deprecated-declarations" >> $GITHUB_ENV;
 
     - name: Configure
       run: cmake
         -G "${{matrix.GEN}}"
         `if [[ "${{matrix.DEPS}}" == "vcpkg" ]]; then echo "-D CMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake"; fi`
+        `if [[ "${{matrix.GEN}}" == "Ninja Multi-Config" ]]; then echo "-D CMAKE_MAKE_PROGRAM=ninja"; fi`
         -D BUILD_DOCS=ON
         -D BUILD_TESTING=ON
         -D BUILD_EXAMPLES=ON
         -D OPENCL_SDK_BUILD_SAMPLES=ON
         -D CMAKE_C_STANDARD=${{matrix.STD.C}}
         -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}}
+        -D CMAKE_C_FLAGS="${CMAKE_CFLAGS}"
+        -D CMAKE_CXX_FLAGS="${CMAKE_CXXFLAGS}"
         -D CMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/install
         -D CMAKE_OSX_ARCHITECTURES=arm64
         -S $GITHUB_WORKSPACE
