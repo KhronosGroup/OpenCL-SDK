@@ -1,6 +1,12 @@
 name: Presubmit
 
-on: [push, pull_request]
+on:
+  pull_request:
+  push:
+    paths-ignore:
+      - 'LICENSE'
+      - 'LICENSES/**'
+      - '**.md'
 
 jobs:
   format:
