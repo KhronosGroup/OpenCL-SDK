@@ -37,7 +37,7 @@ foreach(UTIL_LIB_NAME IN ITEMS Utils UtilsCpp)
   )
   target_link_libraries(${UTIL_LIB_TARGET}
     PRIVATE
-      whereami
+      $<BUILD_INTERFACE:whereami>
     PUBLIC
       ${UTIL_LIB_DEPS}
       OpenCL::OpenCL
