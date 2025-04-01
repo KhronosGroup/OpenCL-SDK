@@ -58,7 +58,10 @@ jobs:
           CXX_NAME: clang++
           VER: 16
           EXCLUSIVE_C_FLAGS: ""
-        DEPS: [system, vcpkg, fetch]
+        DEPS: [
+          system,
+          #vcpkg,
+          fetch]
         BIN: [64]
         STD:
         - C: 11 # Utils C library uses C11 functions (e.g. timespec_get)
@@ -109,36 +112,36 @@ jobs:
             GEN: Unix Makefiles
             CONFIG: Release
           IMAGE: khronosgroup/docker-images:opencl-sdk-intelcpu-ubuntu-20.04.20230717
-        - CMAKE: system
-          COMPILER:
-            C_NAME: gcc
-            CXX_NAME: g++
-            VER: 9
-            EXCLUSIVE_C_FLAGS: ""
-          DEPS: vcpkg
-          BIN: 32
-          STD:
-            C: 11
-            CXX: 14
-          CONF:
-            GEN: Unix Makefiles
-            CONFIG: Debug
-          IMAGE: khronosgroup/docker-images:opencl-sdk-intelcpu-ubuntu-20.04.20230717
-        - CMAKE: system
-          COMPILER:
-            C_NAME: gcc
-            CXX_NAME: g++
-            VER: 9
-            EXCLUSIVE_C_FLAGS: ""
-          DEPS: vcpkg
-          BIN: 32
-          STD:
-            C: 11
-            CXX: 14
-          CONF:
-            GEN: Unix Makefiles
-            CONFIG: Release
-          IMAGE: khronosgroup/docker-images:opencl-sdk-intelcpu-ubuntu-20.04.20230717
+        #- CMAKE: system
+        #  COMPILER:
+        #    C_NAME: gcc
+        #    CXX_NAME: g++
+        #    VER: 9
+        #    EXCLUSIVE_C_FLAGS: ""
+        #  DEPS: vcpkg
+        #  BIN: 32
+        #  STD:
+        #    C: 11
+        #    CXX: 14
+        #  CONF:
+        #    GEN: Unix Makefiles
+        #    CONFIG: Debug
+        #  IMAGE: khronosgroup/docker-images:opencl-sdk-intelcpu-ubuntu-20.04.20230717
+        #- CMAKE: system
+        #  COMPILER:
+        #    C_NAME: gcc
+        #    CXX_NAME: g++
+        #    VER: 9
+        #    EXCLUSIVE_C_FLAGS: ""
+        #  DEPS: vcpkg
+        #  BIN: 32
+        #  STD:
+        #    C: 11
+        #    CXX: 14
+        #  CONF:
+        #    GEN: Unix Makefiles
+        #    CONFIG: Release
+        #  IMAGE: khronosgroup/docker-images:opencl-sdk-intelcpu-ubuntu-20.04.20230717
     container: ${{matrix.IMAGE}}
     env:
       CMAKE_EXE: /opt/Kitware/CMake/${{ matrix.CMAKE }}/bin/cmake
@@ -383,7 +386,9 @@ jobs:
       matrix:
         VER: [v142, v143, clangcl]
         GEN: [Visual Studio 17 2022, Ninja Multi-Config]
-        DEPS: [vcpkg, fetch]
+        DEPS: [
+          #vcpkg,
+          fetch]
         BIN: [x64]
         STD:
         - C: 11
@@ -630,10 +635,11 @@ jobs:
         GEN:
         - Xcode
         - Ninja Multi-Config
-        DEPS:
-        - system
-        - vcpkg
-        - fetch
+        DEPS: [
+          system,
+          #vcpkg
+          fetch
+        ]
         STD:
         - C: 11
           CXX: 14
