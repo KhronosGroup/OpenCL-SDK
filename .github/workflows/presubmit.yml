@@ -836,6 +836,7 @@ jobs:
         -D ANDROID_ABI=${{matrix.ABI}}
         -D ANDROID_PLATFORM=${{matrix.API_LEVEL}}
         -D OPENCL_SDK_BUILD_OPENGL_SAMPLES=OFF
+        -D OPENCL_SDK_BUILD_VULKAN_SAMPLES=OFF
         -S $GITHUB_WORKSPACE
         -B $GITHUB_WORKSPACE/build
 
