@@ -408,7 +408,6 @@ jobs:
             CXX: 14
     env:
       NINJA_URL: https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-win.zip
-      NINJA_ROOT: C:\Tools\Ninja
       VS_ROOT: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise'
       UseMultiToolTask: true # Better parallel MSBuild execution
       EnforceProcessCountAcrossBuilds: 'true' # -=-
@@ -500,7 +499,7 @@ jobs:
         & cmake `
           $TOOLCHAIN_ARG `
           -G "${{matrix.GEN}}" `
-          -D CMAKE_MAKE_PROGRAM="${env:NINJA_ROOT}\ninja.exe" `
+          -D CMAKE_MAKE_PROGRAM="ninja.exe" `
           -D BUILD_DOCS=ON `
           -D BUILD_TESTING=ON `
           -D OPENCL_SDK_BUILD_SAMPLES=ON `
@@ -596,7 +595,7 @@ jobs:
         Enter-VsDevShell -VsInstallPath ${env:VS_ROOT} -SkipAutomaticLocation -DevCmdArguments "-host_arch=x64 -arch=${{matrix.BIN}} -vcvars_ver=${VER}"
         & cmake `
           -G '${{matrix.GEN}}' `
-          -D CMAKE_MAKE_PROGRAM="${env:NINJA_ROOT}\ninja.exe" `
+          -D CMAKE_MAKE_PROGRAM="ninja.exe" `
           -D CMAKE_EXE_LINKER_FLAGS=/INCREMENTAL `
           -D CMAKE_PREFIX_PATH="${env:GITHUB_WORKSPACE}\external\OpenCL-Headers\install;${env:GITHUB_WORKSPACE}\install" `
           -D CMAKE_C_STANDARD=${{matrix.STD.C}} `
