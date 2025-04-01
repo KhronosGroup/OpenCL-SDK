@@ -409,21 +409,9 @@ jobs:
       IMAGE_INTEL_PREFIX: C:\Tools\Intel
 
     steps:
-    - name: Cache Ninja install
-      if: matrix.GEN == 'Ninja Multi-Config'
-      id: ninja-install
-      uses: actions/cache@v4
-      with:
-        path: |
-          C:\Tools\Ninja
-        key: ${{runner.os}}-ninja-${{env.NINJA_URL}}
 
-    - name: Install Ninja
-      if: matrix.GEN == 'Ninja Multi-Config' && steps.ninja-install.outputs.cache-hit != 'true'
-      run: |
-        Invoke-WebRequest ${env:NINJA_URL} -OutFile ~\Downloads\ninja-win.zip
-        Expand-Archive ~\Downloads\ninja-win.zip -DestinationPath ${env:NINJA_ROOT}\
-        Remove-Item ~\Downloads\*
+    - name: Install CMake & Ninja
+      uses: lukka/get-cmake@v3.26.4
 
     - name: Update Vcpkg
       if: matrix.DEPS == 'vcpkg'
@@ -669,6 +657,9 @@ jobs:
     - name: Install dependencies (Homebrew)
       if: matrix.DEPS == 'system'
       run: brew install tclap glm glew sfml mesa-glu
+
+    - name: Install CMake & Ninja
+      uses: lukka/get-cmake@v3.26.4
 
     - name: Install Vcpkg
       if: matrix.DEPS == 'vcpkg'
