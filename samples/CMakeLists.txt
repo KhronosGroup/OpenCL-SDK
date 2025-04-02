@@ -33,11 +33,12 @@ CHECK_LIBRARY_EXISTS(m sin "" HAVE_LIB_M)
 #     KERNELS <file0> <file1> ... # optional, specifies kernel files for the sample
 #     INCLUDES <dir0> <dir1> ...  # optional, specifies additional include directories for the sample
 #     LIBS <lib0> <lib1> ...      # optional, specifies additional libraries for the sample
+#     DEFINITIONS <def0> <def1>   # optional, specifies additional compile definitions for the sample
 # )
 macro(add_sample)
     set(options TEST)
     set(one_value_args TARGET VERSION CATEGORY)
-    set(multi_value_args SOURCES KERNELS SHADERS INCLUDES LIBS)
+    set(multi_value_args SOURCES KERNELS SHADERS INCLUDES LIBS DEFINITIONS)
     cmake_parse_arguments(OPENCL_SAMPLE
         "${options}" "${one_value_args}" "${multi_value_args}"
         ${ARGN}
@@ -75,6 +76,7 @@ macro(add_sample)
         CL_HPP_MINIMUM_OPENCL_VERSION=${OPENCL_SAMPLE_VERSION}
         CL_HPP_ENABLE_EXCEPTIONS
         $<$<PLATFORM_ID:Windows>:_CRT_SECURE_NO_WARNINGS> # TODO: remove
+        ${OPENCL_SAMPLE_DEFINITIONS}
     )
 
     set_target_properties(${OPENCL_SAMPLE_TARGET}
