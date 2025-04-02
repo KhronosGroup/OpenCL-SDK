@@ -1,5 +1,5 @@
 /*******************************************************************************
-// Copyright (c) 2023 Ben Ashbaugh
+// Copyright (c) 2023-2025 Ben Ashbaugh
 //
 // SPDX-License-Identifier: MIT or Apache-2.0
 */
