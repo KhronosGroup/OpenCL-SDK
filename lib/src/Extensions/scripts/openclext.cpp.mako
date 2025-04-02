@@ -116,7 +116,7 @@ def getCParameterStrings(params):
     return strings
 
 %>/*******************************************************************************
-// Copyright (c) 2021-2024 Ben Ashbaugh
+// Copyright (c) 2021-2025 Ben Ashbaugh
 //
 // SPDX-License-Identifier: MIT or Apache-2.0
 */
