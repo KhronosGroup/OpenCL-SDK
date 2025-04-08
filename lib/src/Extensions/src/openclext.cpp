@@ -1,5 +1,5 @@
 /*******************************************************************************
-// Copyright (c) 2021-2024 Ben Ashbaugh
+// Copyright (c) 2021-2025 Ben Ashbaugh
 //
 // SPDX-License-Identifier: MIT or Apache-2.0
 */
@@ -751,6 +751,17 @@ typedef cl_int (CL_API_CALL* clTerminateContextKHR_clextfn)(
 #pragma message("Define for cl_khr_terminate_context was not found!  Please update your headers.")
 #endif // defined(cl_khr_terminate_context)
 
+#if defined(cl_ext_buffer_device_address)
+
+typedef cl_int (CL_API_CALL* clSetKernelArgDevicePointerEXT_clextfn)(
+    cl_kernel kernel,
+    cl_uint arg_index,
+    cl_mem_device_address_ext arg_value);
+
+#else
+#pragma message("Define for cl_ext_buffer_device_address was not found!  Please update your headers.")
+#endif // defined(cl_ext_buffer_device_address)
+
 #if defined(cl_ext_device_fission)
 
 typedef cl_int (CL_API_CALL* clReleaseDeviceEXT_clextfn)(
@@ -1440,6 +1451,10 @@ struct openclext_dispatch_table {
     clTerminateContextKHR_clextfn clTerminateContextKHR;
 #endif // defined(cl_khr_terminate_context)
 
+#if defined(cl_ext_buffer_device_address)
+    clSetKernelArgDevicePointerEXT_clextfn clSetKernelArgDevicePointerEXT;
+#endif // defined(cl_ext_buffer_device_address)
+
 #if defined(cl_ext_device_fission)
     clReleaseDeviceEXT_clextfn clReleaseDeviceEXT;
     clRetainDeviceEXT_clextfn clRetainDeviceEXT;
@@ -1715,6 +1730,10 @@ static void _init(cl_platform_id platform, openclext_dispatch_table* dispatch_pt
 #if defined(cl_khr_terminate_context)
     CLEXT_GET_EXTENSION(clTerminateContextKHR);
 #endif // defined(cl_khr_terminate_context)
+
+#if defined(cl_ext_buffer_device_address)
+    CLEXT_GET_EXTENSION(clSetKernelArgDevicePointerEXT);
+#endif // defined(cl_ext_buffer_device_address)
 
 #if defined(cl_ext_device_fission)
     CLEXT_GET_EXTENSION(clReleaseDeviceEXT);
@@ -3408,6 +3427,25 @@ cl_int CL_API_CALL clTerminateContextKHR(
 }
 
 #endif // defined(cl_khr_terminate_context)
+
+#if defined(cl_ext_buffer_device_address)
+
+cl_int CL_API_CALL clSetKernelArgDevicePointerEXT(
+    cl_kernel kernel,
+    cl_uint arg_index,
+    cl_mem_device_address_ext arg_value)
+{
+    struct openclext_dispatch_table* dispatch_ptr = _get_dispatch(kernel);
+    if (dispatch_ptr == nullptr || dispatch_ptr->clSetKernelArgDevicePointerEXT == nullptr) {
+        return CL_INVALID_OPERATION;
+    }
+    return dispatch_ptr->clSetKernelArgDevicePointerEXT(
+        kernel,
+        arg_index,
+        arg_value);
+}
+
+#endif // defined(cl_ext_buffer_device_address)
 
 #if defined(cl_ext_device_fission)
 
