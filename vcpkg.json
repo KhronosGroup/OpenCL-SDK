@@ -1,0 +1,21 @@
+{
+	"$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+	"name": "opencl",
+	"builtin-baseline": "21816e0df975ab3ba13ab75263c4deeb080ef681",
+	"dependencies": [
+		{
+			"name": "sfml",
+			"version>=": "2.0"
+		},
+		"tclap",
+		"glm",
+		"glew",
+		"stb"
+	],
+	"overrides": [
+		{
+			"name": "sfml",
+			"version": "2.6.2"
+		}
+	]
+}
