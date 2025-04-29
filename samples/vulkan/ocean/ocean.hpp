@@ -19,6 +19,7 @@
 
 #include "ocean_util.hpp"
 #include <CL/SDK/CLI.hpp>
+#include <CL/SDK/InteropWindow.hpp>
 
 class OceanApplication {
 

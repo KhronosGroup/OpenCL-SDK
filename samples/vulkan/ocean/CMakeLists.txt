@@ -20,4 +20,4 @@ add_sample(
     SHADERS ocean.vert.spv ocean.frag.spv
     KERNELS twiddle.cl time_spectrum.cl inversion.cl normals.cl fft_kernel.cl init_spectrum.cl
     INCLUDES ${Vulkan_INCLUDE_DIR}
-    LIBS ${Vulkan_LIBRARY} glm::glm)
+    LIBS ${Vulkan_LIBRARY})

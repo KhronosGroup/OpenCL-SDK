@@ -236,9 +236,8 @@ void OceanApplication::init_openCL_mems()
         }
     } catch (const cl::Error& e)
     {
-        printf("initOpenCLMems: OpenCL %s image error: %s\n", e.what(),
-               IGetErrorString(e.err()));
-        exit(1);
+        std::cerr << "OpenCL runtime error: " << e.what() << std::endl;
+        exit(e.err());
     }
 }
 
@@ -1846,9 +1845,8 @@ void OceanApplication::update_spectrum(uint32_t currentImage, float elapsed)
             twiddle_factors_init = false;
         } catch (const cl::Error& e)
         {
-            printf("twiddle indices: OpenCL %s kernel error: %s\n", e.what(),
-                   IGetErrorString(e.err()));
-            exit(1);
+            std::cerr << "OpenCL runtime error: " << e.what() << std::endl;
+            exit(e.err());
         }
     }
 
@@ -1874,9 +1872,8 @@ void OceanApplication::update_spectrum(uint32_t currentImage, float elapsed)
             changed = false;
         } catch (const cl::Error& e)
         {
-            printf("initial spectrum: OpenCL %s kernel error: %s\n", e.what(),
-                   IGetErrorString(e.err()));
-            exit(1);
+            std::cerr << "OpenCL runtime error: " << e.what() << std::endl;
+            exit(e.err());
         }
     }
 
@@ -1895,9 +1892,8 @@ void OceanApplication::update_spectrum(uint32_t currentImage, float elapsed)
             cl::NDRange{ ocean_tex_size, ocean_tex_size }, lws);
     } catch (const cl::Error& e)
     {
-        printf("updateSpectrum: OpenCL %s kernel error: %s\n", e.what(),
-               IGetErrorString(e.err()));
-        exit(1);
+        std::cerr << "OpenCL runtime error: " << e.what() << std::endl;
+        exit(e.err());
     }
 
 
