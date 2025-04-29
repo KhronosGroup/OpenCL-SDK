@@ -48,22 +48,21 @@ If CMake is not provided by your build system or OS package manager, please cons
        git submodule init
        git submodule update
 
-1. Install dependencies:
-
-       vcpkg --triplet x64-windows install sfml tclap glm
-
 1. Build and install SDK with samples and no downstream unit tests:
 
-       cmake -A x64 `
-             -D BUILD_TESTING=OFF `
-             -D BUILD_DOCS=OFF `
-             -D BUILD_EXAMPLES=OFF `
-             -D BUILD_TESTS=OFF `
-             -D OPENCL_SDK_BUILD_SAMPLES=ON `
-             -D OPENCL_SDK_TEST_SAMPLES=OFF `
-             -D CMAKE_TOOLCHAIN_FILE=/vcpkg/install/root/scripts/buildsystems/vcpkg.cmake `
-             -D VCPKG_TARGET_TRIPLET=x64-windows `
+       cmake -D BUILD_TESTING=OFF \
+             -D BUILD_DOCS=OFF \
+             -D BUILD_EXAMPLES=OFF \
+             -D BUILD_TESTS=OFF \
+             -D OPENCL_SDK_BUILD_SAMPLES=ON \
+             -D OPENCL_SDK_TEST_SAMPLES=OFF \
+             -D CMAKE_TOOLCHAIN_FILE=/vcpkg/install/root/scripts/buildsystems/vcpkg.cmake \
+             -D CMAKE_BUILD_TYPE=Release \
              -B ./OpenCL-SDK/build -S ./OpenCL-SDK
        cmake --build ./OpenCL-SDK/build --target install
+
+Samples that make use of OpenGL interop are disabled by default to reduce
+the number of dependencies for most users. They can be enabled using the
+`OPENCL_SDK_BUILD_OPENGL_SAMPLES` CMake option.
 
 _(Note: on Linux, paths to dependent libraries are automatically handled by RPATH in both the build and install tree. On Windows, all DLLs have to be on the `PATH`. Vcpkg copies dependent DLLs to the build tree, but in order to do the same in the install tree, a sufficiently new CMake version is required. CMake 3.21 introduces `install(IMPORTED_RUNTIME_ARTIFACTS)`.)_

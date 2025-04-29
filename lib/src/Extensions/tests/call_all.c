@@ -1,5 +1,5 @@
 /*******************************************************************************
-// Copyright (c) 2021-2024 Ben Ashbaugh
+// Copyright (c) 2021-2025 Ben Ashbaugh
 //
 // SPDX-License-Identifier: MIT or Apache-2.0
 */
@@ -160,6 +160,10 @@ void call_all(void)
 #ifdef cl_khr_terminate_context
     clTerminateContextKHR(NULL);
 #endif // cl_khr_terminate_context
+
+#ifdef cl_ext_buffer_device_address
+    clSetKernelArgDevicePointerEXT(NULL, 0, 0);
+#endif // cl_ext_buffer_device_address
 
 #ifdef cl_ext_device_fission
     clReleaseDeviceEXT(NULL);
