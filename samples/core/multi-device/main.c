@@ -208,12 +208,6 @@ int main(int argc, char* argv[])
                                           dev_opts.triplet.dev_type, &error),
                  error, end);
 
-    // Query OpenCL version supported by device.
-    char dev_version[64];
-    OCLERROR_RET(clGetDeviceInfo(dev, CL_DEVICE_VERSION, sizeof(dev_version),
-                                 &dev_version, NULL),
-                 error, end);
-
     if (!diag_opts.quiet)
     {
         cl_util_print_device_info(dev);
@@ -225,6 +219,19 @@ int main(int argc, char* argv[])
         fflush(stdout);
     }
 
+    // Query OpenCL version supported by device.
+    size_t dev_version_size;
+    OCLERROR_RET(clGetDeviceInfo(dev, CL_DEVICE_VERSION, 0, NULL,
+                                 &dev_version_size),
+                 error, end);
+
+    char *dev_version = malloc(dev_version_size);
+    if (!dev_version)
+    {
+        fprintf(stderr, "Failed to allocate memory for device version.\n");
+        exit(EXIT_FAILURE);
+    }
+
     if (opencl_version_contains(dev_version, "1.0")
         || opencl_version_contains(dev_version, "1.1"))
     {
@@ -233,8 +240,10 @@ int main(int argc, char* argv[])
                 "1.2 feature, but the device chosen only supports OpenCL %s. "
                 "Please try with a different OpenCL device instead.\n",
                 dev_version);
+        free(dev_version);
         exit(EXIT_SUCCESS);
     }
+    free(dev_version);
 
     // Check if device supports fission.
     cl_device_partition_property* dev_props = NULL;
