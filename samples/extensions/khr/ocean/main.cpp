@@ -153,11 +153,10 @@ int main(int argc, char* argv[])
     try
     {
         // Parse command-line options
-        auto opts =
-            cl::sdk::parse_cli<cl::sdk::options::Diagnostic,
-                               cl::sdk::options::SingleDevice,
-                               cl::sdk::options::Window, CliOptions>(
-                argc, argv);
+        auto opts = cl::sdk::parse_cli<cl::sdk::options::Diagnostic,
+                                       cl::sdk::options::SingleDevice,
+                                       cl::sdk::options::Window, CliOptions>(
+            argc, argv);
 
         const auto& win_opts = std::get<2>(opts);
         const auto& dev_opts = std::get<1>(opts);
