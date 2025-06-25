@@ -1,4 +1,4 @@
-# Copyright (c) 2021-2023 Ben Ashbaugh
+# Copyright (c) 2021-2025 Ben Ashbaugh
 #
 # SPDX-License-Identifier: MIT or Apache-2.0
 
@@ -78,6 +78,7 @@ set_target_properties(OpenCLExt PROPERTIES FOLDER "OpenCLExtensionLoader")
 set_target_properties(OpenCLExt PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
 target_include_directories(OpenCLExt PRIVATE ${OPENCL_EXTENSION_LOADER_INCLUDE_DIRS})
 target_compile_definitions(OpenCLExt PRIVATE CL_TARGET_OPENCL_VERSION=300)
+target_compile_definitions(OpenCLExt PRIVATE CL_ENABLE_BETA_EXTENSIONS)
 if (OPENCL_EXTENSION_LOADER_SINGLE_PLATFORM_ONLY)
     target_compile_definitions(OpenCLExt PRIVATE CLEXT_SINGLE_PLATFORM_ONLY)
 endif()
@@ -117,10 +118,9 @@ if (OPENCL_EXTENSION_LOADER_INSTALL)
 
     install(TARGETS OpenCLExt
         EXPORT OpenCLExtensionLoaderTargets
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        COMPONENT binary
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT binary
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT binary
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT binary
     )
 
     export(EXPORT OpenCLExtensionLoaderTargets
@@ -149,13 +149,6 @@ if (OPENCL_EXTENSION_LOADER_INSTALL)
     )
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/OpenCLExtensionLoader/OpenCLExtensionLoaderConfigVersion.cmake
         DESTINATION ${OPENCL_EXTENSION_LOADER_CONFIG_PATH}
-        COMPONENT binary
-    )
-
-    # For packaging the extensions library
-    install(
-        TARGETS OpenCLExt
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}
         COMPONENT binary
     )
 endif()

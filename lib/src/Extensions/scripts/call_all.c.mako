@@ -59,6 +59,7 @@ defaultValueForType = {
     'cl_kernel_exec_info_arm'           : 'CL_KERNEL_EXEC_INFO_SVM_PTRS_ARM',
     'cl_kernel_sub_group_info'          : 'CL_KERNEL_MAX_SUB_GROUP_SIZE_FOR_NDRANGE_KHR',
     'cl_mem_advice_intel'               : '0',
+    'cl_mem_device_address_ext'         : '0',
     'cl_mutable_command_info_khr'       : 'CL_MUTABLE_COMMAND_COMMAND_BUFFER_KHR',
     'cl_map_flags'                      : 'CL_MAP_READ',
     'cl_mem_flags'                      : 'CL_MEM_READ_WRITE',
@@ -119,7 +120,7 @@ def getCallArgs(params):
     return callstr
 
 %>/*******************************************************************************
-// Copyright (c) 2021-2024 Ben Ashbaugh
+// Copyright (c) 2021-2025 Ben Ashbaugh
 //
 // SPDX-License-Identifier: MIT or Apache-2.0
 */
