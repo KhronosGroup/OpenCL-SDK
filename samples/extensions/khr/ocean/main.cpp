@@ -150,20 +150,21 @@ CliOptions cl::sdk::comprehend<CliOptions>(
 
 int main(int argc, char* argv[])
 {
-    OceanApplication app;
-
     try
     {
         // Parse command-line options
         auto opts =
             cl::sdk::parse_cli<cl::sdk::options::Diagnostic,
-                               cl::sdk::options::SingleDevice, CliOptions>(
+                               cl::sdk::options::SingleDevice,
+                               cl::sdk::options::Window, CliOptions>(
                 argc, argv);
+
+        const auto& win_opts = std::get<2>(opts);
         const auto& dev_opts = std::get<1>(opts);
 
+        OceanApplication app(win_opts.width, win_opts.height);
         app.dev_opts = dev_opts;
-        app.use_cl_khr_gl_sharing = std::get<2>(opts).use_gl_sharing;
-
+        app.use_cl_khr_gl_sharing = std::get<3>(opts).use_gl_sharing;
         app.run();
     } catch (cl::util::Error& e)
     {

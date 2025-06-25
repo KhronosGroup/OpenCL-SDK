@@ -28,10 +28,11 @@
 
 class OceanApplication : public cl::sdk::InteropWindow {
 public:
-    explicit OceanApplication(unsigned int platform_id = 0,
+    explicit OceanApplication(int width, int height,
+                              unsigned int platform_id = 0,
                               unsigned int device_id = 0,
                               cl_bitfield device_type = CL_DEVICE_TYPE_DEFAULT)
-        : InteropWindow{ sf::VideoMode(800, 800),
+        : InteropWindow{ sf::VideoMode(width, height),
                          "Ocean waves with OpenGL and OpenCL interop",
                          sf::Style::Default,
                          sf::ContextSettings{
