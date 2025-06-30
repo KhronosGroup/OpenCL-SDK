@@ -1062,10 +1062,16 @@ int main(int argc, char *argv[])
     // supported by each device is used to compile the program. Therefore,
     // it's only necessary to add the -cl-std option for 2.0 and 3.0 OpenCL
     // versions.
-    char dev_version[64];
+    size_t dev_version_size = 0;
+    char *dev_version = NULL;
+    OCLERROR_RET(clGetDeviceInfo(s.device, CL_DEVICE_OPENCL_C_VERSION, 0, NULL,
+                                 &dev_version_size),
+                 error, dev);
+
+    dev_version = malloc(dev_version_size);
     OCLERROR_RET(clGetDeviceInfo(s.device, CL_DEVICE_OPENCL_C_VERSION,
-                                 sizeof(dev_version), &dev_version, NULL),
-                 error, end);
+                                 dev_version_size, dev_version, NULL),
+                 error, dev);
     char compiler_options[1024] = "";
     if (opencl_version_contains(dev_version, "3."))
     {
@@ -1075,6 +1081,8 @@ int main(int argc, char *argv[])
     {
         strcat(compiler_options, "-cl-std=CL2.0 ");
     }
+    free(dev_version);
+    dev_version = NULL;
 
     /// Create image buffers
     const cl_image_desc desc = { .image_type = CL_MEM_OBJECT_IMAGE2D,
@@ -1238,6 +1246,8 @@ outbuf:
     OCLERROR_RET(clReleaseMemObject(s.output_image_buf), end_error, inbuf);
 inbuf:
     OCLERROR_RET(clReleaseMemObject(s.input_image_buf), end_error, outim);
+dev:
+    if (dev_version) free(dev_version);
 outim:
     free(s.output_image.pixels);
 inim:
