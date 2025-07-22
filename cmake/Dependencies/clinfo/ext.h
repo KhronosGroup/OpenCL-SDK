@@ -35,6 +35,7 @@
 #include <OpenCL/opencl.h>
 #else
 #define CL_USE_DEPRECATED_OPENCL_1_1_APIS
+#define CL_ENABLE_BETA_EXTENSIONS
 #include <CL/cl.h>
 #include <CL/cl_ext.h>
 #endif
