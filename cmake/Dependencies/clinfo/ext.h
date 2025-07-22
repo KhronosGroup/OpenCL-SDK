@@ -18,6 +18,10 @@
 #define CL_TARGET_OPENCL_VERSION 220
 #endif
 
+#ifndef CL_ENABLE_BETA_EXTENSIONS
+#define CL_ENABLE_BETA_EXTENSIONS
+#endif
+
 /* We will use the deprecated clGetExtensionFunctionAddress,
  * so let the headers know that we don't care about it being deprecated.
  * The standard CL_USE_DEPRECATED_OPENCL_1_1_APIS define apparently
