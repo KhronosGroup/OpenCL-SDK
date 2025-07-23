@@ -457,7 +457,7 @@ int main(int argc, char *argv[])
         size_t gl = global(curr, factor, wgs);
         OCLERROR_RET(clEnqueueNDRangeKernel(queue, reduce, 1, NULL, &gl, &wgs,
                                             0, NULL, pass),
-                     error, pas);
+                     error, ev);
 
         curr = new_size(curr, factor);
         ++pass;
@@ -469,7 +469,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    OCLERROR_RET(clWaitForEvents(steps, passes), error, pas);
+    OCLERROR_RET(clWaitForEvents(steps, passes), error, ev);
 
     GET_CURRENT_TIMER(dev_end)
     cl_ulong dev_time;
@@ -488,7 +488,7 @@ int main(int argc, char *argv[])
     OCLERROR_RET(clEnqueueReadBuffer(queue, back, CL_BLOCKING, 0,
                                      sizeof(cl_int), (void *)&dev_res, 0, NULL,
                                      NULL),
-                 error, pas);
+                 error, ev);
 
     // Validate
     if (dev_res != seq_ref)
@@ -516,6 +516,11 @@ int main(int argc, char *argv[])
                (unsigned long long)(host_time + 500) / 1000);
     }
 
+ev:
+    for (cl_event *pass_release = passes; pass_release < pass; ++pass_release)
+    {
+        OCLERROR_RET(clReleaseEvent(*pass_release), end_error, pas);
+    }
 pas:
     free(passes);
 bufb:
