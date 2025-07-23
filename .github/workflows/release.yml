@@ -92,7 +92,7 @@ jobs:
         shell: pwsh
     strategy:
       matrix:
-        OS: [ubuntu-20.04, windows-2022]
+        OS: [ubuntu-latest, windows-2022]
 
     env:
       DEB_INSTALLATION_PATH: /usr
