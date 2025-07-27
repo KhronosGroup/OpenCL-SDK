@@ -61,7 +61,7 @@ If CMake is not provided by your build system or OS package manager, please cons
              -B ./OpenCL-SDK/build -S ./OpenCL-SDK
        cmake --build ./OpenCL-SDK/build --target install
 
-Samples that make use of OpenGL interop are disabled by default to reduce
+Samples that make use of OpenGL or Vulkan interop are disabled by default to reduce
 the number of dependencies for most users. They can be enabled using the
 `OPENCL_SDK_BUILD_OPENGL_SAMPLES` CMake option.
 
