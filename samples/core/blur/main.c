@@ -344,7 +344,7 @@ cl_int single_pass_box_blur(state *const s, cl_int size)
     // compile kernel
     cl_kernel blur;
     OCLERROR_PAR(blur = clCreateKernel(s->program, "blur_box", &error), error,
-                 endl);
+                 end);
 
     // set kernel parameters
     OCLERROR_RET(clSetKernelArg(blur, 0, sizeof(cl_mem), &s->input_image_buf),
@@ -375,7 +375,7 @@ ev:
     clReleaseEvent(pass);
 blr:
     clReleaseKernel(blur);
-endl:
+end:
     return error;
 }
 
