@@ -40,8 +40,7 @@ If CMake is not provided by your build system or OS package manager, please cons
 
 ### Example Build
 
-For most builds, the following steps may be used to build the OpenCL SDK.
-These build steps work on both Windows and Linux:
+In most cases, the following steps may be used to build the OpenCL SDK.
 
 1. Clone this repo and update submodules:
 
@@ -64,7 +63,7 @@ These build steps work on both Windows and Linux:
 
    Or, build the OpenCL SDK using the generated build files directly.
 
-To customize the build, the following CMake variables are supported.
+To customize a build, the following CMake variables are supported.
 To specify one of these variables via the command line generator, use the CMake syntax `-D<variable>=<value>`.
 See your CMake documentation for more details.
 
