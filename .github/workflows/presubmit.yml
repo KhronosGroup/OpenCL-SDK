@@ -274,6 +274,7 @@ jobs:
         -D BUILD_EXAMPLES=ON
         -D OPENCL_SDK_BUILD_SAMPLES=ON
         -D OPENCL_SDK_BUILD_OPENGL_SAMPLES=ON
+        -D OPENCL_SDK_BUILD_VULKAN_SAMPLES=ON
         `if [[ "${{matrix.BIN}}" == "32" ]]; then echo "-D OPENCL_SDK_BUILD_OPENGL_SAMPLES=OFF"; fi;`
         -D OPENCL_ICD_LOADER_BUILD_TESTING=ON
         -D CMAKE_C_STANDARD=${{matrix.STD.C}}
@@ -500,6 +501,7 @@ jobs:
           -D BUILD_TESTING=ON `
           -D OPENCL_SDK_BUILD_SAMPLES=ON `
           -D OPENCL_SDK_BUILD_OPENGL_SAMPLES=ON `
+          -D OPENCL_SDK_BUILD_VULKAN_SAMPLES=ON `
           -D CMAKE_C_STANDARD=${{matrix.STD.C}} `
           -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}} `
           -D CMAKE_C_FLAGS="${env:CMAKE_CFLAGS}" `
@@ -532,6 +534,7 @@ jobs:
           -D BUILD_TESTING=ON `
           -D OPENCL_SDK_BUILD_SAMPLES=ON `
           -D OPENCL_SDK_BUILD_OPENGL_SAMPLES=ON `
+          -D OPENCL_SDK_BUILD_VULKAN_SAMPLES=ON `
           -D CMAKE_C_STANDARD=${{matrix.STD.C}} `
           -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}} `
           -D CMAKE_C_FLAGS="${env:CMAKE_CFLAGS}" `
@@ -739,6 +742,7 @@ jobs:
         -D BUILD_EXAMPLES=ON
         -D OPENCL_SDK_BUILD_SAMPLES=ON
         -D OPENCL_SDK_BUILD_OPENGL_SAMPLES=ON
+        -D OPENCL_SDK_BUILD_VULKAN_SAMPLES=ON
         -D CMAKE_C_STANDARD=${{matrix.STD.C}}
         -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}}
         -D CMAKE_C_FLAGS="${CMAKE_CFLAGS}"
