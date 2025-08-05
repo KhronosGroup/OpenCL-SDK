@@ -896,6 +896,7 @@ jobs:
       run:
         shell: bash
     runs-on: ${{ matrix.os }}
+    needs: format
     steps:
     - name: Checkout OpenCL-SDK
       uses: actions/checkout@v4
@@ -906,7 +907,6 @@ jobs:
     - name: Generate Build Files
       run: cmake
         -DCMAKE_BUILD_TYPE=Release
-        `if [[ "${{matrix.os}}" == "macos-latest" ]]; then echo "-DOPENCL_SDK_BUILD_VULKAN_SAMPLES=OFF"; fi;`
         -S $GITHUB_WORKSPACE
         -B $GITHUB_WORKSPACE/build
 

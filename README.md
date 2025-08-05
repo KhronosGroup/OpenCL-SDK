@@ -75,5 +75,5 @@ See your CMake documentation for more details.
 | OPENCL_SDK_BUILD_UTILITY_LIBRARIES | BOOL | Enables building OpenCL SDK utility libraries.  Default: `TRUE`
 | OPENCL_SDK_BUILD_SAMPLES | BOOL | Enables building OpenCL SDK samples.  Default: `TRUE`
 | OPENCL_SDK_BUILD_OPENGL_SAMPLES | BOOL | Enables building OpenCL SDK samples that interoperate with OpenGL.  Default: `FALSE`
-| OPENCL_SDK_BUILD_VULKAN_SAMPLES | BOOL | Enables building OpenCL SDK samples that interoperate with Vulkan.  Default: `TRUE`
+| OPENCL_SDK_BUILD_VULKAN_SAMPLES | BOOL | Enables building OpenCL SDK samples that interoperate with Vulkan.  Default: `FALSE`
 | OPENCL_SDK_TEST_SAMPLES | BOOL | Enables a target to test the OpenCL SDK samples.  Default: `TRUE`
