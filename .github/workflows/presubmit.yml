@@ -7,7 +7,6 @@ on:
       - 'LICENSES/**'
       - '**.md'
   push:
-    branches: [main]
     paths-ignore:
       - 'LICENSE'
       - 'LICENSES/**'
@@ -887,3 +886,33 @@ jobs:
 
     - name: Build
       run: cmake --build $GITHUB_WORKSPACE/build --parallel `nproc`
+
+  simple-readme-build:
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    name: Simple README Build on ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout OpenCL-SDK
+      uses: actions/checkout@v4
+      with:
+          fetch-depth: 0
+          submodules: recursive
+
+    - name: Generate Build Files
+      run: cmake
+        -DCMAKE_BUILD_TYPE=Release
+        `if [[ "${{matrix.os}}" == "macos-latest" ]]; then echo "-DOPENCL_SDK_BUILD_VULKAN_SAMPLES=OFF"; fi;`
+        -S $GITHUB_WORKSPACE
+        -B $GITHUB_WORKSPACE/build
+
+    - name: Build
+      run: cmake
+        --build $GITHUB_WORKSPACE/build
+        --target install
+        --config Release
+        --parallel `nproc`
