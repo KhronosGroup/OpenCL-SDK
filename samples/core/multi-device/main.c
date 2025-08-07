@@ -726,7 +726,7 @@ subdevs:
 props:
     free(dev_props);
 ver:
-    if (dev_version) free(dev_version);
+    free(dev_version);
 end:
     if (error) cl_util_print_error(error);
     return error;
