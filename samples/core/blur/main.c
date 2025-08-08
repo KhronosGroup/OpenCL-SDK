@@ -359,19 +359,20 @@ cl_int single_pass_box_blur(state *const s, cl_int size)
     OCLERROR_RET(clEnqueueNDRangeKernel(s->queue, blur, 2, origin, image_size,
                                         NULL, 0, NULL, &pass),
                  error, blr);
-    OCLERROR_RET(clWaitForEvents(1, &pass), error, blr);
+    OCLERROR_RET(clWaitForEvents(1, &pass), error, ev);
     GET_CURRENT_TIMER(end)
 
     OCLERROR_RET(clEnqueueReadImage(s->queue, s->output_image_buf, CL_BLOCKING,
                                     origin, image_size, 0, 0,
                                     s->output_image.pixels, 0, NULL, NULL),
-                 error, blr);
+                 error, ev);
 
     if (s->verbose) print_timings(start, end, &pass, 1);
 
     // write output file
-    OCLERROR_RET(finalize_blur(s), error, blr);
-
+    OCLERROR_RET(finalize_blur(s), error, ev);
+ev:
+    clReleaseEvent(pass);
 blr:
     clReleaseKernel(blur);
 end:
@@ -417,20 +418,23 @@ cl_int dual_pass_box_blur(state *const s, cl_int size)
                  error, blr2);
     OCLERROR_RET(clEnqueueNDRangeKernel(s->queue, blur2, 2, origin, image_size,
                                         NULL, 0, NULL, pass + 1),
-                 error, blr2);
-    OCLERROR_RET(clWaitForEvents(2, pass), error, blr2);
+                 error, ev1);
+    OCLERROR_RET(clWaitForEvents(2, pass), error, ev2);
     GET_CURRENT_TIMER(end)
 
     OCLERROR_RET(clEnqueueReadImage(s->queue, s->output_image_buf, CL_BLOCKING,
                                     origin, image_size, 0, 0,
                                     s->output_image.pixels, 0, NULL, NULL),
-                 error, blr2);
+                 error, ev2);
 
     if (s->verbose) print_timings(start, end, pass, 2);
 
     // write output file
-    OCLERROR_RET(finalize_blur(s), error, blr2);
-
+    OCLERROR_RET(finalize_blur(s), error, ev2);
+ev2:
+    OCLERROR_RET(clReleaseEvent(pass[1]), end_error, ev1);
+ev1:
+    OCLERROR_RET(clReleaseEvent(pass[0]), end_error, blr2);
 blr2:
     OCLERROR_RET(clReleaseKernel(blur2), end_error, blr1);
 blr1:
@@ -531,20 +535,23 @@ cl_int dual_pass_local_memory_exchange_box_blur(state *const s, cl_int size)
     size_t wgss[3] = { 1, wgs2, 1 };
     OCLERROR_RET(clEnqueueNDRangeKernel(s->queue, blur2, 2, origin, work_size2,
                                         wgss, 0, NULL, pass + 1),
-                 error, blr2);
-    OCLERROR_RET(clWaitForEvents(2, pass), error, blr2);
+                 error, ev1);
+    OCLERROR_RET(clWaitForEvents(2, pass), error, ev2);
     GET_CURRENT_TIMER(end)
 
     OCLERROR_RET(clEnqueueReadImage(s->queue, s->output_image_buf, CL_BLOCKING,
                                     origin, image_size, 0, 0,
                                     s->output_image.pixels, 0, NULL, NULL),
-                 error, blr2);
+                 error, ev2);
 
     if (s->verbose) print_timings(start, end, pass, 2);
 
     // write output file
-    OCLERROR_RET(finalize_blur(s), error, blr2);
-
+    OCLERROR_RET(finalize_blur(s), error, ev2);
+ev2:
+    OCLERROR_RET(clReleaseEvent(pass[1]), end_error, ev1);
+ev1:
+    OCLERROR_RET(clReleaseEvent(pass[0]), end_error, blr2);
 blr2:
     OCLERROR_RET(clReleaseKernel(blur2), end_error, blr1);
 blr1:
@@ -620,21 +627,25 @@ cl_int dual_pass_subgroup_exchange_box_blur(state *const s, cl_int size)
     size_t wgss[3] = { 1, wgs2, 1 };
     OCLERROR_RET(clEnqueueNDRangeKernel(s->queue, blur2, 2, origin, work_size2,
                                         wgss, 0, NULL, pass + 1),
-                 error, blr2);
-    OCLERROR_RET(clWaitForEvents(2, pass), error, blr2);
+                 error, ev1);
+    OCLERROR_RET(clWaitForEvents(2, pass), error, ev2);
     GET_CURRENT_TIMER(end)
 
     OCLERROR_RET(clEnqueueReadImage(s->queue, s->output_image_buf, CL_BLOCKING,
                                     origin, image_size, 0, 0,
                                     s->output_image.pixels, 0, NULL, NULL),
-                 error, blr2);
+                 error, ev2);
 
     if (s->verbose) print_timings(start, end, pass, 2);
 
     // write output file
-    OCLERROR_RET(finalize_blur(s), error, blr2);
+    OCLERROR_RET(finalize_blur(s), error, ev2);
 
     // cleanup for error handling
+ev2:
+    OCLERROR_RET(clReleaseEvent(pass[1]), end_error, ev1);
+ev1:
+    OCLERROR_RET(clReleaseEvent(pass[0]), end_error, blr2);
 blr2:
     OCLERROR_RET(clReleaseKernel(blur2), end_error, blr1);
 blr1:
@@ -685,20 +696,23 @@ cl_int dual_pass_kernel_blur(state *const s, cl_int size, cl_mem kern)
                  error, blr2);
     OCLERROR_RET(clEnqueueNDRangeKernel(s->queue, blur2, 2, origin, image_size,
                                         NULL, 0, NULL, pass + 1),
-                 error, blr2);
-    OCLERROR_RET(clWaitForEvents(2, pass), error, blr2);
+                 error, ev1);
+    OCLERROR_RET(clWaitForEvents(2, pass), error, ev2);
     GET_CURRENT_TIMER(end)
 
     OCLERROR_RET(clEnqueueReadImage(s->queue, s->output_image_buf, CL_BLOCKING,
                                     origin, image_size, 0, 0,
                                     s->output_image.pixels, 0, NULL, NULL),
-                 error, blr2);
+                 error, ev2);
 
     if (s->verbose) print_timings(start, end, pass, 2);
 
     // write output file
-    OCLERROR_RET(finalize_blur(s), error, blr2);
-
+    OCLERROR_RET(finalize_blur(s), error, ev2);
+ev2:
+    OCLERROR_RET(clReleaseEvent(pass[1]), end_error, ev1);
+ev1:
+    OCLERROR_RET(clReleaseEvent(pass[0]), end_error, blr2);
 blr2:
     OCLERROR_RET(clReleaseKernel(blur2), end_error, blr1);
 blr1:
@@ -801,20 +815,23 @@ cl_int dual_pass_local_memory_exchange_kernel_blur(state *const s, cl_int size,
     size_t wgss[3] = { 1, wgs2, 1 };
     OCLERROR_RET(clEnqueueNDRangeKernel(s->queue, blur2, 2, origin, work_size2,
                                         wgss, 0, NULL, pass + 1),
-                 error, blr2);
-    OCLERROR_RET(clWaitForEvents(2, pass), error, blr2);
+                 error, ev1);
+    OCLERROR_RET(clWaitForEvents(2, pass), error, ev2);
     GET_CURRENT_TIMER(end)
 
     OCLERROR_RET(clEnqueueReadImage(s->queue, s->output_image_buf, CL_BLOCKING,
                                     origin, image_size, 0, 0,
                                     s->output_image.pixels, 0, NULL, NULL),
-                 error, blr2);
+                 error, ev2);
 
     if (s->verbose) print_timings(start, end, pass, 2);
 
     // write output file
-    OCLERROR_RET(finalize_blur(s), error, blr2);
-
+    OCLERROR_RET(finalize_blur(s), error, ev2);
+ev2:
+    OCLERROR_RET(clReleaseEvent(pass[1]), end_error, ev1);
+ev1:
+    OCLERROR_RET(clReleaseEvent(pass[0]), end_error, blr2);
 blr2:
     OCLERROR_RET(clReleaseKernel(blur2), end_error, blr1);
 blr1:
@@ -894,21 +911,25 @@ cl_int dual_pass_subgroup_exchange_kernel_blur(state *const s, cl_int size,
     size_t wgss[3] = { 1, wgs2, 1 };
     OCLERROR_RET(clEnqueueNDRangeKernel(s->queue, blur2, 2, origin, work_size2,
                                         wgss, 0, NULL, pass + 1),
-                 error, blr2);
-    OCLERROR_RET(clWaitForEvents(2, pass), error, blr2);
+                 error, ev1);
+    OCLERROR_RET(clWaitForEvents(2, pass), error, ev2);
     GET_CURRENT_TIMER(end)
 
     OCLERROR_RET(clEnqueueReadImage(s->queue, s->output_image_buf, CL_BLOCKING,
                                     origin, image_size, 0, 0,
                                     s->output_image.pixels, 0, NULL, NULL),
-                 error, blr2);
+                 error, ev2);
 
     if (s->verbose) print_timings(start, end, pass, 2);
 
     // write output file
-    OCLERROR_RET(finalize_blur(s), error, blr2);
+    OCLERROR_RET(finalize_blur(s), error, ev2);
 
     // cleanup for error handling
+ev2:
+    OCLERROR_RET(clReleaseEvent(pass[1]), end_error, ev1);
+ev1:
+    OCLERROR_RET(clReleaseEvent(pass[0]), end_error, blr2);
 blr2:
     OCLERROR_RET(clReleaseKernel(blur2), end_error, blr1);
 blr1:
@@ -1073,11 +1094,11 @@ int main(int argc, char *argv[])
                                  dev_version_size, dev_version, NULL),
                  error, dev);
     char compiler_options[1024] = "";
-    if (opencl_version_contains(dev_version, "3."))
+    if (opencl_version_contains(dev_version, "OpenCL C 3."))
     {
         strcat(compiler_options, "-cl-std=CL3.0 ");
     }
-    else if (opencl_version_contains(dev_version, "2."))
+    else if (opencl_version_contains(dev_version, "OpenCL C 2."))
     {
         strcat(compiler_options, "-cl-std=CL2.0 ");
     }

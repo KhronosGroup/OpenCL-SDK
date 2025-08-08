@@ -208,12 +208,6 @@ int main(int argc, char* argv[])
                                           dev_opts.triplet.dev_type, &error),
                  error, end);
 
-    // Query OpenCL version supported by device.
-    char dev_version[64];
-    OCLERROR_RET(clGetDeviceInfo(dev, CL_DEVICE_VERSION, sizeof(dev_version),
-                                 &dev_version, NULL),
-                 error, end);
-
     if (!diag_opts.quiet)
     {
         cl_util_print_device_info(dev);
@@ -225,6 +219,21 @@ int main(int argc, char* argv[])
         fflush(stdout);
     }
 
+    // Query OpenCL version supported by device.
+    size_t dev_version_size;
+
+    OCLERROR_RET(
+        clGetDeviceInfo(dev, CL_DEVICE_VERSION, 0, NULL, &dev_version_size),
+        error, end);
+
+    char compiler_options[1023] = "";
+    char* dev_version = NULL;
+    MEM_CHECK(dev_version = (char*)malloc(dev_version_size), error, end);
+
+    OCLERROR_RET(clGetDeviceInfo(dev, CL_DEVICE_VERSION, dev_version_size,
+                                 dev_version, NULL),
+                 error, ver);
+
     if (opencl_version_contains(dev_version, "1.0")
         || opencl_version_contains(dev_version, "1.1"))
     {
@@ -233,7 +242,36 @@ int main(int argc, char* argv[])
                 "1.2 feature, but the device chosen only supports OpenCL %s. "
                 "Please try with a different OpenCL device instead.\n",
                 dev_version);
-        exit(EXIT_SUCCESS);
+        error = CL_SUCCESS;
+        goto ver;
+    }
+    else
+    {
+        // If no -cl-std option is specified then the highest 1.x version
+        // supported by each device is used to compile the program. Therefore,
+        // it's only necessary to add the -cl-std option for 2.0 and 3.0 OpenCL
+        // versions.
+
+        int written = 0;
+        if (opencl_version_contains(dev_version, "3."))
+        {
+            written = snprintf(compiler_options, sizeof(compiler_options),
+                               "-cl-std=CL3.0 ");
+        }
+        else if (opencl_version_contains(dev_version, "2."))
+        {
+            written = snprintf(compiler_options, sizeof(compiler_options),
+                               "-cl-std=CL2.0 ");
+        }
+
+        if (written < 0 || written >= (int)sizeof(compiler_options))
+        {
+            fprintf(
+                stderr,
+                "Error: compiler_options buffer overflow or encoding error.\n");
+            free(dev_version);
+            exit(EXIT_FAILURE);
+        }
     }
 
     // Check if device supports fission.
@@ -241,7 +279,7 @@ int main(int argc, char* argv[])
     size_t props_size = 0;
     OCLERROR_RET(clGetDeviceInfo(dev, CL_DEVICE_PARTITION_PROPERTIES, 0, NULL,
                                  &props_size),
-                 error, end);
+                 error, ver);
     if (props_size == 0)
     {
         fprintf(stdout,
@@ -254,7 +292,7 @@ int main(int argc, char* argv[])
 
     // Check if the "partition equally" type is supported.
     MEM_CHECK(dev_props = (cl_device_partition_property*)malloc(props_size),
-              error, end);
+              error, ver);
     OCLERROR_RET(clGetDeviceInfo(dev, CL_DEVICE_PARTITION_PROPERTIES,
                                  props_size, dev_props, NULL),
                  error, props);
@@ -327,20 +365,6 @@ int main(int argc, char* argv[])
     OCLERROR_PAR(program = clCreateProgramWithSource(
                      context, 1, (const char**)&kernel, &program_size, &error),
                  error, ker);
-
-    // If no -cl-std option is specified then the highest 1.x version
-    // supported by each device is used to compile the program. Therefore,
-    // it's only necessary to add the -cl-std option for 2.0 and 3.0 OpenCL
-    // versions.
-    char compiler_options[1023] = "";
-    if (opencl_version_contains(dev_version, "3."))
-    {
-        strcat(compiler_options, "-cl-std=CL3.0 ");
-    }
-    else if (opencl_version_contains(dev_version, "2."))
-    {
-        strcat(compiler_options, "-cl-std=CL2.0 ");
-    }
 
     OCLERROR_RET(
         clBuildProgram(program, 2, subdevices, compiler_options, NULL, NULL),
@@ -701,6 +725,8 @@ subdevs:
     free(subdevices);
 props:
     free(dev_props);
+ver:
+    free(dev_version);
 end:
     if (error) cl_util_print_error(error);
     return error;
