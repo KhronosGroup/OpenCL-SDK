@@ -386,6 +386,15 @@ int main(int argc, char *argv[])
     OCLERROR_RET(clGetDeviceInfo(device, CL_DEVICE_LOCAL_MEM_SIZE,
                                  sizeof(cl_ulong), &loc_mem, NULL),
                  error, red);
+
+    // Ensure WGS is valid for this device
+    size_t max_wi_dims[3];
+    OCLERROR_RET(clGetDeviceInfo(device, CL_DEVICE_MAX_WORK_ITEM_SIZES,
+                                 sizeof(max_wi_dims), max_wi_dims, NULL),
+                 error, red);
+
+    wgs = wgs > max_wi_dims[0] ? max_wi_dims[0] : wgs;
+
     while (loc_mem < wgs * 2 * sizeof(cl_int)) wgs -= psm;
 
     if (wgs == 0)
