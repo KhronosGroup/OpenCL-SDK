@@ -1,4 +1,4 @@
-# Copyright (c) 2020 The Khronos Group Inc.
+# Copyright (c) 2024 Mobica Limited, Marcin Hajder, Piotr Plebański
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,12 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(histogram)
-if(OPENCL_SDK_BUILD_OPENGL_SAMPLES)
-  add_subdirectory(conway)
-  add_subdirectory(nbody)
-  add_subdirectory(ocean)
-endif()
-if(OPENCL_SDK_BUILD_VULKAN_SAMPLES)
-  add_subdirectory(externalmemory)
-endif()
+add_sample(
+    TARGET ocean_gl_ocl_interop
+    VERSION 300
+    SOURCES main.cpp ocean.cpp ocean.hpp ocean_util.hpp
+    KERNELS twiddle.cl time_spectrum.cl inversion.cl normals.cl fft_kernel.cl init_spectrum.cl
+    SHADERS ocean.vert.glsl ocean.frag.glsl)
