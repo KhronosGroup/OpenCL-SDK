@@ -771,6 +771,7 @@ jobs:
         # externalmemory is not supported on macos.
         # callbackcpp is unexpectedly failing (segfault) with PoCL - needs more debug.
         # multidevice is unexpectedly failing (clCreateSubBuffer error) with PoCL - needs more debug.
+        # see: https://github.com/KhronosGroup/OpenCL-SDK/issues/146
         EXCLUDE_REGEX="(externalmemory|callbackcpp|multidevice).*"
         ctest -C Debug --output-on-failure --no-tests=error --parallel `sysctl -n hw.logicalcpu` --exclude-regex "$EXCLUDE_REGEX"
         ctest -C Release --output-on-failure --no-tests=error --parallel `sysctl -n hw.logicalcpu` --exclude-regex "$EXCLUDE_REGEX"
