@@ -175,11 +175,14 @@ int main(int argc, char* argv[])
             cl::KernelFunctor<cl::Buffer, cl::Buffer, cl::LocalSpaceArg,
                               cl_ulong, cl_int>(program, "reduce");
 
-        // Query maximum supported WGS of kernel on device based on private mem
-        // (register) constraints
-        auto wgs =
+        // Query kernel- and device-specific limits
+        size_t kernel_wgs =
             reduce.getKernel().getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(
                 device);
+        size_t device_wi_x = device.getInfo<CL_DEVICE_MAX_WORK_ITEM_SIZES>()[0];
+
+        // Clamp work-group size to both limits
+        size_t wgs = std::min(kernel_wgs, device_wi_x);
 
         // Further constrain (reduce) WGS based on shared mem size on device
         while (device.getInfo<CL_DEVICE_LOCAL_MEM_SIZE>()
@@ -191,7 +194,7 @@ int main(int argc, char* argv[])
 
         if (wgs == 0)
             throw std::runtime_error{
-                "Not enough local memory to serve a single sub-group."
+                "Not enough local memory to serve a single work-group."
             };
 
         cl_ulong factor = wgs * 2;
