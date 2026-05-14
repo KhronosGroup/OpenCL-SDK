@@ -474,14 +474,11 @@ jobs:
 
     - name: Install samples dependencies
       run: |
-        Invoke-WebRequest ${env:VULKAN_SDK_URL} -OutFile vulkan-sdk-installer.exe
-        .\vulkan-sdk-installer.exe --accept-licenses --default-answer --confirm-command install com.lunarg.vulkan.32bit
-        Remove-Item vulkan-sdk-installer.exe
-        if ('${{ matrix.BIN }}' -eq 'x64')
-        {
+        if ('${{ matrix.BIN }}' -eq 'x64') {
+          Invoke-WebRequest ${env:VULKAN_SDK_URL} -OutFile vulkan-sdk-installer.exe
+          .\vulkan-sdk-installer.exe --accept-licenses --default-answer --confirm-command install
+          Remove-Item vulkan-sdk-installer.exe
           echo "Vulkan_LIB_DIR=$env:VULKAN_SDK/Lib" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        } else {
-          echo "Vulkan_LIB_DIR=$env:VULKAN_SDK/Lib32" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         }
 
     - name: Configure (MSBuild)
@@ -492,7 +489,13 @@ jobs:
         } else {
           $TOOLCHAIN_ARG=''
         }
-        $BIN = if('${{matrix.BIN}}' -eq 'x86') {'Win32'} else {'x64'}
+        if ('${{matrix.BIN}}' -eq 'x64') {
+          $BIN = 'x64'
+          $VULKAN_ARG = "-D OPENCL_SDK_BUILD_VULKAN_SAMPLES=ON -D Vulkan_INCLUDE_DIR=${env:VULKAN_SDK}/Include -D Vulkan_LIBRARY=${env:Vulkan_LIB_DIR}/vulkan-1.lib"
+        } else {
+          $BIN = 'Win32'
+          #VULKAN_ARG = ''
+        }
         & cmake `
           $TOOLCHAIN_ARG `
           -G "${{matrix.GEN}}" `
@@ -502,14 +505,12 @@ jobs:
           -D BUILD_TESTING=ON `
           -D OPENCL_SDK_BUILD_SAMPLES=ON `
           -D OPENCL_SDK_BUILD_OPENGL_SAMPLES=ON `
-          -D OPENCL_SDK_BUILD_VULKAN_SAMPLES=ON `
+          $VULKAN_ARG `
           -D CMAKE_C_STANDARD=${{matrix.STD.C}} `
           -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}} `
           -D CMAKE_C_FLAGS="${env:CMAKE_CFLAGS}" `
           -D CMAKE_CXX_FLAGS="${env:CMAKE_CXXFLAGS}" `
           -D CMAKE_INSTALL_PREFIX=${env:GITHUB_WORKSPACE}\install `
-          -D Vulkan_INCLUDE_DIR=${env:VULKAN_SDK}/Include `
-          -D Vulkan_LIBRARY=${env:Vulkan_LIB_DIR}/vulkan-1.lib `
           -S ${env:GITHUB_WORKSPACE} `
           -B ${env:GITHUB_WORKSPACE}\build
         if ($LASTEXITCODE -ne 0) { throw "Configuring OpenCL-SDK failed." }
@@ -521,6 +522,11 @@ jobs:
           $TOOLCHAIN_ARG="-D CMAKE_TOOLCHAIN_FILE=${env:VCPKG_INSTALLATION_ROOT}\scripts\buildsystems\vcpkg.cmake"
         } else {
           $TOOLCHAIN_ARG=''
+        }
+        if ('${{matrix.BIN}}' -eq 'x64') {
+          $VULKAN_ARG = "-D OPENCL_SDK_BUILD_VULKAN_SAMPLES=ON -D Vulkan_INCLUDE_DIR=${env:VULKAN_SDK}/Include -D Vulkan_LIBRARY=${env:Vulkan_LIB_DIR}/vulkan-1.lib"
+        } else {
+          #VULKAN_ARG = ''
         }
         $VER = switch ('${{matrix.VER}}') { `
           'v142' {'14.2'} `
@@ -535,15 +541,13 @@ jobs:
           -D BUILD_TESTING=ON `
           -D OPENCL_SDK_BUILD_SAMPLES=ON `
           -D OPENCL_SDK_BUILD_OPENGL_SAMPLES=ON `
-          -D OPENCL_SDK_BUILD_VULKAN_SAMPLES=ON `
+          $VULKAN_ARG `
           -D CMAKE_C_STANDARD=${{matrix.STD.C}} `
           -D CMAKE_CXX_STANDARD=${{matrix.STD.CXX}} `
           -D CMAKE_C_FLAGS="${env:CMAKE_CFLAGS}" `
           -D CMAKE_CXX_FLAGS="${env:CMAKE_CXXFLAGS}" `
           -D CMAKE_EXE_LINKER_FLAGS=/INCREMENTAL `
           -D CMAKE_INSTALL_PREFIX=${env:GITHUB_WORKSPACE}\install `
-          -D Vulkan_INCLUDE_DIR=${env:VULKAN_SDK}/Include `
-          -D Vulkan_LIBRARY=${env:Vulkan_LIB_DIR}/vulkan-1.lib `
           -S ${env:GITHUB_WORKSPACE} `
           -B ${env:GITHUB_WORKSPACE}\build
           if ($LASTEXITCODE -ne 0) { throw "Configuring OpenCL-SDK failed." }
