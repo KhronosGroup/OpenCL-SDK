@@ -435,7 +435,7 @@ jobs:
     steps:
 
     - name: Install CMake & Ninja
-      uses: lukka/get-cmake@a234373d65f7cab3afb0390fbaba1f20a7510fdc # v3.26.4
+      uses: lukka/get-cmake@591817e96fcad43505fb4eae36172462abb3a42e # v4.3.3
 
     - name: Update Vcpkg
       if: matrix.DEPS == 'vcpkg'
@@ -710,7 +710,7 @@ jobs:
       run: brew install tclap glm glew sfml mesa-glu
 
     - name: Install CMake & Ninja
-      uses: lukka/get-cmake@a234373d65f7cab3afb0390fbaba1f20a7510fdc # v3.26.4
+      uses: lukka/get-cmake@591817e96fcad43505fb4eae36172462abb3a42e # v4.3.3
 
     - name: Install Vcpkg
       if: matrix.DEPS == 'vcpkg'
