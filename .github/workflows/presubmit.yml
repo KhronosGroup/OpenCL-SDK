@@ -426,8 +426,8 @@ jobs:
       EnforceProcessCountAcrossBuilds: 'true' # -=-
       MultiProcMaxCount: '3'                  # -=-
       WindowsSDKVersion: '10.0.22621.0'
-      INTEL_OCL_URL: https://github.com/intel/llvm/releases/download/2023-WW27/win-oclcpuexp-2023.16.6.0.28_rel.zip
-      INTEL_TBB_URL: https://github.com/oneapi-src/oneTBB/releases/download/v2021.10.0/oneapi-tbb-2021.10.0-win.zip
+      INTEL_OCL_URL: https://github.com/intel/llvm/releases/download/2025-WW13/win-oclcpuexp-2025.19.3.0.17_230222_rel.zip
+      INTEL_TBB_URL: https://github.com/uxlfoundation/oneTBB/releases/download/v2023.0.0/oneapi-tbb-2023.0.0-win.zip
       IMAGE_INTEL_PREFIX: C:\Tools\Intel
       VULKAN_SDK_URL: https://sdk.lunarg.com/sdk/download/1.4.350.0/windows/vulkansdk-windows-X64-1.4.350.0.exe
       VULKAN_SDK: C:/VulkanSDK/1.4.350.0
