@@ -431,9 +431,6 @@ jobs:
 
     steps:
 
-    - name: Install CMake & Ninja
-      uses: lukka/get-cmake@a234373d65f7cab3afb0390fbaba1f20a7510fdc # v3.26.4
-
     - name: Update Vcpkg
       if: matrix.DEPS == 'vcpkg'
       run: |
@@ -729,9 +726,6 @@ jobs:
     - name: Install Optional SDK Dependencies (Homebrew)
       if: matrix.DEPS == 'system'
       run: brew install tclap glm glew sfml mesa-glu
-
-    - name: Install CMake & Ninja
-      uses: lukka/get-cmake@a234373d65f7cab3afb0390fbaba1f20a7510fdc # v3.26.4
 
     - name: Install Vcpkg
       if: matrix.DEPS == 'vcpkg'
