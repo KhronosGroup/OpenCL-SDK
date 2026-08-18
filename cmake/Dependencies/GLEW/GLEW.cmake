@@ -14,6 +14,7 @@ if(NOT (TARGET GLEW::GLEW OR TARGET glew))
   cmake_minimum_required(VERSION 3.11)
   include(FetchContent)
   set(ONLY_LIBS ON CACHE BOOL "Build only the GLEW libs")
+  set(glew-cmake_BUILD_SHARED OFF CACHE BOOL "Build shared GLEW library")
   FetchContent_Declare(
     glew-external
     GIT_REPOSITORY      https://github.com/Perlmint/glew-cmake.git
