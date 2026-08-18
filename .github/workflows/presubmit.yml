@@ -1,13 +1,12 @@
 name: Presubmit
 
 on:
-  pull_request:
+  push:
     paths-ignore:
       - 'LICENSE'
       - 'LICENSES/**'
       - '**.md'
-  push:
-    branches: [main]
+  pull_request:
     paths-ignore:
       - 'LICENSE'
       - 'LICENSES/**'
