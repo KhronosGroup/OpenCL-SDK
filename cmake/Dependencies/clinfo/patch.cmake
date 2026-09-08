@@ -4,8 +4,3 @@ execute_process(COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_LIST_DIR}/CMak
 if (NOT "${RESULT_VAR}" EQUAL "0")
     message(FATAL_ERROR "Could not copy file with CMake")
 endif()
-
-execute_process(COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_LIST_DIR}/ext.h" "${CMAKE_CURRENT_BINARY_DIR}/src/ext.h" RESULT_VARIABLE RESULT_VAR)
-if (NOT "${RESULT_VAR}" EQUAL "0")
-    message(FATAL_ERROR "Could not copy file with CMake")
-endif()
