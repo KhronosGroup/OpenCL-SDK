@@ -62,11 +62,11 @@ kernel void spectrum( float dt, int2 patch_info,
     complex h_k_t_dy = add(mul(fourier_amp, exp_iwt), (mul(fourier_amp_conj, exp_iwt_inv)));
 
     // dx
-    complex dx = (complex)(0.0,-k.x/k_mag);
+    complex dx = (complex)(0.0, k.x/k_mag);
     complex h_k_t_dx = mul(dx, h_k_t_dy);
 
     // dz
-    complex dz = (complex)(0.0,-k.y/k_mag);
+    complex dz = (complex)(0.0, k.y/k_mag);
     complex h_k_t_dz = mul(dz, h_k_t_dy);
 
     // amplitude
