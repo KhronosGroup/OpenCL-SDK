@@ -40,29 +40,39 @@ If CMake is not provided by your build system or OS package manager, please cons
 
 ### Example Build
 
-> The example build guide uses [Vcpkg](https://vcpkg.io/en/index.html) to fetch all dependencies. Note that Vcpkg is _not_ a requirement and is only used for convenience. One may provide dependencies through any other CMake mechanism. For details on how to install Vcpkg, refer to its [Getting Started Guide](https://vcpkg.io/en/getting-started.html). The example build assumes targeting 64-bit Windows.
+In most cases, the following steps may be used to build the OpenCL SDK.
 
-1. Clone this repo with the rest of the OpenCL SDK components:
+1. Clone this repo and update submodules:
 
-       git clone https://github.com/KhronosGroup/OpenCL-SDK.git
-       git submodule init
-       git submodule update
+        git clone https://github.com/KhronosGroup/OpenCL-SDK.git
+        git submodule init
+        git submodule update
 
-1. Build and install SDK with samples and no downstream unit tests:
+2. Create a "build" directory:
 
-       cmake -D BUILD_TESTING=OFF \
-             -D BUILD_DOCS=OFF \
-             -D BUILD_EXAMPLES=OFF \
-             -D BUILD_TESTS=OFF \
-             -D OPENCL_SDK_BUILD_SAMPLES=ON \
-             -D OPENCL_SDK_TEST_SAMPLES=OFF \
-             -D CMAKE_TOOLCHAIN_FILE=/vcpkg/install/root/scripts/buildsystems/vcpkg.cmake \
-             -D CMAKE_BUILD_TYPE=Release \
-             -B ./OpenCL-SDK/build -S ./OpenCL-SDK
-       cmake --build ./OpenCL-SDK/build --target install
+        mkdir build
+        cd build
 
-Samples that make use of OpenGL interop are disabled by default to reduce
-the number of dependencies for most users. They can be enabled using the
-`OPENCL_SDK_BUILD_OPENGL_SAMPLES` CMake option.
+3. Generate build files inside of the "build" directory:
 
-_(Note: on Linux, paths to dependent libraries are automatically handled by RPATH in both the build and install tree. On Windows, all DLLs have to be on the `PATH`. Vcpkg copies dependent DLLs to the build tree, but in order to do the same in the install tree, a sufficiently new CMake version is required. CMake 3.21 introduces `install(IMPORTED_RUNTIME_ARTIFACTS)`.)_
+        cmake .. -DCMAKE_BUILD_TYPE=Release
+
+4. Build the OpenCL SDK and copy files to an "install" directory:
+
+        cmake --build . --target install --config Release
+
+   Or, build the OpenCL SDK using the generated build files directly.
+
+To customize a build, the following CMake variables are supported.
+To specify one of these variables via the command line generator, use the CMake syntax `-D<variable>=<value>`.
+See your CMake documentation for more details.
+
+| Variable | Type | Description |
+|:---------|:-----|:------------|
+| CMAKE_BUILD_TYPE | STRING | Specifies the build type.  Does not affect multi-configuration generators, such as Visual Studio solution files.
+| CMAKE_INSTALL_PREFIX | PATH | Install directory prefix.
+| OPENCL_SDK_BUILD_UTILITY_LIBRARIES | BOOL | Enables building OpenCL SDK utility libraries.  Default: `TRUE`
+| OPENCL_SDK_BUILD_SAMPLES | BOOL | Enables building OpenCL SDK samples.  Default: `TRUE`
+| OPENCL_SDK_BUILD_OPENGL_SAMPLES | BOOL | Enables building OpenCL SDK samples that interoperate with OpenGL.  Default: `FALSE`
+| OPENCL_SDK_BUILD_VULKAN_SAMPLES | BOOL | Enables building OpenCL SDK samples that interoperate with Vulkan.  Default: `FALSE`
+| OPENCL_SDK_TEST_SAMPLES | BOOL | Enables a target to test the OpenCL SDK samples.  Default: `TRUE`
