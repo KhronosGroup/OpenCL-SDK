@@ -67,7 +67,7 @@ inline bool checkError(const char* Title)
         }                                                                      \
     }
 
-static uint32_t reverse_bits(uint32_t n, uint32_t log_2_N)
+inline uint32_t reverse_bits(uint32_t n, uint32_t log_2_N)
 {
     uint32_t r = 0;
     for (uint32_t j = 0; j < log_2_N; j++)

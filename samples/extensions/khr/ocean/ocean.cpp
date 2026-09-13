@@ -187,7 +187,8 @@ void OceanApplication::initializeCL()
             std::uniform_real_distribution<float> dist(0.f, 1.f);
 
             for (size_t i = 0; i < phase_array.size(); ++i)
-                phase_array[i] = { dist(rng), dist(rng), dist(rng), dist(rng) };
+                phase_array[i] = { { dist(rng), dist(rng), dist(rng),
+                                     dist(rng) } };
 
             noise_mem = std::make_unique<cl::Image2D>(
                 opencl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
@@ -288,7 +289,7 @@ void OceanApplication::render()
 
     for (size_t target = 0; target < IOPT_COUNT; target++)
     {
-        glActiveTexture(GL_TEXTURE0 + target);
+        glActiveTexture(GL_TEXTURE0 + (GLenum)target);
         checkError("glActiveTexture");
         glBindTexture(GL_TEXTURE_2D, texture_images[target]);
         checkError("glBindTexture");
@@ -305,7 +306,7 @@ void OceanApplication::render()
         checkError("glPolygonMode");
     }
 
-    glDrawElements(GL_TRIANGLE_STRIP, ocean_grid_indices.size(),
+    glDrawElements(GL_TRIANGLE_STRIP, (GLsizei)ocean_grid_indices.size(),
                    GL_UNSIGNED_INT, 0);
     checkError("glDrawElements");
 
@@ -388,11 +389,12 @@ void OceanApplication::create_vertex_buffer()
     {
         tx = 0.f;
         cl_float dfX = dfBaseX;
-        for (int iX = 0; iX <= ocean_grid_size; iX++)
+        for (size_t iX = 0; iX <= ocean_grid_size; iX++)
         {
-            *((cl_float4*)&ocean_grid_vertices[iBase + iX].pos) = { dfX, dfY,
-                                                                    0.f, 0.f };
-            *((cl_float2*)&ocean_grid_vertices[iBase + iX].tc) = { tx, ty };
+            *((cl_float4*)&ocean_grid_vertices[iBase + iX].pos) = {
+                { dfX, dfY, 0.f, 0.f }
+            };
+            *((cl_float2*)&ocean_grid_vertices[iBase + iX].tc) = { { tx, ty } };
             tx += dtx;
             dfX += mesh_spacing;
         }
@@ -517,7 +519,7 @@ void OceanApplication::create_texture_images()
 
         if (uniformLocation != -1)
         {
-            glUniform1i(uniformLocation, target);
+            glUniform1i(uniformLocation, (GLint)target);
             checkError("glUniform1i");
         }
     }
@@ -557,8 +559,8 @@ void OceanApplication::update_uniforms()
 
 void OceanApplication::update_spectrum(float elapsed)
 {
-    cl_int2 patch =
-        cl_int2{ (int)(ocean_grid_size * mesh_spacing), (int)ocean_tex_size };
+    cl_int2 patch = cl_int2{ { (int)(ocean_grid_size * mesh_spacing),
+                               (int)ocean_tex_size } };
 
     cl::NDRange lws; // NullRange by default.
     if (group_size > 0)
@@ -575,9 +577,10 @@ void OceanApplication::update_spectrum(float elapsed)
 
             /// Prepare vector of values to extract results
             std::vector<cl_int> v(ocean_tex_size);
-            for (int i = 0; i < ocean_tex_size; i++)
+            for (size_t i = 0; i < ocean_tex_size; i++)
             {
-                int x = reverse_bits(i, log_2_N);
+                int x = reverse_bits(static_cast<uint32_t>(i),
+                                     static_cast<uint32_t>(log_2_N));
                 v[i] = x;
             }
 
@@ -611,9 +614,9 @@ void OceanApplication::update_spectrum(float elapsed)
         {
             float wind_angle_rad = glm::radians(wind_angle);
             cl_float4 params =
-                cl_float4{ wind_magnitude * glm::cos(wind_angle_rad),
-                           wind_magnitude * glm::sin(wind_angle_rad), amplitude,
-                           supress_factor };
+                cl_float4{ { wind_magnitude * glm::cos(wind_angle_rad),
+                             wind_magnitude * glm::sin(wind_angle_rad),
+                             amplitude, supress_factor } };
             init_spectrum_kernel.setArg(0, patch);
             init_spectrum_kernel.setArg(1, params);
             init_spectrum_kernel.setArg(2, *noise_mem);
@@ -660,7 +663,7 @@ void OceanApplication::update_spectrum(float elapsed)
         cl_int2 mode = cl_int2{ { 0, 0 } };
 
         bool ifft_pingpong = false;
-        for (int p = 0; p < log_2_N; p++)
+        for (size_t p = 0; p < log_2_N; p++)
         {
             if (ifft_pingpong)
             {
@@ -673,7 +676,7 @@ void OceanApplication::update_spectrum(float elapsed)
                 fft_kernel.setArg(4, *displ_swap[1]);
             }
 
-            mode.s[1] = p;
+            mode.s[1] = static_cast<cl_int>(p);
             fft_kernel.setArg(0, mode);
 
             command_queue.enqueueNDRangeKernel(
@@ -685,7 +688,7 @@ void OceanApplication::update_spectrum(float elapsed)
 
         // Cols
         mode.s[0] = 1;
-        for (int p = 0; p < log_2_N; p++)
+        for (size_t p = 0; p < log_2_N; p++)
         {
             if (ifft_pingpong)
             {
@@ -698,7 +701,7 @@ void OceanApplication::update_spectrum(float elapsed)
                 fft_kernel.setArg(4, *displ_swap[1]);
             }
 
-            mode.s[1] = p;
+            mode.s[1] = static_cast<cl_int>(p);
             fft_kernel.setArg(0, mode);
 
             command_queue.enqueueNDRangeKernel(
@@ -742,7 +745,7 @@ void OceanApplication::update_spectrum(float elapsed)
 
     // normals computation
     {
-        cl_float2 factors = cl_float2{ choppiness, alt_scale };
+        cl_float2 factors = cl_float2{ { choppiness, alt_scale } };
 
         normals_kernel.setArg(0, patch);
         normals_kernel.setArg(1, factors);
@@ -794,9 +797,8 @@ void OceanApplication::show_fps_window_title()
         float delta = elapsed.count();
 
         const float elapsed_tres = 1.f;
-
         delta_frames++;
-        if (delta >= 1.f)
+        if (delta >= elapsed_tres)
         {
             double fps = double(delta_frames) / delta;
 
