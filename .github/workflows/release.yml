@@ -23,7 +23,7 @@ jobs:
       MultiProcMaxCount: 3
     steps:
     - name: Checkout OpenCL-SDK
-      uses: actions/checkout@v4
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         fetch-depth: 0
         submodules: recursive
@@ -77,7 +77,7 @@ jobs:
         if ($LASTEXITCODE -ne 0) { throw "Packaging OpenCL-SDK failed." }
 
     - name: Upload
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
       with:
         draft: true
         token: ${{ secrets.ACTIONS_CREATE_RELEASE_TOKEN }}
@@ -92,14 +92,14 @@ jobs:
         shell: pwsh
     strategy:
       matrix:
-        OS: [ubuntu-20.04, windows-2022]
+        OS: [ubuntu-latest, windows-2022]
 
     env:
       DEB_INSTALLATION_PATH: /usr
 
     steps:
     - name: Checkout OpenCL-SDK
-      uses: actions/checkout@v4
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         fetch-depth: 0
         submodules: recursive
@@ -150,7 +150,7 @@ jobs:
         if ($LASTEXITCODE -ne 0) { throw "Packaging OpenCL-SDK source failed." }
 
     - name: Upload
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
       with:
         draft: true
         token: ${{ secrets.ACTIONS_CREATE_RELEASE_TOKEN }}

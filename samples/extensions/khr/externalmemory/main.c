@@ -312,9 +312,6 @@ int main(int argc, char* argv[])
     cl_context_properties context_props[] = {
         CL_CONTEXT_PLATFORM, (cl_context_properties)cl_platform, 0
     };
-    OCLERROR_PAR(context = clCreateContext(context_props, 1, &cl_device, NULL,
-                                           NULL, &error),
-                 error, end);
 
     // Check if the device supports the Khronos extensions needed before
     // attempting to compile the kernel.
@@ -330,8 +327,14 @@ int main(int argc, char* argv[])
         fprintf(stdout,
                 "OpenCL device does not support the required Khronos "
                 "extensions\n");
+        vkDestroyDevice(vk_device, NULL);
+        vkDestroyInstance(instance, NULL);
         exit(EXIT_SUCCESS);
     }
+
+    OCLERROR_PAR(context = clCreateContext(context_props, 1, &cl_device, NULL,
+                                           NULL, &error),
+                 error, vk);
 
     // Compile kernel.
     if (diag_opts.verbose)
@@ -625,7 +628,7 @@ int main(int argc, char* argv[])
     OCLERROR_RET(clEnqueueNDRangeKernel(queue, saxpy, 1, NULL, &length, &wgs, 0,
                                         NULL, &kernel_run),
                  error, que);
-    OCLERROR_RET(clWaitForEvents(1, &kernel_run), error, que);
+    OCLERROR_RET(clWaitForEvents(1, &kernel_run), error, ev);
     GET_CURRENT_TIMER(dev_end)
 
     cl_ulong dev_time;
@@ -661,7 +664,7 @@ int main(int argc, char* argv[])
     OCLERROR_RET(clEnqueueReadBuffer(queue, cl_buf_y, CL_BLOCKING, 0,
                                      sizeof(cl_float) * length, (void*)arr_x, 0,
                                      NULL, NULL),
-                 error, que);
+                 error, ev);
 
     // Validate solution.
     for (size_t i = 0; i < length; ++i)
@@ -693,6 +696,8 @@ int main(int argc, char* argv[])
     }
 
     // Release resources.
+ev:
+    OCLERROR_RET(clReleaseEvent(kernel_run), end_error, que);
 que:
     OCLERROR_RET(clReleaseCommandQueue(queue), end_error, cont);
 clbufy:
@@ -717,7 +722,10 @@ prg:
 ker:
     free(kernel);
 cont:
-    OCLERROR_RET(clReleaseContext(context), end_error, end);
+    OCLERROR_RET(clReleaseContext(context), end_error, vk);
+vk:
+    vkDestroyDevice(vk_device, NULL);
+    vkDestroyInstance(instance, NULL);
 end:
     if (error) cl_util_print_error(error);
     return error;

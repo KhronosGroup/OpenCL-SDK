@@ -35,7 +35,7 @@ if(NOT (glm_FOUND OR TARGET glm::glm))
   FetchContent_Declare(
     glm-external
     GIT_REPOSITORY      https://github.com/g-truc/glm
-    GIT_TAG             0.9.9.8 # e79109058964d8d18b8a3bb7be7b900be46692ad
+    GIT_TAG             1.0.1 # 0af55ccecd98d4e5a8d1fad7de25ba429d60e863
   )
   FetchContent_MakeAvailable(glm-external)
 endif()

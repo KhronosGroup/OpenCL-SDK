@@ -62,21 +62,19 @@ cl_int parse_options(int argc, char *argv[],
                      struct options_Saxpy *saxpy_opts)
 {
     cl_int error = CL_SUCCESS;
-    struct cag_option *opts = NULL, *tmp = NULL;
+    struct cag_option *opts = NULL;
     size_t n = 0;
 
     /* Prepare all options array. */
     MEM_CHECK(opts = add_CLI_options(opts, &n, DiagnosticOptions,
                                      CAG_ARRAY_SIZE(DiagnosticOptions)),
               error, end);
-    MEM_CHECK(tmp = add_CLI_options(opts, &n, SingleDeviceOptions,
-                                    CAG_ARRAY_SIZE(SingleDeviceOptions)),
+    MEM_CHECK(opts = add_CLI_options(opts, &n, SingleDeviceOptions,
+                                     CAG_ARRAY_SIZE(SingleDeviceOptions)),
               error, end);
-    opts = tmp;
-    MEM_CHECK(tmp = add_CLI_options(opts, &n, SaxpyOptions,
-                                    CAG_ARRAY_SIZE(SaxpyOptions)),
+    MEM_CHECK(opts = add_CLI_options(opts, &n, SaxpyOptions,
+                                     CAG_ARRAY_SIZE(SaxpyOptions)),
               error, end);
-    opts = tmp;
 
     char identifier;
     cag_option_context cag_context;
@@ -143,8 +141,6 @@ int main(int argc, char *argv[])
     OCLERROR_PAR(context =
                      clCreateContext(NULL, 1, &device, NULL, NULL, &error),
                  error, end);
-    OCLERROR_PAR(queue = clCreateCommandQueue(context, device, 0, &error),
-                 error, cont);
     OCLERROR_RET(clGetDeviceInfo(device, CL_DEVICE_PLATFORM,
                                  sizeof(cl_platform_id), &platform, NULL),
                  error, cont);

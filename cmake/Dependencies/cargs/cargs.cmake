@@ -16,15 +16,12 @@ if(NOT (cargs_FOUND OR TARGET cargs))
   FetchContent_Declare(
     cargs-external
     GIT_REPOSITORY      https://github.com/likle/cargs.git
-    GIT_TAG             v1.0.1 # 70173e67a1b7da9f0f37f6bb3ac50e0cefc29558
-    PATCH_COMMAND       ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_LIST_DIR}/CMakeLists.txt" "${CMAKE_CURRENT_BINARY_DIR}/_deps/cargs-external-src/CMakeLists.txt"
+    GIT_TAG             v1.2.0 # 0fbac1a0c6ebb7ecd72f0d7ae89c2b79eb3a12eb
   )
   FetchContent_MakeAvailable(cargs-external)
   set_target_properties(cargs
     PROPERTIES
       POSITION_INDEPENDENT_CODE ON
-      RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}"
-      INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}"
       FOLDER "Dependencies"
   )
 endif()
