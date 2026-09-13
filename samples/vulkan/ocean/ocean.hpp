@@ -270,8 +270,7 @@ private:
     bool has_stencil_component(VkFormat format);
     void create_depth_resources();
 
-    void transition_image_layout(VkImage image, VkFormat format,
-                                 VkImageLayout oldLayout,
+    void transition_image_layout(VkImage image, VkImageLayout oldLayout,
                                  VkImageLayout newLayout, uint32_t layers = 1);
 
     void copy_buffer_to_image(VkBuffer buffer, VkImage image, uint32_t width,

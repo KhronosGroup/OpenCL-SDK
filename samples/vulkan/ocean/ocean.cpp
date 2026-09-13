@@ -129,7 +129,8 @@ void OceanApplication::init_openCL_mems()
             std::uniform_real_distribution<float> dist(0.f, 1.f);
 
             for (size_t i = 0; i < phase_array.size(); ++i)
-                phase_array[i] = { dist(rng), dist(rng), dist(rng), dist(rng) };
+                phase_array[i] = { { dist(rng), dist(rng), dist(rng),
+                                     dist(rng) } };
 
             noise_mem = std::make_unique<cl::Image2D>(
                 context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
@@ -502,9 +503,9 @@ void OceanApplication::pick_physical_device()
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
-    for (auto i = 0; i < devices.size(); i++)
+    for (size_t i = 0; i < devices.size(); i++)
     {
-        if (app_opts.vulkan_device >= 0 && app_opts.vulkan_device != i)
+        if (app_opts.vulkan_device >= 0 && app_opts.vulkan_device != int(i))
             continue;
 
         if (is_device_suitable(devices[i]))
@@ -994,7 +995,7 @@ void OceanApplication::create_vertex_buffers()
     {
         tx = 0.f;
         double dfX = dfBaseX;
-        for (int iX = 0; iX <= ocean_grid_size; iX++)
+        for (size_t iX = 0; iX <= ocean_grid_size; iX++)
         {
             ocean_grid_vertices[iBase + iX].pos = glm::vec3(dfX, dfY, 0.0);
             ocean_grid_vertices[iBase + iX].tc = glm::vec2(tx, ty);
@@ -1124,8 +1125,7 @@ void OceanApplication::create_texture_images()
             if (app_opts.use_external_memory)
             {
                 transition_image_layout(
-                    texture_images[target].images[i],
-                    VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED,
+                    texture_images[target].images[i], VK_IMAGE_LAYOUT_UNDEFINED,
                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
             }
         }
@@ -1364,7 +1364,7 @@ void OceanApplication::create_depth_resources()
         create_image_view(depth_image, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
-void OceanApplication::transition_image_layout(VkImage image, VkFormat format,
+void OceanApplication::transition_image_layout(VkImage image,
                                                VkImageLayout oldLayout,
                                                VkImageLayout newLayout,
                                                uint32_t layers)
@@ -1502,7 +1502,7 @@ void OceanApplication::create_descriptor_sets()
     for (size_t i = 0; i < swap_chain_images.size(); i++)
     {
         VkDescriptorImageInfo imageInfo[(size_t)InteropTexType::IOPT_COUNT] = {
-            0
+            { 0 }
         };
 
         VkDescriptorBufferInfo bufferInfo{};
@@ -1751,10 +1751,6 @@ void OceanApplication::create_sync_objects()
     in_flight_fences.resize(MAX_FRAMES_IN_FLIGHT);
     images_in_flight.resize(swap_chain_images.size(), VK_NULL_HANDLE);
 
-    VkExportSemaphoreCreateInfo exportSemaphoreCreateInfo{};
-    exportSemaphoreCreateInfo.sType =
-        VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO;
-
     VkSemaphoreCreateInfo semaphoreInfo{};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
@@ -1804,8 +1800,8 @@ void OceanApplication::update_uniforms(uint32_t currentImage)
 
 void OceanApplication::update_spectrum(uint32_t currentImage, float elapsed)
 {
-    cl_int2 patch =
-        cl_int2{ (int)(ocean_grid_size * mesh_spacing), (int)ocean_tex_size };
+    cl_int2 patch = cl_int2{ { (int)(ocean_grid_size * mesh_spacing),
+                               (int)ocean_tex_size } };
 
     cl::NDRange lws; // NullRange by default.
     if (group_size > 0)
@@ -1822,9 +1818,10 @@ void OceanApplication::update_spectrum(uint32_t currentImage, float elapsed)
 
             /// Prepare vector of values to extract results
             std::vector<cl_int> v(ocean_tex_size);
-            for (int i = 0; i < ocean_tex_size; i++)
+            for (size_t i = 0; i < ocean_tex_size; i++)
             {
-                int x = reverse_bits(i, log_2_N);
+                int x = reverse_bits(static_cast<uint32_t>(i),
+                                     static_cast<uint32_t>(log_2_N));
                 v[i] = x;
             }
 
@@ -1858,9 +1855,9 @@ void OceanApplication::update_spectrum(uint32_t currentImage, float elapsed)
         {
             float wind_angle_rad = glm::radians(wind_angle);
             cl_float4 params =
-                cl_float4{ wind_magnitude * glm::cos(wind_angle_rad),
-                           wind_magnitude * glm::sin(wind_angle_rad), amplitude,
-                           supress_factor };
+                cl_float4{ { wind_magnitude * glm::cos(wind_angle_rad),
+                             wind_magnitude * glm::sin(wind_angle_rad),
+                             amplitude, supress_factor } };
             init_spectrum_kernel.setArg(0, patch);
             init_spectrum_kernel.setArg(1, params);
             init_spectrum_kernel.setArg(2, *noise_mem);
@@ -1908,7 +1905,7 @@ void OceanApplication::update_spectrum(uint32_t currentImage, float elapsed)
         cl_int2 mode = cl_int2{ { 0, 0 } };
 
         bool ifft_pingpong = false;
-        for (int p = 0; p < log_2_N; p++)
+        for (size_t p = 0; p < log_2_N; p++)
         {
             if (ifft_pingpong)
             {
@@ -1921,7 +1918,7 @@ void OceanApplication::update_spectrum(uint32_t currentImage, float elapsed)
                 fft_kernel.setArg(4, *displ_swap[1]);
             }
 
-            mode.s[1] = p;
+            mode.s[1] = static_cast<cl_int>(p);
             fft_kernel.setArg(0, mode);
 
             command_queue.enqueueNDRangeKernel(
@@ -1934,7 +1931,7 @@ void OceanApplication::update_spectrum(uint32_t currentImage, float elapsed)
 
         // Cols
         mode.s[0] = 1;
-        for (int p = 0; p < log_2_N; p++)
+        for (size_t p = 0; p < log_2_N; p++)
         {
             if (ifft_pingpong)
             {
@@ -1947,7 +1944,7 @@ void OceanApplication::update_spectrum(uint32_t currentImage, float elapsed)
                 fft_kernel.setArg(4, *displ_swap[1]);
             }
 
-            mode.s[1] = p;
+            mode.s[1] = static_cast<cl_int>(p);
             fft_kernel.setArg(0, mode);
 
             command_queue.enqueueNDRangeKernel(
@@ -1993,7 +1990,7 @@ void OceanApplication::update_spectrum(uint32_t currentImage, float elapsed)
 
     // normals computation
     {
-        cl_float2 factors = cl_float2{ choppiness, alt_scale };
+        cl_float2 factors = cl_float2{ { choppiness, alt_scale } };
 
         normals_kernel.setArg(0, patch);
         normals_kernel.setArg(1, factors);
@@ -2019,9 +2016,8 @@ void OceanApplication::show_fps_window_title()
         float delta = elapsed.count();
 
         const float elapsed_tres = 1.f;
-
         delta_frames++;
-        if (delta >= 1.f)
+        if (delta >= elapsed_tres)
         {
             double fps = double(delta_frames) / delta;
 
@@ -2095,7 +2091,7 @@ void OceanApplication::update_ocean(uint32_t currentImage)
 
                 transition_image_layout(
                     texture_images[target].images[currentImage],
-                    VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED,
+                    VK_IMAGE_LAYOUT_UNDEFINED,
                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
                 copy_buffer_to_image(
                     staging_tex_buffer,
@@ -2104,7 +2100,6 @@ void OceanApplication::update_ocean(uint32_t currentImage)
                     static_cast<uint32_t>(ocean_tex_size));
                 transition_image_layout(
                     texture_images[target].images[currentImage],
-                    VK_FORMAT_R32G32B32A32_SFLOAT,
                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
             }
@@ -2538,9 +2533,10 @@ bool OceanApplication::check_validation_layer_support()
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL OceanApplication::debug_callback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
+    VkDebugUtilsMessageSeverityFlagBitsEXT /*messageSeverity*/,
+    VkDebugUtilsMessageTypeFlagsEXT /*messageType*/,
+    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+    void* /*pUserData*/)
 {
     fprintf(stderr, "validation layer: %s\n", pCallbackData->pMessage);
 

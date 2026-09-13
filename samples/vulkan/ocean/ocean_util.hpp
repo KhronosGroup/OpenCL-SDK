@@ -45,7 +45,7 @@ const int MAX_FRAMES_IN_FLIGHT = 2;
         }                                                                      \
     }
 
-static uint32_t reverse_bits(uint32_t n, uint32_t log_2_N)
+inline uint32_t reverse_bits(uint32_t n, uint32_t log_2_N)
 {
     uint32_t r = 0;
     for (uint32_t j = 0; j < log_2_N; j++)
@@ -66,7 +66,7 @@ const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 };
 
-static VkResult CreateDebugUtilsMessengerEXT(
+inline VkResult CreateDebugUtilsMessengerEXT(
     VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
     const VkAllocationCallbacks* pAllocator,
     VkDebugUtilsMessengerEXT* pDebugMessenger)
@@ -83,7 +83,7 @@ static VkResult CreateDebugUtilsMessengerEXT(
     }
 }
 
-static void
+inline void
 DestroyDebugUtilsMessengerEXT(VkInstance instance,
                               VkDebugUtilsMessengerEXT debugMessenger,
                               const VkAllocationCallbacks* pAllocator)
@@ -103,7 +103,10 @@ struct QueueFamilyIndices
 
     QueueFamilyIndices(): graphicsFamily(~0), presentFamily(~0) {}
 
-    bool isComplete() { return graphicsFamily != ~0 && presentFamily != ~0; }
+    bool isComplete()
+    {
+        return graphicsFamily != uint32_t(~0) && presentFamily != uint32_t(~0);
+    }
 };
 
 struct SwapChainSupportDetails
