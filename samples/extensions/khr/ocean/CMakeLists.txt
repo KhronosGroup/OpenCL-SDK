@@ -17,4 +17,5 @@ add_sample(
     VERSION 300
     SOURCES main.cpp ocean.cpp ocean.hpp ocean_util.hpp
     KERNELS twiddle.cl time_spectrum.cl inversion.cl normals.cl fft_kernel.cl init_spectrum.cl
-    SHADERS ocean.vert.glsl ocean.frag.glsl)
+    SHADERS ocean.vert.glsl ocean.frag.glsl
+    LIBS glm::glm)
