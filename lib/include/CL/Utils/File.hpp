@@ -32,5 +32,8 @@ namespace util {
 
     std::string UTILSCPP_EXPORT read_exe_relative_text_file(
         const char* const filename, cl_int* const error = nullptr);
+
+    std::vector<unsigned char> UTILSCPP_EXPORT read_exe_relative_binary_file(
+        const char* const filename, cl_int* const error = nullptr);
 }
 }
