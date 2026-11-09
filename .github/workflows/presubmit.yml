@@ -874,7 +874,11 @@ jobs:
         run: sudo apt update; sudo apt install pocl-opencl-icd
         if: ${{ matrix.os == 'ubuntu-latest' }}
       - name: Install OpenCL Ruby Bindings and RuboCop
-        run: gem install --user-install opencl_ruby_ffi rubocop
+        # narray, which opencl_ruby_ffi depends on, is C that compilers
+        # defaulting to C23 (GCC 15) reject: build it as C17
+        run: |
+          gem install --user-install narray -- --with-cflags="-O2 -std=gnu17"
+          gem install --user-install opencl_ruby_ffi rubocop
       - name: Check Ruby Syntax
         run: |
           export PATH=`ruby -r rubygems -e 'puts Gem.user_dir'`/bin:$PATH
