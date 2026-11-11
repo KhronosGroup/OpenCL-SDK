@@ -1,5 +1,11 @@
+set(SFML_MIN_VERSION 2)
+if(OPENCL_SDK_BUILD_VULKAN_SAMPLES)
+  # Vulkan surface support in SFML requires 2.6 or newer
+  set(SFML_MIN_VERSION 2.6)
+endif()
+
 if(NOT DEPENDENCIES_FORCE_DOWNLOAD AND NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/_deps/sfml-external-src")
-  find_package(SFML 2
+  find_package(SFML ${SFML_MIN_VERSION}
     QUIET
     CONFIG
     COMPONENTS window graphics
