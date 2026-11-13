@@ -161,8 +161,10 @@ int main(int argc, char* argv[])
         const auto& win_opts = std::get<2>(opts);
         const auto& dev_opts = std::get<1>(opts);
 
-        OceanApplication app(win_opts.width, win_opts.height);
-        app.dev_opts = dev_opts;
+        OceanApplication app(
+            win_opts.width, win_opts.height, dev_opts.triplet.plat_index,
+            dev_opts.triplet.dev_index, dev_opts.triplet.dev_type);
+
         app.use_cl_khr_gl_sharing = std::get<3>(opts).use_gl_sharing;
         app.run();
     } catch (cl::util::Error& e)

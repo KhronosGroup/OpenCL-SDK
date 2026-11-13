@@ -122,19 +122,39 @@ void OceanApplication::initializeGL()
     checkError("glDisable(GL_CULL_FACE)");
 }
 
+// Whether the OpenGL context runs on this device: another vendor's driver may
+// accept the OpenGL context and then crash when sharing objects with it.
+static bool gl_context_is_on(const cl::Device& device)
+{
+    cl::Platform platform{ device.getInfo<CL_DEVICE_PLATFORM>() };
+    auto get_gl_context_info = reinterpret_cast<clGetGLContextInfoKHR_fn>(
+        clGetExtensionFunctionAddressForPlatform(platform(),
+                                                 "clGetGLContextInfoKHR"));
+    auto props = cl::sdk::get_interop_context_properties(device);
+    cl_device_id gl_device = nullptr;
+    return get_gl_context_info != nullptr
+        && get_gl_context_info(props.data(),
+                               CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR,
+                               sizeof(gl_device), &gl_device, nullptr)
+        == CL_SUCCESS
+        && gl_device == device();
+}
+
 void OceanApplication::initializeCL()
 {
     auto device = opencl_context.getInfo<CL_CONTEXT_DEVICES>().at(0);
     command_queue = cl::CommandQueue{ opencl_context, device };
 
     if (use_cl_khr_gl_sharing
-        && cl::util::supports_extension(device, "cl_khr_gl_sharing"))
+        && cl::util::supports_extension(device, "cl_khr_gl_sharing")
+        && gl_context_is_on(device))
     {
         std::cout << "cl_khr_gl_sharing supported" << std::endl;
     }
     else
     {
-        std::cout << "cl_khr_gl_sharing not supported" << std::endl;
+        std::cout << "cl_khr_gl_sharing not used: copying the images"
+                  << std::endl;
         use_cl_khr_gl_sharing = false;
     }
 
@@ -216,7 +236,7 @@ void OceanApplication::initializeCL()
             opencl_context, CL_MEM_READ_WRITE,
             cl::ImageFormat(CL_RGBA, CL_FLOAT), ocean_tex_size, ocean_tex_size);
 
-        size_t log_2_N = (size_t)((log((float)ocean_tex_size) / log(2.f)) - 1);
+        size_t log_2_N = (size_t)((log((float)ocean_tex_size) / log(2.f)));
 
         twiddle_factors_mem = std::make_unique<cl::Image2D>(
             opencl_context, CL_MEM_READ_WRITE,
@@ -572,8 +592,7 @@ void OceanApplication::update_spectrum(float elapsed)
     {
         try
         {
-            size_t log_2_N =
-                (size_t)((log((float)ocean_tex_size) / log(2.f)) - 1);
+            size_t log_2_N = (size_t)((log((float)ocean_tex_size) / log(2.f)));
 
             /// Prepare vector of values to extract results
             std::vector<cl_int> v(ocean_tex_size);
@@ -653,7 +672,7 @@ void OceanApplication::update_spectrum(float elapsed)
     }
 
     // perform 1D FFT horizontal and vertical iterations
-    size_t log_2_N = (size_t)((log((float)ocean_tex_size) / log(2.f)) - 1);
+    size_t log_2_N = (size_t)((log((float)ocean_tex_size) / log(2.f)));
     fft_kernel.setArg(1, patch);
     fft_kernel.setArg(2, *twiddle_factors_mem);
     for (cl_int i = 0; i < 3; i++)
@@ -709,16 +728,6 @@ void OceanApplication::update_spectrum(float elapsed)
                 cl::NDRange{ ocean_tex_size, ocean_tex_size }, lws);
 
             ifft_pingpong = !ifft_pingpong;
-        }
-
-        if (log_2_N % 2)
-        {
-            // swap images if pingpong hold on temporary buffer
-            std::array<size_t, 3> orig = { 0, 0, 0 },
-                                  region = { ocean_tex_size, ocean_tex_size,
-                                             1 };
-            command_queue.enqueueCopyImage(*displ_swap[0], *displ_swap[1], orig,
-                                           orig, region);
         }
     }
 

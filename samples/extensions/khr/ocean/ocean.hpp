@@ -81,7 +81,6 @@ public:
     void mouseDrag(const int x, const int y);
 
 public:
-    cl::sdk::options::SingleDevice dev_opts;
     bool use_cl_khr_gl_sharing = true;
 
 private:

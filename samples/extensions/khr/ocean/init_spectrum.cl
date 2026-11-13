@@ -41,11 +41,12 @@ kernel void init_spectrum( int2 patch_info, float4 params, read_only image2d_t n
     int2 uv = (int2)((int)get_global_id(0), (int)get_global_id(1));
     int res = patch_info.y;
 
-    float2 fuv = convert_float2(uv) - (float2)((float)(res-1)/2.f);
-    float2 k = (2.f * PI * fuv) / patch_info.x;
+    float2 fuv = convert_float2(uv) - (float2)((float)(res)/2.f);
+    float k_min = PI / patch_info.x;
+    float2 k = (2.f * fuv) * k_min;
     float k_mag = length(k);
 
-    if (k_mag < 0.00001) k_mag = 0.00001;
+    if (k_mag < k_min) k_mag = k_min;
 
     float wind_speed = length((float2)(params.x, params.y));
     float4 params_n = params;
@@ -54,9 +55,9 @@ kernel void init_spectrum( int2 patch_info, float4 params, read_only image2d_t n
     float4 rnd = clamp(read_imagef(noise, sampler, uv), 0.001f, 1.f);
 
     float magSq = k_mag * k_mag;
-    float h0k = sqrt((params.z/(magSq*magSq)) * pow(dot(normalize(k), params_n.xy), 2.f) *
+    float h0k = sqrt((params.z/(magSq*magSq)) * pow(dot(k/k_mag, params_n.xy), 2.f) *
                 exp(-(1.0/(magSq * l_phillips * l_phillips))) * exp(-magSq*pow(params.w, 2.f)))/ sqrt(2.0);
-    float h0minusk = sqrt((params.z/(magSq*magSq)) * pow(dot(normalize(-k), params_n.xy), 2.f) *
+    float h0minusk = sqrt((params.z/(magSq*magSq)) * pow(dot(-k/k_mag, params_n.xy), 2.f) *
                 exp(-(1.0/(magSq * l_phillips * l_phillips))) * exp(-magSq*pow(params.w, 2.f)))/ sqrt(2.0);
     float4 gauss_random = gaussRND(rnd);
     write_imagef(dst, uv, (float4)(gauss_random.xy*h0k, gauss_random.zw*h0minusk));

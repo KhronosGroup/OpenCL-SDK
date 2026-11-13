@@ -41,10 +41,13 @@ kernel void spectrum( float dt, int2 patch_info,
 {
     int2 uv = (int2)((int)get_global_id(0), (int)get_global_id(1));
     int res = patch_info.y;
-    float2 wave_vec = convert_float2(uv) - (float2)((float)(res-1)/2.f);
-    float2 k = (2.f * PI * wave_vec) / patch_info.x;
+    float2 wave_vec = convert_float2(uv) - (float2)((float)(res)/2.f);
+
+    float k_min = PI / patch_info.x;
+    float2 k = (2.f * wave_vec) * k_min;
     float k_mag = length(k);
 
+    if (k_mag < k_min) k_mag = k_min;
     float w = sqrt(G * k_mag);
 
     float4 h0k = read_imagef(src, sampler, uv);
