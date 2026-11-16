@@ -423,8 +423,8 @@ int main(int argc, char* argv[])
                x_dim * y_dim);
         fflush(stdout);
     }
-    cl_sdk_fill_with_random_ints_range(&rng, (cl_int*)h_input_grid,
-                                       pad_x_dim * pad_y_dim, -1000, 1000);
+    cl_sdk_fill_with_random_floats_range(&rng, h_input_grid,
+                                         pad_x_dim * pad_y_dim, -1.f, 1.f);
     // Fill with 0s the extra rows and columns added for padding.
     for (size_t y = 0; y < pad_y_dim; ++y)
     {
@@ -449,8 +449,8 @@ int main(int argc, char* argv[])
                mask_dim * mask_dim);
         fflush(stdout);
     }
-    cl_sdk_fill_with_random_ints_range(&rng, (cl_int*)h_mask,
-                                       mask_dim * mask_dim, -1000, 1000);
+    cl_sdk_fill_with_random_floats_range(&rng, h_mask, mask_dim * mask_dim,
+                                         -1.f, 1.f);
 
     // Create device buffers, from which we will create the subbuffers for the
     // sub-devices.
@@ -648,6 +648,8 @@ int main(int argc, char* argv[])
                "device exceeds tolerance %.6f\n",
                deviation, tolerance);
         fflush(stdout);
+        error = CL_INVALID_VALUE;
+        goto result;
     }
     else
     {

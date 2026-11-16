@@ -485,6 +485,7 @@ int main(int argc, char* argv[])
                       << deviation
                       << " between host and device exceeds tolerance "
                       << tolerance << std::endl;
+            exit(EXIT_FAILURE);
         }
         else
         {
