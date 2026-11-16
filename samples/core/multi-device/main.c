@@ -322,16 +322,27 @@ int main(int argc, char* argv[])
     OCLERROR_RET(clGetDeviceInfo(dev, CL_DEVICE_MAX_COMPUTE_UNITS,
                                  sizeof(cl_uint), &max_compute_units, NULL),
                  error, props);
+    if (max_compute_units < subdev_count)
+    {
+        fprintf(stdout,
+                "This sample requires a device with at least two compute "
+                "units, but the device chosen has only one. Please try with "
+                "a different OpenCL device instead.\n");
+        exit(EXIT_SUCCESS);
+    }
     cl_device_partition_property subdevices_properties[] = {
         (cl_device_partition_property)CL_DEVICE_PARTITION_EQUALLY,
         (cl_device_partition_property)(max_compute_units / subdev_count), 0
     };
 
+    // The partition may create more than two sub-devices, e.g. three if the
+    // device has three compute units.
     cl_device_id* subdevices =
-        (cl_device_id*)malloc(subdev_count * sizeof(cl_device_id));
+        (cl_device_id*)malloc(max_compute_units * sizeof(cl_device_id));
 
-    OCLERROR_RET(clCreateSubDevices(dev, subdevices_properties, subdev_count,
-                                    subdevices, &subdev_created),
+    OCLERROR_RET(clCreateSubDevices(dev, subdevices_properties,
+                                    max_compute_units, subdevices,
+                                    &subdev_created),
                  error, props);
 
     if (subdev_created < subdev_count)
@@ -340,6 +351,12 @@ int main(int argc, char* argv[])
                 "Error: OpenCL cannot create the number of sub-devices "
                 "requested\n");
         exit(EXIT_FAILURE);
+    }
+
+    // Only the first two sub-devices are used.
+    for (cl_uint i = subdev_count; i < subdev_created; ++i)
+    {
+        OCLERROR_RET(clReleaseDevice(subdevices[i]), error, subdev1);
     }
 
     OCLERROR_PAR(context = clCreateContext(NULL, subdev_count, subdevices, NULL,

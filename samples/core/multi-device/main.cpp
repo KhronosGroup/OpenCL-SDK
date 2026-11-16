@@ -183,6 +183,14 @@ int main(int argc, char* argv[])
 
         // Create subdevices, each with half of the compute units available.
         cl_uint max_compute_units = dev.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>();
+        if (max_compute_units < 2)
+        {
+            std::cout << "This sample requires a device with at least two "
+                         "compute units, but the device chosen has only one. "
+                         "Please try with a different OpenCL device instead."
+                      << std::endl;
+            exit(EXIT_SUCCESS);
+        }
         cl_device_partition_property subdevices_properties[] = {
             CL_DEVICE_PARTITION_EQUALLY,
             static_cast<cl_device_partition_property>(max_compute_units / 2), 0
@@ -195,6 +203,10 @@ int main(int argc, char* argv[])
             std::cerr << "Error: OpenCL cannot create subdevices" << std::endl;
             exit(EXIT_FAILURE);
         }
+
+        // The partition may create more than two subdevices, e.g. three if
+        // the device has three compute units. Only the first two are used.
+        subdevices.resize(2);
 
         cl::Context context(subdevices);
 
