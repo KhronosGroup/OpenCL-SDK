@@ -862,8 +862,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        #os: [ubuntu-latest, macos-latest]
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -872,6 +871,13 @@ jobs:
       - name: Install Ruby and POCL
         run: sudo apt update; sudo apt install pocl-opencl-icd
         if: ${{ matrix.os == 'ubuntu-latest' }}
+      - name: Install POCL on macOS
+        # Apple's OpenCL returns CL_INVALID_VALUE from clGetDeviceIDs on this
+        # runner: make opencl_ruby_ffi load the ICD loader, which finds PoCL
+        run: |
+          brew install pocl
+          echo "LIBOPENCL_SO=$(brew --prefix opencl-icd-loader)/lib/libOpenCL.dylib" >> $GITHUB_ENV
+        if: ${{ matrix.os == 'macos-latest' }}
       - name: Install OpenCL Ruby Bindings and RuboCop
         # narray, which opencl_ruby_ffi depends on, is C that compilers
         # defaulting to C23 (GCC 15) reject: build it as C17
