@@ -258,21 +258,21 @@ int main(int argc, char *argv[])
                  error, vec);
 
     /// Run kernel
-    cl_event pass;
     OCLERROR_RET(clSetKernelArg(Collatz, 0, sizeof(cl_mem), &buf), error, buff);
 
     GET_CURRENT_TIMER(start_time)
+    cl_event pass;
     OCLERROR_RET(clEnqueueNDRangeKernel(queue, Collatz, 1, &start, &length,
                                         NULL, 0, NULL, &pass),
                  error, buff);
-    OCLERROR_RET(clWaitForEvents(1, &pass), error, buff);
+    OCLERROR_RET(clWaitForEvents(1, &pass), error, ev);
     GET_CURRENT_TIMER(end_time)
 
     if (diag_opts.verbose) print_timings(start_time, end_time, &pass, 1);
 
     OCLERROR_RET(clEnqueueReadBuffer(queue, buf, CL_BLOCKING, 0,
                                      sizeof(cl_int) * length, v, 0, NULL, NULL),
-                 error, buff);
+                 error, ev);
 
     /// Show results
     int max_steps = 0;
@@ -298,6 +298,8 @@ int main(int argc, char *argv[])
            length, start + 1, max_steps, max_ind);
 
     /// Cleanup
+ev:
+    OCLERROR_RET(clReleaseEvent(pass), end_error, buff);
 buff:
     OCLERROR_RET(clReleaseMemObject(buf), end_error, vec);
 vec:

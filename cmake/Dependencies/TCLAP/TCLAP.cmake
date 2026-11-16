@@ -1,5 +1,18 @@
 if(NOT DEPENDENCIES_FORCE_DOWNLOAD)
   find_package(TCLAP)
+  # TCLAP 1.4 (Homebrew's, for one) uses C++20 concepts: when the installed
+  # headers do not build with this build's C++ standard, fetch TCLAP instead
+  if(TCLAP_FOUND)
+    include(CheckCXXSourceCompiles)
+    set(CMAKE_REQUIRED_INCLUDES "${TCLAP_INCLUDE_DIR}")
+    check_cxx_source_compiles("#include <tclap/CmdLine.h>
+int main() { return 0; }" TCLAP_BUILDS_WITH_CXX_STANDARD)
+    unset(CMAKE_REQUIRED_INCLUDES)
+    if(NOT TCLAP_BUILDS_WITH_CXX_STANDARD)
+      message(STATUS "TCLAP in ${TCLAP_INCLUDE_DIR} does not build as C++${CMAKE_CXX_STANDARD}.")
+      set(TCLAP_FOUND FALSE)
+    endif()
+  endif()
 endif()
 
 if(NOT TCLAP_FOUND)
@@ -21,5 +34,8 @@ if(NOT TCLAP_FOUND)
   )
   FetchContent_MakeAvailable(tclap-external)
   list(APPEND CMAKE_PREFIX_PATH "${CMAKE_CURRENT_BINARY_DIR}/_deps/tclap-external-src/include")
+  # the fetched headers, not installed ones the module may have found before
+  set(TCLAP_INCLUDE_PATH "${CMAKE_CURRENT_BINARY_DIR}/_deps/tclap-external-src/include"
+    CACHE PATH "Path to the TCLAP headers" FORCE)
   find_package(TCLAP REQUIRED)
 endif()

@@ -231,9 +231,6 @@ int main(int argc, char* argv[])
                       << std::endl;
         }
 
-        // Create OpenCL runtime objects.
-        cl::Context cl_context{ cl_device };
-
         // Check if the device supports the Khronos extensions needed before
         // attempting to compile the kernel.
         if (diag_opts.verbose)
@@ -249,9 +246,14 @@ int main(int argc, char* argv[])
                 std::cout << "OpenCL device does not support the required "
                              "Khronos extension "
                           << extension << std::endl;
+                vkDestroyDevice(vk_device, nullptr);
+                vkDestroyInstance(instance, nullptr);
                 exit(EXIT_SUCCESS);
             }
         }
+
+        // Create OpenCL runtime objects.
+        cl::Context cl_context{ cl_device };
 
         // Compile kernel.
         if (diag_opts.verbose)
@@ -596,6 +598,8 @@ int main(int argc, char* argv[])
         vkUnmapMemory(vk_device, vk_buf_x_memory);
         vkFreeMemory(vk_device, vk_buf_y_memory, nullptr);
         vkFreeMemory(vk_device, vk_buf_x_memory, nullptr);
+        vkDestroyDevice(vk_device, nullptr);
+        vkDestroyInstance(instance, nullptr);
 
     } catch (cl::BuildError& e)
     {

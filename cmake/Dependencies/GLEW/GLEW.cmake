@@ -14,20 +14,17 @@ if(NOT (TARGET GLEW::GLEW OR TARGET glew))
   cmake_minimum_required(VERSION 3.11)
   include(FetchContent)
   set(ONLY_LIBS ON CACHE BOOL "Build only the GLEW libs")
+  set(glew-cmake_BUILD_SHARED OFF CACHE BOOL "Build shared GLEW library")
   FetchContent_Declare(
     glew-external
     GIT_REPOSITORY      https://github.com/Perlmint/glew-cmake.git
-    GIT_TAG             glew-cmake-2.2.0 # f456deace7b408655109aaeff71421ef2d3858c6
+    GIT_TAG             glew-cmake-2.3.1 # 2f38fcbb3b6c051130a4f624675584a11bfaaf9f
   )
   FetchContent_MakeAvailable(glew-external)
   add_library(GLEW::GLEW ALIAS libglew_static)
   set_target_properties(libglew_static
     PROPERTIES
       POSITION_INDEPENDENT_CODE ON
-      RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}"
-      ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}"
-      LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}"
-      INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}"
       FOLDER "Dependencies"
   )
 endif()
