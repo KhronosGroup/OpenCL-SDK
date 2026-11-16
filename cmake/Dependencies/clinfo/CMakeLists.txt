@@ -4,7 +4,6 @@ add_executable(clinfo src/clinfo.c)
 target_include_directories(clinfo PRIVATE src)
 target_link_libraries(clinfo PRIVATE OpenCL::OpenCL)
 target_compile_definitions(clinfo PRIVATE
-    CL_TARGET_OPENCL_VERSION=310
     CL_NO_NON_ICD_DISPATCH_EXTENSION_PROTOTYPES
 )
 add_test(NAME clinfo COMMAND $<TARGET_FILE:clinfo>)
