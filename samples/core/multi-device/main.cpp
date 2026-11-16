@@ -389,14 +389,20 @@ int main(int argc, char* argv[])
                                               half_input_bytes },
                              output_region = { i * half_output_bytes,
                                                half_output_bytes };
+            // The second subdevice computes one more row if y_dim is odd.
+            if (i == 1 && y_dim % 2)
+            {
+                input_region.size += sizeof(cl_float) * pad_x_dim;
+                output_region.size += sizeof(cl_float) * x_dim;
+            }
 
+            // CL_DEVICE_MEM_BASE_ADDR_ALIGN is in bits.
             const cl_uint align =
-                subdevice.getInfo<CL_DEVICE_MEM_BASE_ADDR_ALIGN>();
+                subdevice.getInfo<CL_DEVICE_MEM_BASE_ADDR_ALIGN>() / 8;
             if (input_region.origin % align || output_region.origin % align)
             {
-                std::cerr << "Error: Memory should be aligned to "
-                          << subdevice.getInfo<CL_DEVICE_MEM_BASE_ADDR_ALIGN>()
-                          << std::endl;
+                std::cerr << "Error: Memory should be aligned to " << align
+                          << " bytes" << std::endl;
                 exit(EXIT_FAILURE);
             }
 
@@ -439,9 +445,10 @@ int main(int argc, char* argv[])
             cl::EnqueueArgs{ sub_queues[0], global }, sub_input_grids[0],
             sub_output_grids[0], dev_mask, { { x_dim, grid_midpoint } }));
 
-        dev2_kernel_runs.push_back(convolutions[1](
-            cl::EnqueueArgs{ sub_queues[1], global }, sub_input_grids[1],
-            sub_output_grids[1], dev_mask, { { x_dim, grid_midpoint } }));
+        dev2_kernel_runs.push_back(
+            convolutions[1](cl::EnqueueArgs{ sub_queues[1], global },
+                            sub_input_grids[1], sub_output_grids[1], dev_mask,
+                            { { x_dim, y_dim - grid_midpoint } }));
 
         cl::WaitForEvents(dev1_kernel_runs);
         cl::WaitForEvents(dev2_kernel_runs);

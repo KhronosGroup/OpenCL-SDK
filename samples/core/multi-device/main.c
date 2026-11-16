@@ -539,6 +539,12 @@ int main(int argc, char* argv[])
                                           half_input_bytes },
                          output_region = { subdevice * half_output_bytes,
                                            half_output_bytes };
+        // The second sub-device computes one more row if y_dim is odd.
+        if (subdevice == 1 && y_dim % 2)
+        {
+            input_region.size += sizeof(cl_float) * pad_x_dim;
+            output_region.size += sizeof(cl_float) * x_dim;
+        }
         OCLERROR_PAR(sub_input_grids[subdevice] = clCreateSubBuffer(
                          dev_input_grid, CL_MEM_READ_ONLY,
                          CL_BUFFER_CREATE_TYPE_REGION, &input_region, &error),
@@ -566,7 +572,8 @@ int main(int argc, char* argv[])
                      error, subbufout);
         cl_uint2 output_dimensions;
         output_dimensions.x = (cl_uint)x_dim;
-        output_dimensions.y = (cl_uint)grid_midpoint;
+        output_dimensions.y =
+            (cl_uint)(subdevice == 0 ? grid_midpoint : y_dim - grid_midpoint);
         OCLERROR_RET(clSetKernelArg(convolutions[subdevice], 3,
                                     sizeof(cl_uint2), &output_dimensions),
                      error, subbufout);
@@ -625,10 +632,10 @@ int main(int argc, char* argv[])
     for (cl_uint i = 0; i < subdev_count; ++i)
     {
         OCLERROR_RET(
-            clEnqueueReadBuffer(sub_queues[i], sub_output_grids[i], CL_BLOCKING,
-                                0, mid_output_bytes,
-                                &concatenated_results[i * mid_output_count], 0,
-                                NULL, NULL),
+            clEnqueueReadBuffer(
+                sub_queues[i], sub_output_grids[i], CL_BLOCKING, 0,
+                i == 0 ? mid_output_bytes : output_bytes - mid_output_bytes,
+                &concatenated_results[i * mid_output_count], 0, NULL, NULL),
             error, result);
     }
 
