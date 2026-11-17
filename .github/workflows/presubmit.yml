@@ -868,10 +868,10 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
-      - name: Install Ruby and POCL
+      - name: Install PoCL on Ubuntu
         run: sudo apt update; sudo apt install pocl-opencl-icd
         if: ${{ matrix.os == 'ubuntu-latest' }}
-      - name: Install POCL on macOS
+      - name: Install PoCL on macOS
         # Apple's OpenCL returns CL_INVALID_VALUE from clGetDeviceIDs on this
         # runner: make opencl_ruby_ffi load the ICD loader, which finds PoCL
         run: |
