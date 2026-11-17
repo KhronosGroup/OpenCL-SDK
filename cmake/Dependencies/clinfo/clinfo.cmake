@@ -13,7 +13,7 @@ if(NOT clinfo_FOUND)
   FetchContent_Declare(
     clinfo
     GIT_REPOSITORY      https://github.com/Oblomov/clinfo.git
-    GIT_TAG             3.0.25.02.14
+    GIT_TAG             3.1.26.09.26
     PATCH_COMMAND       ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_LIST_DIR}/patch.cmake"
   )
   FetchContent_MakeAvailable(clinfo)
