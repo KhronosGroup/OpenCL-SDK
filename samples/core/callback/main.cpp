@@ -23,6 +23,7 @@
 
 // standard header includes
 #include <cassert>
+#include <condition_variable>
 #include <fstream>
 #include <future>
 #include <iostream>
@@ -45,6 +46,9 @@ struct ReadJob
 std::mutex read_mutex;
 std::map<std::intptr_t, ReadJob> read_jobs;
 std::vector<std::future<void>> image_write_tasks;
+// Number of callbacks that have finished launching their image write task.
+std::size_t launched_write_tasks = 0;
+std::condition_variable write_task_launched;
 
 template <typename T> struct DoubleBuffer
 {
@@ -87,6 +91,11 @@ void CL_CALLBACK read_complete_callback(cl_event, cl_int, void* user_data)
             cl::sdk::write_image(filename.c_str(), image);
             std::cout << "Written image to " << filename << '\n';
         });
+
+    // Signal the main thread that the task has been launched.
+    std::lock_guard<std::mutex> lock(read_mutex);
+    ++launched_write_tasks;
+    write_task_launched.notify_one();
 }
 
 struct CallbackOptions
@@ -295,8 +304,17 @@ int main(int argc, char* argv[])
             prev_compute_event = compute_event;
             images.swap();
         }
-        // Wait for every read finished callback to fire.
+        // Wait for every read to finish.
         read_queue.finish();
+
+        // Wait for every read finished callback to launch its task. Finishing
+        // the queue does not guarantee that the callbacks have been called.
+        {
+            std::unique_lock<std::mutex> lock(read_mutex);
+            write_task_launched.wait(lock, [&] {
+                return launched_write_tasks == num_images_writes;
+            });
+        }
 
         // Eventually, wait for each image file writing job to finish.
         for (const auto& task : image_write_tasks)

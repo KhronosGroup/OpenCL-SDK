@@ -322,16 +322,27 @@ int main(int argc, char* argv[])
     OCLERROR_RET(clGetDeviceInfo(dev, CL_DEVICE_MAX_COMPUTE_UNITS,
                                  sizeof(cl_uint), &max_compute_units, NULL),
                  error, props);
+    if (max_compute_units < subdev_count)
+    {
+        fprintf(stdout,
+                "This sample requires a device with at least two compute "
+                "units, but the device chosen has only one. Please try with "
+                "a different OpenCL device instead.\n");
+        exit(EXIT_SUCCESS);
+    }
     cl_device_partition_property subdevices_properties[] = {
         (cl_device_partition_property)CL_DEVICE_PARTITION_EQUALLY,
         (cl_device_partition_property)(max_compute_units / subdev_count), 0
     };
 
+    // The partition may create more than two sub-devices, e.g. three if the
+    // device has three compute units.
     cl_device_id* subdevices =
-        (cl_device_id*)malloc(subdev_count * sizeof(cl_device_id));
+        (cl_device_id*)malloc(max_compute_units * sizeof(cl_device_id));
 
-    OCLERROR_RET(clCreateSubDevices(dev, subdevices_properties, subdev_count,
-                                    subdevices, &subdev_created),
+    OCLERROR_RET(clCreateSubDevices(dev, subdevices_properties,
+                                    max_compute_units, subdevices,
+                                    &subdev_created),
                  error, props);
 
     if (subdev_created < subdev_count)
@@ -340,6 +351,12 @@ int main(int argc, char* argv[])
                 "Error: OpenCL cannot create the number of sub-devices "
                 "requested\n");
         exit(EXIT_FAILURE);
+    }
+
+    // Only the first two sub-devices are used.
+    for (cl_uint i = subdev_count; i < subdev_created; ++i)
+    {
+        OCLERROR_RET(clReleaseDevice(subdevices[i]), error, subdev1);
     }
 
     OCLERROR_PAR(context = clCreateContext(NULL, subdev_count, subdevices, NULL,
@@ -406,8 +423,8 @@ int main(int argc, char* argv[])
                x_dim * y_dim);
         fflush(stdout);
     }
-    cl_sdk_fill_with_random_ints_range(&rng, (cl_int*)h_input_grid,
-                                       pad_x_dim * pad_y_dim, -1000, 1000);
+    cl_sdk_fill_with_random_floats_range(&rng, h_input_grid,
+                                         pad_x_dim * pad_y_dim, -1.f, 1.f);
     // Fill with 0s the extra rows and columns added for padding.
     for (size_t y = 0; y < pad_y_dim; ++y)
     {
@@ -432,8 +449,8 @@ int main(int argc, char* argv[])
                mask_dim * mask_dim);
         fflush(stdout);
     }
-    cl_sdk_fill_with_random_ints_range(&rng, (cl_int*)h_mask,
-                                       mask_dim * mask_dim, -1000, 1000);
+    cl_sdk_fill_with_random_floats_range(&rng, h_mask, mask_dim * mask_dim,
+                                         -1.f, 1.f);
 
     // Create device buffers, from which we will create the subbuffers for the
     // sub-devices.
@@ -522,6 +539,12 @@ int main(int argc, char* argv[])
                                           half_input_bytes },
                          output_region = { subdevice * half_output_bytes,
                                            half_output_bytes };
+        // The second sub-device computes one more row if y_dim is odd.
+        if (subdevice == 1 && y_dim % 2)
+        {
+            input_region.size += sizeof(cl_float) * pad_x_dim;
+            output_region.size += sizeof(cl_float) * x_dim;
+        }
         OCLERROR_PAR(sub_input_grids[subdevice] = clCreateSubBuffer(
                          dev_input_grid, CL_MEM_READ_ONLY,
                          CL_BUFFER_CREATE_TYPE_REGION, &input_region, &error),
@@ -549,7 +572,8 @@ int main(int argc, char* argv[])
                      error, subbufout);
         cl_uint2 output_dimensions;
         output_dimensions.x = (cl_uint)x_dim;
-        output_dimensions.y = (cl_uint)grid_midpoint;
+        output_dimensions.y =
+            (cl_uint)(subdevice == 0 ? grid_midpoint : y_dim - grid_midpoint);
         OCLERROR_RET(clSetKernelArg(convolutions[subdevice], 3,
                                     sizeof(cl_uint2), &output_dimensions),
                      error, subbufout);
@@ -608,10 +632,10 @@ int main(int argc, char* argv[])
     for (cl_uint i = 0; i < subdev_count; ++i)
     {
         OCLERROR_RET(
-            clEnqueueReadBuffer(sub_queues[i], sub_output_grids[i], CL_BLOCKING,
-                                0, mid_output_bytes,
-                                &concatenated_results[i * mid_output_count], 0,
-                                NULL, NULL),
+            clEnqueueReadBuffer(
+                sub_queues[i], sub_output_grids[i], CL_BLOCKING, 0,
+                i == 0 ? mid_output_bytes : output_bytes - mid_output_bytes,
+                &concatenated_results[i * mid_output_count], 0, NULL, NULL),
             error, result);
     }
 
@@ -631,6 +655,8 @@ int main(int argc, char* argv[])
                "device exceeds tolerance %.6f\n",
                deviation, tolerance);
         fflush(stdout);
+        error = CL_INVALID_VALUE;
+        goto result;
     }
     else
     {
