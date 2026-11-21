@@ -1,6 +1,8 @@
 // OpenCL SDK includes
 #include <CL/SDK/InteropWindow.hpp>
 #include <CL/SDK/InteropContext.hpp>
+#include <CL/Utils/Context.hpp>
+#include <CL/Utils/Device.hpp>
 
 cl::sdk::InteropWindow::InteropWindow(sf::VideoMode mode,
                                       const sf::String& title, Style style,
@@ -17,7 +19,15 @@ void cl::sdk::InteropWindow::run()
 
     initializeGL();
 
-    opencl_context = get_interop_context(plat_id, dev_id, dev_type);
+    if (requires_gl_interop()
+        || cl::util::supports_extension(
+            cl::util::get_context(plat_id, dev_id, dev_type)
+                .getInfo<CL_CONTEXT_DEVICES>()
+                .at(0),
+            "cl_khr_gl_sharing"))
+        opencl_context = get_interop_context(plat_id, dev_id, dev_type);
+    else
+        opencl_context = cl::util::get_context(plat_id, dev_id, dev_type);
 
     cl_khr_gl_event_supported = opencl_context.getInfo<CL_CONTEXT_DEVICES>()
                                     .at(0)
