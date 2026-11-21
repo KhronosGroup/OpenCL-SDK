@@ -60,6 +60,8 @@ protected:
     virtual void event(const sf::Event& e)
         override; // Function that handles render area resize
 
+    bool requires_gl_interop() const override { return false; }
+
     void create_texture_images();
     void create_vertex_buffer();
     void create_index_buffer();

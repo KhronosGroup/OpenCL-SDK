@@ -44,6 +44,10 @@ namespace sdk {
         virtual void event(
             const sf::Event& e) = 0; // Function that handles render area resize
 
+        // Samples that can copy their data to OpenGL return false: they get a
+        // plain context on devices without cl_khr_gl_sharing.
+        virtual bool requires_gl_interop() const { return true; }
+
         cl::Context opencl_context;
         bool cl_khr_gl_event_supported;
 
