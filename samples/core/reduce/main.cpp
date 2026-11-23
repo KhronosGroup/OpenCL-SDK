@@ -98,8 +98,10 @@ int main(int argc, char* argv[])
         // Query device and runtime capabilities
         auto highest_device_opencl_c_is_2_x =
             cl::util::opencl_c_version_contains(device, "2.");
+        // OpenCL 3.0 devices support OpenCL C 3.0 but may report OpenCL C 1.2
         auto highest_device_opencl_c_is_3_x =
-            cl::util::opencl_c_version_contains(device, "3.");
+            device.getInfo<CL_DEVICE_VERSION>().find("OpenCL 3.")
+            != cl::string::npos;
         auto may_use_work_group_reduce = [&]() // IILE
         {
             if (cl::util::platform_version_contains(platform, "2."))
@@ -163,10 +165,10 @@ int main(int argc, char* argv[])
         cl::string compiler_options =
             cl::string{ may_use_work_group_reduce ? "-D USE_WORK_GROUP_REDUCE "
                                                   : "" }
-            + cl::string{ highest_device_opencl_c_is_2_x ? "-cl-std=CL2.0 "
-                                                         : "" }
             + cl::string{ highest_device_opencl_c_is_3_x ? "-cl-std=CL3.0 "
-                                                         : "" }
+                              : highest_device_opencl_c_is_2_x
+                              ? "-cl-std=CL2.0 "
+                              : "" }
             + cl::string{ may_use_sub_group_reduce ? "-D USE_SUB_GROUP_REDUCE "
                                                    : "" };
         program.build(device, compiler_options.c_str());
