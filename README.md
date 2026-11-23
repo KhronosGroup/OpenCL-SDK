@@ -57,6 +57,10 @@ In most cases, the following steps may be used to build the OpenCL SDK.
 
         cmake .. -DCMAKE_BUILD_TYPE=Release
 
+   Samples that make use of OpenGL or Vulkan interop are disabled by default to reduce
+   the number of dependencies for most users. They can be enabled using the
+   `OPENCL_SDK_BUILD_OPENGL_SAMPLES` CMake option.
+
 4. Build the OpenCL SDK and copy files to an "install" directory:
 
         cmake --build . --target install --config Release

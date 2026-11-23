@@ -170,3 +170,27 @@ std::string cl::util::read_exe_relative_text_file(const char* const filename,
     }
     return result;
 }
+
+std::vector<unsigned char>
+cl::util::read_exe_relative_binary_file(const char* const filename,
+                                        cl_int* const error)
+{
+    std::vector<unsigned char> result;
+    cl_int err = CL_SUCCESS;
+    std::string exe_folder = executable_folder(&err);
+    if (err != CL_SUCCESS)
+    {
+        detail::errHandler(CL_UTIL_FILE_OPERATION_ERROR, error,
+                           "Failed to query exe folder!");
+        return result;
+    }
+    result = read_binary_file((exe_folder + "/" + filename).c_str(), &err);
+    if (err != CL_SUCCESS)
+    {
+        result.clear();
+        detail::errHandler(CL_UTIL_FILE_OPERATION_ERROR, error,
+                           "Unable to read file!");
+        return result;
+    }
+    return result;
+}

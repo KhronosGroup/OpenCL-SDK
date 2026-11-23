@@ -146,8 +146,8 @@ if(OPENCL_SDK_BUILD_SAMPLES)
         $<$<BOOL:${OPENCL_SDK_BUILD_OPENGL_SAMPLES}>:OpenGL::GL>
         $<$<BOOL:${OPENCL_SDK_BUILD_OPENGL_SAMPLES}>:GLEW::GLEW>
         $<$<AND:$<BOOL:${OPENCL_SDK_BUILD_OPENGL_SAMPLES}>,$<PLATFORM_ID:Linux>>:OpenGL::GLU>
-        $<$<BOOL:${OPENCL_SDK_BUILD_OPENGL_SAMPLES}>:sfml-system>
-        $<$<BOOL:${OPENCL_SDK_BUILD_OPENGL_SAMPLES}>:sfml-window>
+        $<$<OR:$<BOOL:${OPENCL_SDK_BUILD_OPENGL_SAMPLES}>,$<BOOL:${OPENCL_SDK_BUILD_VULKAN_SAMPLES}>>:sfml-system>
+        $<$<OR:$<BOOL:${OPENCL_SDK_BUILD_OPENGL_SAMPLES}>,$<BOOL:${OPENCL_SDK_BUILD_VULKAN_SAMPLES}>>:sfml-window>
         $<$<BOOL:${OPENCL_SDK_BUILD_OPENGL_SAMPLES}>:sfml-graphics>
       )
       set(SDK_LIB_INCLUDES
@@ -208,7 +208,7 @@ if(OPENCL_SDK_BUILD_SAMPLES)
     # Copying DLLs the samples depend on only makes sense on Wnidows. On *nix
     # OSes we rely on RPATH. We can only do this with sufficiently new CMake.
     if(
-      OPENCL_SDK_BUILD_OPENGL_SAMPLES AND
+      (OPENCL_SDK_BUILD_OPENGL_SAMPLES OR OPENCL_SDK_BUILD_VULKAN_SAMPLES) AND
       CMAKE_VERSION VERSION_GREATER_EQUAL 3.21 AND
       CMAKE_SYSTEM_NAME MATCHES Windows
     )
